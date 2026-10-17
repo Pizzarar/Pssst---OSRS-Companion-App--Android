@@ -109,9 +109,11 @@ class SyncWorker(
             // Insert/update in Room database
             val rawJson = gson.toJson(stateResponse)
             val data = stateResponse.data
+            // Sources disagree on units: Cloudflare worker sends seconds, plugin WS + mock send ms
+            val updatedAtMs = stateResponse.updatedAt.let { if (it in 1 until 100_000_000_000L) it * 1000 else it }
             val entity = PlayerStateEntity(
                 uuid,
-                stateResponse.updatedAt,
+                updatedAtMs,
                 rawJson,
                 gson.toJson(data?.varbits ?: emptyMap<String, Int>()),
                 gson.toJson(data?.slayer ?: emptyMap<String, Any?>()),

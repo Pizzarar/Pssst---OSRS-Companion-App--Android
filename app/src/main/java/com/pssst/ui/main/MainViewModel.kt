@@ -84,7 +84,12 @@ class MainViewModel(
     ) { prefs, entityList, filters ->
         val hasUuid = !prefs.uuid.isNullOrBlank()
         val currentServerUrl = prefs.serverUrl ?: ""
-        val entity = entityList.firstOrNull()
+        val activeUuid = prefs.uuid?.trim().orEmpty()
+        val entity = if (activeUuid.isNotEmpty()) {
+            entityList.find { it.uuid.equals(activeUuid, ignoreCase = true) } ?: entityList.firstOrNull()
+        } else {
+            entityList.firstOrNull()
+        }
         if (entity == null) {
             MainDashboardUiState(
                 uuid = prefs.uuid ?: "",

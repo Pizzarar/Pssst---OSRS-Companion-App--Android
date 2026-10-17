@@ -20,7 +20,8 @@ public interface PlayerStateDao {
     @Query("SELECT * FROM player_states ORDER BY updated_at DESC LIMIT 1")
     PlayerStateEntity getLatestState();
 
-    @Query("SELECT * FROM player_states ORDER BY updated_at DESC LIMIT 1")
+    // No LIMIT: MainViewModel picks the row matching the active UUID; LIMIT 1 made that a no-op
+    @Query("SELECT * FROM player_states ORDER BY updated_at DESC")
     kotlinx.coroutines.flow.Flow<List<PlayerStateEntity>> getLatestStateFlow();
 
     @Query("SELECT * FROM player_states")

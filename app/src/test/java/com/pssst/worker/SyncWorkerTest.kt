@@ -140,7 +140,7 @@ class SyncWorkerTest {
         val savedEntity = database.playerStateDao().getStateByUuid(testUuid)
         assertNotNull("Saved entity in Room should not be null", savedEntity)
         assertEquals(testUuid, savedEntity!!.uuid)
-        assertEquals(1729100000L, savedEntity.updatedAt)
+        assertEquals(1729100000000L, savedEntity.updatedAt) // worker sends seconds; SyncWorker normalizes to ms
         assertTrue(savedEntity.rawJson.contains("4151"))
         assertTrue(savedEntity.varbitsJson.contains(""""4771":8"""))
         assertTrue(savedEntity.slayerJson.contains("Abyssal demons"))

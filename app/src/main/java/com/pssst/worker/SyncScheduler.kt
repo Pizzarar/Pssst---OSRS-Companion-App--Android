@@ -38,12 +38,7 @@ object SyncScheduler {
     }
 
     fun syncNow(context: Context) {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
-
         val oneTimeWorkRequest = OneTimeWorkRequestBuilder<SyncWorker>()
-            .setConstraints(constraints)
             .addTag(SyncWorker.TAG)
             .build()
 
@@ -68,9 +63,11 @@ object SyncScheduler {
             .addTag(BirdhouseReminderWorker.TAG)
             .build()
 
+        // KEEP, not REPLACE: SyncWorker calls this on every sync while a house is seeded,
+        // so REPLACE pushed the 50-min reminder back every 15 min and it never fired.
         WorkManager.getInstance(context).enqueueUniqueWork(
             BIRDHOUSE_REMINDER_WORK_NAME,
-            ExistingWorkPolicy.REPLACE,
+            ExistingWorkPolicy.KEEP,
             request
         )
     }

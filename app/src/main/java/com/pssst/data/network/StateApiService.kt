@@ -29,7 +29,9 @@ interface StateApiService {
                 .connectTimeout(15, TimeUnit.SECONDS)
                 .readTimeout(15, TimeUnit.SECONDS)
                 .addInterceptor(HttpLoggingInterceptor().apply {
-                    level = HttpLoggingInterceptor.Level.BODY
+                    // BODY dumped the full bank + bearer token to logcat in every build
+                    level = HttpLoggingInterceptor.Level.BASIC
+                    redactHeader("Authorization")
                 })
                 .build()
 
