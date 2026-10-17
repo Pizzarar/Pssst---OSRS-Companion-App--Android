@@ -3,7 +3,7 @@
 // Pure logic for building the bundled item manifest (no network, no files), so it can be unit tested.
 
 // If the last high and last low trade are further apart than this, one of them is too old to average with.
-// Keep in sync with WikiPrices.kt in the app, which applies the same rule to live refreshes.
+// Build time only: the app itself never fetches prices (they arrive from the plugin, via RuneLite).
 const MAX_SIDE_SKEW_SECONDS = 7 * 24 * 60 * 60;
 
 const COINS_ID = 995;
