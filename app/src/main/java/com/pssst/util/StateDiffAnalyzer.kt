@@ -1,0 +1,239 @@
+package com.pssst.util
+
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import com.pssst.data.local.PlayerStateEntity
+import com.pssst.data.network.model.StateResponse
+
+data class NotificationAlert(
+    val title: String,
+    val message: String
+)
+
+object StateDiffAnalyzer {
+    private val gson = Gson()
+
+    val HERB_PATCH_VARBITS = setOf("4771", "4772", "4773", "4774", "4775")
+    val TREE_PATCH_VARBITS = setOf("7904", "7905", "7906", "7907")
+    val HESPORI_PATCH_VARBITS = setOf("7908")
+    val ALL_FARMING_VARBITS = HERB_PATCH_VARBITS + TREE_PATCH_VARBITS + HESPORI_PATCH_VARBITS
+
+    val PATCH_NAMES = mapOf(
+        "4771" to "Ardougne Herb Patch",
+        "4772" to "Catherby Herb Patch",
+        "4773" to "Falador Herb Patch",
+        "4774" to "Port Phasmatys Herb Patch",
+        "4775" to "Hosidius Herb Patch",
+        "7904" to "Lumbridge Tree Patch",
+        "7905" to "Varrock Tree Patch",
+        "7906" to "Falador Tree Patch",
+        "7907" to "Taverley Tree Patch",
+        "7908" to "Hespori Patch"
+    )
+
+    private val BIRDHOUSE_SPACES = listOf(
+        Pair("1626", "567") to "Mushroom Meadow (North)",
+        Pair("1627", "568") to "Mushroom Meadow (South)",
+        Pair("1628", "569") to "Verdant Valley (Northeast)",
+        Pair("1629", "570") to "Verdant Valley (Southwest)"
+    )
+
+    /**
+     * Compares previous and current state to identify any completed farming patches,
+     * birdhouses, daily resets, kingdom warnings, or completed slayer tasks.
+     */
+    fun findCompletedRunsOrPatches(
+        previousEntity: PlayerStateEntity?,
+        currentState: StateResponse
+    ): List<NotificationAlert> {
+        val currentData = currentState.data ?: return emptyList()
+        val alerts = mutableListOf<NotificationAlert>()
+
+        val previousVarbits: Map<String, Int> = previousEntity?.let {
+            try {
+                val mapType = object : TypeToken<Map<String, Int>>() {}.type
+                gson.fromJson<Map<String, Int>>(it.varbitsJson, mapType) ?: emptyMap()
+            } catch (e: Exception) {
+                emptyMap()
+            }
+        } ?: emptyMap()
+
+        val currentVarbits = currentData.varbits
+
+        // 1. Check farming patches with human-readable names
+        for (varbitId in ALL_FARMING_VARBITS) {
+            val prevVal = previousVarbits[varbitId]
+            val currVal = currentVarbits[varbitId]
+
+            if (currVal != null && isPatchCompleted(varbitId, prevVal, currVal)) {
+                val patchName = PATCH_NAMES[varbitId] ?: "Farming patch ($varbitId)"
+                alerts.add(
+                    NotificationAlert(
+                        title = "Farming Patch Ready!",
+                        message = "$patchName is fully grown and ready to harvest."
+                    )
+                )
+            }
+        }
+
+        // 2. Check Birdhouses ready
+        for ((keys, spaceName) in BIRDHOUSE_SPACES) {
+            val (realKey, fallbackKey) = keys
+            val prevVal = previousVarbits[realKey] ?: previousVarbits[fallbackKey]
+            val currVal = currentVarbits[realKey] ?: currentVarbits[fallbackKey]
+
+            if (prevVal != null && currVal != null) {
+                val wasSeeded = (prevVal % 3) == 2
+                val isReadyNow = (currVal % 3) == 0 && currVal > 0
+                if (wasSeeded && isReadyNow) {
+                    alerts.add(
+                        NotificationAlert(
+                            title = "Birdhouse Run Ready!",
+                            message = "$spaceName birdhouse is ready to harvest."
+                        )
+                    )
+                }
+            }
+        }
+
+        // 3. Check Daily / Weekly Resets
+        // Zaff's Battlestaves: was claimed (1) and now reset (0)
+        val prevStaves = previousVarbits["4539"]
+        val currStaves = currentVarbits["4539"]
+        if (prevStaves == 1 && currStaves == 0) {
+            alerts.add(
+                NotificationAlert(
+                    title = "Daily Reset: Zaff's Battlestaves",
+                    message = "Discounted battlestaves are available in Varrock Square."
+                )
+            )
+        }
+
+        // NMZ Herb Boxes: was claimed (> 0) and now reset (0)
+        val prevHerbBoxes = previousVarbits["3961"]
+        val currHerbBoxes = currentVarbits["3961"]
+        if (prevHerbBoxes != null && prevHerbBoxes > 0 && currHerbBoxes == 0) {
+            alerts.add(
+                NotificationAlert(
+                    title = "Daily Reset: NMZ Herb Boxes",
+                    message = "Daily herb boxes have reset in Nightmare Zone."
+                )
+            )
+        }
+
+        // Tears of Guthix (Weekly): was on cooldown (> 0) and now 0 (ready)
+        val prevTog = previousVarbits["5099"]
+        val currTog = currentVarbits["5099"]
+        if (prevTog != null && prevTog > 0 && currTog == 0) {
+            alerts.add(
+                NotificationAlert(
+                    title = "Tears of Guthix Ready!",
+                    message = "The Chasm of Tears is open for your weekly visit."
+                )
+            )
+        }
+
+        // 4. Kingdom of Miscellania Warnings
+        val prevApproval = extractKingdomApproval(previousVarbits)
+        val currApproval = extractKingdomApproval(currentVarbits)
+        if (prevApproval != null && currApproval != null && prevApproval >= 90 && currApproval < 90) {
+            alerts.add(
+                NotificationAlert(
+                    title = "Kingdom Approval Warning",
+                    message = "Your Miscellania approval has dropped below 90% (now $currApproval%)."
+                )
+            )
+        }
+
+        val prevCoffer = extractKingdomCoffer(previousVarbits)
+        val currCoffer = extractKingdomCoffer(currentVarbits)
+        if (prevCoffer != null && currCoffer != null && prevCoffer >= 750_000L && currCoffer < 750_000L) {
+            alerts.add(
+                NotificationAlert(
+                    title = "Kingdom Coffer Low",
+                    message = "Your Miscellania coffer has dropped below 750,000 GP."
+                )
+            )
+        }
+
+        // 5. Check Slayer tasks
+        val prevSlayerAmount = previousEntity?.let { extractSlayerAmount(it.slayerJson) } ?: -1
+        val currSlayerAmount = extractSlayerAmountFromMap(currentData.slayer)
+        if (prevSlayerAmount > 0 && currSlayerAmount == 0) {
+            alerts.add(
+                NotificationAlert(
+                    title = "Slayer Task Complete!",
+                    message = "You have finished your Slayer assignment."
+                )
+            )
+        }
+
+        return alerts
+    }
+
+    /**
+     * Determines whether a patch transitioned from growing to fully grown.
+     */
+    fun isPatchCompleted(varbitId: String, prevVal: Int?, currVal: Int): Boolean {
+        if (prevVal == null) return false
+        if (prevVal == currVal) return false
+
+        // Herb patches: values 1..7 indicate growing, >= 8 indicates grown
+        if (HERB_PATCH_VARBITS.contains(varbitId)) {
+            val wasGrowing = prevVal in 1..7
+            val isGrown = currVal in 8..12
+            return wasGrowing && isGrown
+        }
+
+        // Tree patches: values 1..4 indicate growing, >= 5 indicates grown
+        if (TREE_PATCH_VARBITS.contains(varbitId)) {
+            val wasGrowing = prevVal in 1..4
+            val isGrown = currVal >= 5
+            return wasGrowing && isGrown
+        }
+
+        // Hespori patch: values 1..3 indicate growing, >= 4 indicates grown
+        if (HESPORI_PATCH_VARBITS.contains(varbitId)) {
+            val wasGrowing = prevVal in 1..3
+            val isGrown = currVal >= 4
+            return wasGrowing && isGrown
+        }
+
+        // Generic farming or tree check
+        val wasGrowing = prevVal in 1..25
+        val isGrown = currVal >= 26
+        return wasGrowing && isGrown
+    }
+
+    private fun extractKingdomApproval(varbits: Map<String, Int>): Int? {
+        val v72 = varbits["72"]
+        if (v72 != null) return (v72 * 100) / 127
+        return varbits["3948"] ?: varbits["4000"]
+    }
+
+    private fun extractKingdomCoffer(varbits: Map<String, Int>): Long? {
+        val v74 = varbits["74"]
+        if (v74 != null) return v74.toLong()
+        val legacy = varbits["3949"] ?: varbits["4001"]
+        return legacy?.toLong()
+    }
+
+    private fun extractSlayerAmount(slayerJson: String): Int {
+        return try {
+            val type = object : TypeToken<Map<String, Any?>>() {}.type
+            val map: Map<String, Any?> = gson.fromJson(slayerJson, type) ?: return -1
+            extractSlayerAmountFromMap(map)
+        } catch (e: Exception) {
+            -1
+        }
+    }
+
+    private fun extractSlayerAmountFromMap(map: Map<String, Any?>): Int {
+        val amount = map["amount"] ?: return -1
+        return when (amount) {
+            is Number -> amount.toInt()
+            is String -> amount.toIntOrNull() ?: -1
+            else -> -1
+        }
+    }
+}

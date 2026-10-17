@@ -1,0 +1,255 @@
+package com.pssst.worker
+
+import android.content.Context
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import androidx.work.ListenableWorker
+import androidx.work.testing.TestListenableWorkerBuilder
+import androidx.work.workDataOf
+import com.google.gson.Gson
+import com.pssst.data.local.AppDatabase
+import com.pssst.data.local.PlayerStateEntity
+import com.pssst.data.local.UserPreferencesRepository
+import com.pssst.data.network.StateApiService
+import com.pssst.data.network.model.ItemEntryDto
+import com.pssst.data.network.model.StateDataDto
+import com.pssst.data.network.model.StateResponse
+import com.pssst.util.StateDiffAnalyzer
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
+import okhttp3.OkHttpClient
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import retrofit2.Response
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class SyncWorkerTest {
+
+    private lateinit var context: Context
+    private lateinit var database: AppDatabase
+    private lateinit var mockWebServer: MockWebServer
+    private val gson = Gson()
+    private val testUuid = "12345678-1234-1234-1234-123456789abc"
+
+    @Before
+    fun setUp() {
+        context = ApplicationProvider.getApplicationContext()
+        database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+            .allowMainThreadQueries()
+            .build()
+
+        mockWebServer = MockWebServer()
+        mockWebServer.start()
+    }
+
+    @After
+    fun tearDown() {
+        database.close()
+        mockWebServer.shutdown()
+        SyncWorker.defaultApiService = null
+        SyncWorker.defaultDatabase = null
+        SyncWorker.defaultPreferences = null
+    }
+
+    @Test
+    fun syncWorker_successfullyFetchesParsesAndWritesToRoom() = runBlocking {
+        // Mock API response payload
+        val mockJson = """
+            {
+              "data": {
+                "inventory": [
+                  {"id": 4151, "quantity": 1},
+                  {"id": 995, "quantity": 50000}
+                ],
+                "bank": [
+                  {"id": 560, "quantity": 2500}
+                ],
+                "varbits": {
+                  "4771": 8,
+                  "4772": 3
+                },
+                "slayer": {
+                  "taskName": "Abyssal demons",
+                  "amount": 0
+                }
+              },
+              "updated_at": 1729100000
+            }
+        """.trimIndent()
+
+        mockWebServer.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setBody(mockJson)
+                .addHeader("Content-Type", "application/json")
+        )
+
+        // Seed previous state in Room with patch 4771 growing (stage 5)
+        val previousEntity = PlayerStateEntity(
+            testUuid,
+            1729000000L,
+            "{}",
+            """{"4771":5,"4772":2}""",
+            """{"taskName":"Abyssal demons","amount":45}""",
+            "[]",
+            "[]",
+            System.currentTimeMillis() - 60000
+        )
+        database.playerStateDao().upsert(previousEntity)
+
+        // Create API service pointing to MockWebServer
+        val apiService = StateApiService.create(
+            baseUrl = mockWebServer.url("/").toString(),
+            okHttpClient = OkHttpClient.Builder().build()
+        )
+
+        // Configure test worker dependencies
+        SyncWorker.defaultApiService = apiService
+        SyncWorker.defaultDatabase = database
+        SyncWorker.defaultPreferences = TestSyncUserPreferencesRepository(testUuid)
+
+        // Build worker via WorkManager test harness
+        val worker = TestListenableWorkerBuilder<SyncWorker>(context)
+            .setInputData(workDataOf(SyncWorker.KEY_UUID to testUuid))
+            .build()
+
+        // Execute worker
+        val result = worker.doWork()
+
+        // Verify WorkManager Result
+        assertEquals(ListenableWorker.Result.success(), result)
+
+        // Verify MockWebServer received correct GET request and Authorization header
+        val recordedRequest = mockWebServer.takeRequest()
+        assertEquals("GET", recordedRequest.method)
+        assertEquals("/state", recordedRequest.path)
+        assertEquals("Bearer $testUuid", recordedRequest.getHeader("Authorization"))
+
+        // Verify Room Database persistence
+        val savedEntity = database.playerStateDao().getStateByUuid(testUuid)
+        assertNotNull("Saved entity in Room should not be null", savedEntity)
+        assertEquals(testUuid, savedEntity!!.uuid)
+        assertEquals(1729100000L, savedEntity.updatedAt)
+        assertTrue(savedEntity.rawJson.contains("4151"))
+        assertTrue(savedEntity.varbitsJson.contains(""""4771":8"""))
+        assertTrue(savedEntity.slayerJson.contains("Abyssal demons"))
+
+        // Verify StateDiffAnalyzer detected the completed patch and slayer task
+        val parsedResponse = gson.fromJson(mockJson, StateResponse::class.java)
+        val alerts = StateDiffAnalyzer.findCompletedRunsOrPatches(previousEntity, parsedResponse)
+        assertEquals(2, alerts.size)
+        assertTrue(alerts.any { it.title.contains("Farming Patch Ready") })
+        assertTrue(alerts.any { it.title.contains("Slayer Task Complete") })
+    }
+
+    @Test
+    fun syncWorker_failsGracefullyWhenUuidMissing() = runBlocking {
+        SyncWorker.defaultDatabase = database
+        SyncWorker.defaultPreferences = TestSyncUserPreferencesRepository(null)
+
+        val worker = TestListenableWorkerBuilder<SyncWorker>(context).build()
+        val result = worker.doWork()
+
+        assertEquals(ListenableWorker.Result.failure(), result)
+    }
+
+    @Test
+    fun syncWorker_dynamicallyReadsServerUrlFromRepository() = runBlocking {
+        val dynamicServerUrl = mockWebServer.url("/custom-host/").toString()
+        val emptyPayloadJson = """
+            {
+              "data": {
+                "inventory": [],
+                "bank": [],
+                "varbits": {},
+                "slayer": {}
+              },
+              "updated_at": 1729200000
+            }
+        """.trimIndent()
+
+        mockWebServer.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setBody(emptyPayloadJson)
+                .addHeader("Content-Type", "application/json")
+        )
+
+        SyncWorker.defaultApiService = null
+        SyncWorker.defaultDatabase = database
+        SyncWorker.defaultPreferences = TestSyncUserPreferencesRepository(testUuid, dynamicServerUrl)
+
+        val worker = TestListenableWorkerBuilder<SyncWorker>(context)
+            .setInputData(workDataOf(SyncWorker.KEY_UUID to testUuid))
+            .build()
+
+        val result = worker.doWork()
+
+        assertEquals(ListenableWorker.Result.success(), result)
+        val recordedRequest = mockWebServer.takeRequest()
+        assertEquals("GET", recordedRequest.method)
+        assertEquals("/custom-host/state", recordedRequest.path)
+        assertEquals("Bearer $testUuid", recordedRequest.getHeader("Authorization"))
+    }
+
+    @Test
+    fun syncWorker_returnsSuccessOn404() = runBlocking {
+        mockWebServer.enqueue(
+            MockResponse()
+                .setResponseCode(404)
+                .setBody("""{"error":"State not found for UUID"}""")
+        )
+
+        val apiService = StateApiService.create(
+            baseUrl = mockWebServer.url("/").toString(),
+            okHttpClient = OkHttpClient.Builder().build()
+        )
+
+        SyncWorker.defaultApiService = apiService
+        SyncWorker.defaultDatabase = database
+        SyncWorker.defaultPreferences = TestSyncUserPreferencesRepository(testUuid)
+
+        val worker = TestListenableWorkerBuilder<SyncWorker>(context)
+            .setInputData(workDataOf(SyncWorker.KEY_UUID to testUuid))
+            .build()
+
+        val result = worker.doWork()
+
+        assertEquals(ListenableWorker.Result.success(), result)
+    }
+}
+
+private class TestSyncUserPreferencesRepository(
+    private val uuid: String? = null,
+    private val serverUrl: String? = null
+) : UserPreferencesRepository {
+    override val uuidFlow: Flow<String?> = flowOf(uuid)
+    override val rememberedUuidFlow: Flow<String?> = flowOf(uuid)
+    override val serverUrlFlow: Flow<String?> = flowOf(serverUrl)
+    override val lastSyncStatusFlow: Flow<String?> = flowOf(null)
+    override val notificationsEnabledFlow: Flow<Boolean> = flowOf(true)
+    override suspend fun getUuid(): String? = uuid
+    override suspend fun saveUuid(uuid: String) {}
+    override suspend fun clearUuid() {}
+    override suspend fun getRememberedUuid(): String? = uuid
+    override suspend fun saveRememberedUuid(uuid: String) {}
+    override suspend fun clearRememberedUuid() {}
+    override suspend fun getServerUrl(): String? = serverUrl
+    override suspend fun saveServerUrl(serverUrl: String) {}
+    override suspend fun clearServerUrl() {}
+    override suspend fun saveSetup(serverUrl: String, uuid: String) {}
+    override suspend fun saveLastSyncStatus(status: String?) {}
+    override suspend fun getNotificationsEnabled(): Boolean = true
+    override suspend fun saveNotificationsEnabled(enabled: Boolean) {}
+}
