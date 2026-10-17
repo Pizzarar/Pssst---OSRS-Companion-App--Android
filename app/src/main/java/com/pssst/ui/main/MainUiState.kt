@@ -52,7 +52,6 @@ data class DailyTaskUiModel(
     val statusText: String,
     val isAvailable: Boolean,
     val category: ResetCategory = ResetCategory.DAILY,
-    val estimatedProfitGp: Long = 0L
 )
 
 enum class FarmingStatus { UNKNOWN, WEEDS, EMPTY, GROWING, REGROWING, FILLING, GROWN, DISEASED, DEAD }

@@ -470,8 +470,6 @@ class MainViewModel(
             varbits["4479"] == 1 -> 15
             else -> 15
         }
-        val staffGePrice = manifestMap[1391]?.gePrice?.takeIf { it > 7000 } ?: 8200L
-        val staffProfit = (staffGePrice - 7000L).coerceAtLeast(0L) * stavesCount
         tasks.add(
             DailyTaskUiModel(
                 id = "zaff_staves",
@@ -479,8 +477,7 @@ class MainViewModel(
                 subtitle = "Varrock Square ($stavesCount discounted staves)",
                 statusText = if (stavesClaimed) "Claimed today" else "Available ($stavesCount ready)",
                 isAvailable = !stavesClaimed,
-                category = ResetCategory.DAILY,
-                estimatedProfitGp = if (!stavesClaimed) staffProfit else 0L
+                category = ResetCategory.DAILY
             )
         )
 
@@ -488,12 +485,11 @@ class MainViewModel(
         val herbBoxesClaimed = varbits["3961"] ?: 0
         val remainingBoxes = (15 - herbBoxesClaimed).coerceAtLeast(0)
         val nmzPoints = varps["1060"] ?: 0
-        val affordableBoxes = if (nmzPoints > 0) nmzPoints / 9500 else 0
-        val canBuyCount = minOf(remainingBoxes, affordableBoxes)
+        // Status only: how many are taken and what the player holds. What to do with it is not our business.
         val nmzStatus = when {
             remainingBoxes == 0 -> "All 15 claimed today"
-            affordableBoxes == 0 -> "$herbBoxesClaimed/15 claimed (Need 9.5K pts)"
-            else -> "$herbBoxesClaimed/15 claimed (Can buy $canBuyCount with ${formatQuantity(nmzPoints)} pts)"
+            nmzPoints > 0 -> "$herbBoxesClaimed/15 claimed today \u2022 ${formatQuantity(nmzPoints)} points"
+            else -> "$herbBoxesClaimed/15 claimed today"
         }
         tasks.add(
             DailyTaskUiModel(
@@ -501,7 +497,7 @@ class MainViewModel(
                 title = "NMZ Herb Boxes",
                 subtitle = "Nightmare Zone Chest (Up to 15/day)",
                 statusText = nmzStatus,
-                isAvailable = remainingBoxes > 0 && affordableBoxes > 0,
+                isAvailable = remainingBoxes > 0,
                 category = ResetCategory.DAILY
             )
         )
@@ -511,7 +507,7 @@ class MainViewModel(
         val togQpBeforeReturn = varbits["456"] ?: 0
         val togAvailable = togCountdown == 0 && togQpBeforeReturn == 0
         val togStatus = when {
-            togAvailable -> "Ready to play!"
+            togAvailable -> "Available"
             togCountdown > 0 -> "Cooldown active ($togCountdown days)"
             togQpBeforeReturn > 0 -> "Need 1 QP or 100K XP"
             else -> "Unavailable"
@@ -534,7 +530,7 @@ class MainViewModel(
                 id = "bert_sand",
                 title = "Bert's Sand",
                 subtitle = "Yanille (84 buckets to bank)",
-                statusText = if (sandClaimed) "Delivered today" else "Available (Talk to Bert or auto-delivered)",
+                statusText = if (sandClaimed) "Delivered today" else "Available",
                 isAvailable = !sandClaimed,
                 category = ResetCategory.DAILY
             )
@@ -633,7 +629,7 @@ class MainViewModel(
                 id = "rantz_arrows",
                 title = "Rantz's Ogre Arrows",
                 subtitle = "Feldip Hills (Free arrows / Western Diary)",
-                statusText = if (arrowsClaimed) "Collected today" else "Available from Rantz",
+                statusText = if (arrowsClaimed) "Collected today" else "Available",
                 isAvailable = !arrowsClaimed,
                 category = ResetCategory.DAILY
             )

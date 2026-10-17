@@ -356,7 +356,7 @@ class MainViewModelFlowTest {
         // Miscellania: 72 = 32 (32/127 = 25%), 74 = 2554 (2.6K GP)
         // Slayer: taskLocation = "Karuulm Slayer Dungeon"
         // Dailies: 4539 = 0 (Zaff available), 4481 = 1 (Hard diary = 60 staves)
-        // NMZ: 3961 = 5 (5/15 claimed), 1060 = 50000 (can buy remaining 10)
+        // NMZ: 3961 = 5 (5/15 claimed), 1060 = 50000 points
         // Tears of Guthix: 5099 = 0, 456 = 0 (Ready)
         val varbitsJson = """
             {
@@ -420,21 +420,20 @@ class MainViewModelFlowTest {
         // Dailies: Zaff staves
         val zaff = state.dailyTasks.first { it.id == "zaff_staves" }
         assertTrue(zaff.isAvailable)
-        // Profit: (8200 - 7000) * 60 = 72,000 GP
-        assertEquals(72_000L, zaff.estimatedProfitGp)
+        // Availability only: no profit estimate, nothing that reads as advice
+        assertEquals("Available (60 ready)", zaff.statusText)
 
         // Dailies: NMZ herb boxes
         val nmz = state.dailyTasks.first { it.id == "nmz_herb_boxes" }
         assertTrue(nmz.isAvailable)
-        assertTrue(nmz.statusText.contains("5/15 claimed"))
-        // 50,000 points at 9,500 each affords 5, and 10 boxes remain
-        assertTrue(nmz.statusText.contains("Can buy 5"))
+        // Status only: what is taken and what the player holds, never what to buy
+        assertEquals("5/15 claimed today \u2022 50K points", nmz.statusText)
 
         // Weeklies: Tears of Guthix
         val tog = state.dailyTasks.first { it.id == "tears_of_guthix" }
         assertEquals(ResetCategory.WEEKLY, tog.category)
         assertTrue(tog.isAvailable)
-        assertEquals("Ready to play!", tog.statusText)
+        assertEquals("Available", tog.statusText)
     }
 
     @Test

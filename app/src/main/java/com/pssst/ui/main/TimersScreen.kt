@@ -488,26 +488,7 @@ fun DailyTaskCard(task: DailyTaskUiModel, modifier: Modifier = Modifier) {
                 )
             }
 
-            if (task.estimatedProfitGp > 0L) {
-                SuggestionChip(
-                    onClick = {},
-                    label = {
-                        Text(
-                            text = "+${formatGp(task.estimatedProfitGp)}",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
-                        )
-                    },
-                    colors = SuggestionChipDefaults.suggestionChipColors(
-                        containerColor = OsrsSlotEmpty,
-                        labelColor = OsrsYellow
-                    ),
-                    border = SuggestionChipDefaults.suggestionChipBorder(
-                        enabled = true,
-                        borderColor = OsrsGold
-                    )
-                )
-            } else if (task.isAvailable) {
+            if (task.isAvailable) {
                 SuggestionChip(
                     onClick = {},
                     label = { Text("READY", fontWeight = FontWeight.ExtraBold, fontSize = 11.sp) },
