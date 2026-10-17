@@ -83,9 +83,8 @@ class MainViewModel(
     val uiState: StateFlow<MainDashboardUiState> = combine(
         prefsFlow,
         playerStateDao.getLatestStateFlow(),
-        filtersFlow,
-        preferencesRepository.priceRefreshEnabledFlow
-    ) { prefs, entityList, filters, priceRefreshEnabled ->
+        filtersFlow
+    ) { prefs, entityList, filters ->
         val hasUuid = !prefs.uuid.isNullOrBlank()
         val currentServerUrl = prefs.serverUrl ?: ""
         val activeUuid = prefs.uuid?.trim().orEmpty()
@@ -102,7 +101,6 @@ class MainViewModel(
                 hasConfiguredUuid = hasUuid,
                 lastSyncStatus = prefs.lastSyncStatus,
                 notificationsEnabled = prefs.notificationsEnabled,
-                priceRefreshEnabled = priceRefreshEnabled,
                 searchQuery = filters.searchQuery,
                 potionSearchQuery = filters.potionSearchQuery,
                 questSearchQuery = filters.questSearchQuery,
@@ -116,7 +114,6 @@ class MainViewModel(
                 currentServerUrl,
                 prefs.lastSyncStatus,
                 prefs.notificationsEnabled,
-                priceRefreshEnabled,
                 entity,
                 filters
             )
@@ -182,13 +179,6 @@ class MainViewModel(
         }
     }
 
-    /** Records the user's explicit choice about fetching live prices from the OSRS Wiki. */
-    fun setPriceRefreshEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            preferencesRepository.savePriceRefreshEnabled(enabled)
-        }
-    }
-
     fun setNotificationsEnabled(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.saveNotificationsEnabled(enabled)
@@ -201,7 +191,6 @@ class MainViewModel(
         serverUrl: String,
         lastSyncStatus: String?,
         notificationsEnabled: Boolean,
-        priceRefreshEnabled: Boolean?,
         entity: PlayerStateEntity,
         filters: FilterState
     ): MainDashboardUiState {
@@ -662,7 +651,6 @@ class MainViewModel(
             farmingPayments = farmingPayments,
             quests = quests,
             notificationsEnabled = notificationsEnabled,
-            priceRefreshEnabled = priceRefreshEnabled,
             pricesAsOfMs = pricesAsOfMs,
             isLoading = false,
             searchQuery = filters.searchQuery,

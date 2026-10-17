@@ -136,6 +136,12 @@ class SyncWorker(
 
             dao.upsert(entity)
 
+            // Prices come with the snapshot, from the player's own RuneLite client; nobody else is asked
+            val prices = data?.prices.orEmpty().mapNotNull { (id, price) -> id.toIntOrNull()?.let { it to price } }.toMap()
+            if (prices.isNotEmpty()) {
+                database.itemManifestDao().applyPrices(prices, if (updatedAtMs > 0) updatedAtMs else System.currentTimeMillis())
+            }
+
             val invCount = data?.inventory?.size ?: 0
             val bankCount = data?.bank?.size ?: 0
             val slayerTaskName = data?.slayer?.taskName?.takeIf { it.isNotBlank() } ?: "none"

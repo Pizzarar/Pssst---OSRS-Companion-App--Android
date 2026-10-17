@@ -1,6 +1,5 @@
 package com.pssst.data.local
 
-import kotlinx.coroutines.flow.flowOf
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -35,18 +34,10 @@ interface UserPreferencesRepository {
     suspend fun getNotificationsEnabled(): Boolean
     suspend fun saveNotificationsEnabled(enabled: Boolean)
 
-    /**
-     * Whether to refresh item prices from the OSRS Wiki. null means the user has not chosen yet: fetching from a
-     * third party reveals their IP address, so it is never assumed either way. (Defaults keep other implementations,
-     * such as test fakes, compiling.)
-     */
     /** Consecutive failed syncs; reset by the first success. Lets a flaky connection pass without showing an error. */
     suspend fun getSyncFailures(): Int = 0
     suspend fun saveSyncFailures(count: Int) {}
 
-    val priceRefreshEnabledFlow: Flow<Boolean?> get() = flowOf(null)
-    suspend fun getPriceRefreshEnabled(): Boolean? = null
-    suspend fun savePriceRefreshEnabled(enabled: Boolean) {}
 }
 
 class DataStoreUserPreferencesRepository(
@@ -60,7 +51,6 @@ class DataStoreUserPreferencesRepository(
     private val serverUrlKey = stringPreferencesKey("server_url")
     private val lastSyncStatusKey = stringPreferencesKey("last_sync_status")
     private val notificationsEnabledKey = booleanPreferencesKey("notifications_enabled")
-    private val priceRefreshEnabledKey = booleanPreferencesKey("price_refresh_enabled")
     private val syncFailuresKey = intPreferencesKey("sync_failures")
 
     override val uuidFlow: Flow<String?> = dataStore.data.map { preferences ->
@@ -87,14 +77,6 @@ class DataStoreUserPreferencesRepository(
 
     override suspend fun saveSyncFailures(count: Int) {
         dataStore.edit { it[syncFailuresKey] = count }
-    }
-
-    override val priceRefreshEnabledFlow: Flow<Boolean?> = dataStore.data.map { it[priceRefreshEnabledKey] }
-
-    override suspend fun getPriceRefreshEnabled(): Boolean? = dataStore.data.map { it[priceRefreshEnabledKey] }.first()
-
-    override suspend fun savePriceRefreshEnabled(enabled: Boolean) {
-        dataStore.edit { it[priceRefreshEnabledKey] = enabled }
     }
 
     override suspend fun getUuid(): String? {

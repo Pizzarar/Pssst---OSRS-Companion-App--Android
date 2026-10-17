@@ -20,6 +20,7 @@ class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
+    SyncScheduler.cancelLegacyPriceWork(applicationContext)
     lifecycleScope.launch(Dispatchers.IO) {
       val database = AppDatabase.getDatabase(applicationContext)
       AssetDatabaseSeeder.seedIfNeeded(applicationContext, database)

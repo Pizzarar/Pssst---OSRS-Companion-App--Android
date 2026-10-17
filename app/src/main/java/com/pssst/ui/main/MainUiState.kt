@@ -296,8 +296,6 @@ data class MainDashboardUiState(
     val farmingPayments: List<FarmingPaymentUiModel> = emptyList(),
     val quests: List<QuestUiModel> = emptyList(),
     val notificationsEnabled: Boolean = true,
-    /** null until the user chooses; see UserPreferencesRepository.priceRefreshEnabledFlow */
-    val priceRefreshEnabled: Boolean? = null,
     /** When the newest item price was measured (epoch ms), 0 if unknown */
     val pricesAsOfMs: Long = 0L,
     val isLoading: Boolean = false,

@@ -12,6 +12,8 @@ data class StateDataDto(
     @SerializedName("bank") val bank: List<ItemEntryDto> = emptyList(),
     @SerializedName("varbits") val varbits: Map<String, Int> = emptyMap(),
     @SerializedName("varps") val varps: Map<String, Int> = emptyMap(),
+    /** GE price (gp) of each held or offered item, by the id that has the price; from the plugin's ItemManager. */
+    @SerializedName("prices") val prices: Map<String, Long> = emptyMap(),
     @SerializedName("slayer") val slayer: SlayerEntryDto? = null,
     @SerializedName("ge_offers", alternate = ["geOffers"]) val geOffers: List<GeOfferDto> = emptyList(),
     @SerializedName("skills") val skills: List<SkillEntryDto> = emptyList(),

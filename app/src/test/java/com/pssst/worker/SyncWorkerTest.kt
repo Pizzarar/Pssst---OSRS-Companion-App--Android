@@ -8,6 +8,7 @@ import androidx.work.testing.TestListenableWorkerBuilder
 import androidx.work.workDataOf
 import com.google.gson.Gson
 import com.pssst.data.local.AppDatabase
+import com.pssst.data.local.ItemManifestEntity
 import com.pssst.data.local.PlayerStateEntity
 import com.pssst.data.local.UserPreferencesRepository
 import com.pssst.data.network.StateApiService
@@ -332,6 +333,31 @@ class SyncWorkerTest {
         mockWebServer.enqueue(MockResponse().setResponseCode(401))
         assertEquals(ListenableWorker.Result.failure(), syncOnce(prefs))
         assertEquals("Unauthorized (token rejected)", prefs.lastStatus)
+    }
+
+
+    @Test
+    fun syncWorker_appliesThePricesTheRuneLitePluginSent() {
+        val updatedAtSeconds = 1_800_000_000L
+        database.itemManifestDao().insertAll(
+            listOf(
+                ItemManifestEntity(4151, "Abyssal whip", null, 500L, 1000L),
+                ItemManifestEntity(995, "Coins", null, 1L, 1000L)
+            )
+        )
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                """{"data": {"inventory": [], "prices": {"4151": 1500000, "99999": 7, "not-an-id": 3}}, "updated_at": $updatedAtSeconds}"""
+            )
+        )
+
+        assertEquals(ListenableWorker.Result.success(), syncOnce(serverPrefs()))
+
+        val whip = database.itemManifestDao().getItemById(4151)
+        assertEquals(1_500_000L, whip.gePrice)
+        assertEquals("stamped with the snapshot time (ms)", updatedAtSeconds * 1000, whip.priceUpdatedAt)
+        assertEquals("items the plugin did not price keep their price", 1L, database.itemManifestDao().getItemById(995).gePrice)
+        assertEquals("ids not in the manifest are ignored", null, database.itemManifestDao().getItemById(99999))
     }
 
 }

@@ -57,10 +57,6 @@ fun MainNavigation(
                     onQuestSearchQueryChanged = { viewModel.onQuestSearchQueryChanged(it) },
                     onQuestFilterChanged = { viewModel.onQuestFilterChanged(it) },
                     onToggleNotifications = { viewModel.setNotificationsEnabled(it) },
-                    onTogglePriceRefresh = { enabled ->
-                        viewModel.setPriceRefreshEnabled(enabled)
-                        SyncScheduler.applyPriceRefreshChoice(appContext, enabled)
-                    },
                     onDisconnect = {
                         SyncScheduler.cancelAll(appContext)
                         viewModel.clearUuid()
