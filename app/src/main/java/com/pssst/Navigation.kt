@@ -62,6 +62,7 @@ fun MainNavigation(
                         SyncScheduler.applyPriceRefreshChoice(appContext, enabled)
                     },
                     onDisconnect = {
+                        SyncScheduler.cancelAll(appContext)
                         viewModel.clearUuid()
                         backStack.clear()
                         backStack.add(SetupNavKey)

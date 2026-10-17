@@ -6,6 +6,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -39,6 +40,10 @@ interface UserPreferencesRepository {
      * third party reveals their IP address, so it is never assumed either way. (Defaults keep other implementations,
      * such as test fakes, compiling.)
      */
+    /** Consecutive failed syncs; reset by the first success. Lets a flaky connection pass without showing an error. */
+    suspend fun getSyncFailures(): Int = 0
+    suspend fun saveSyncFailures(count: Int) {}
+
     val priceRefreshEnabledFlow: Flow<Boolean?> get() = flowOf(null)
     suspend fun getPriceRefreshEnabled(): Boolean? = null
     suspend fun savePriceRefreshEnabled(enabled: Boolean) {}
@@ -56,6 +61,7 @@ class DataStoreUserPreferencesRepository(
     private val lastSyncStatusKey = stringPreferencesKey("last_sync_status")
     private val notificationsEnabledKey = booleanPreferencesKey("notifications_enabled")
     private val priceRefreshEnabledKey = booleanPreferencesKey("price_refresh_enabled")
+    private val syncFailuresKey = intPreferencesKey("sync_failures")
 
     override val uuidFlow: Flow<String?> = dataStore.data.map { preferences ->
         preferences[uuidKey]
@@ -75,6 +81,12 @@ class DataStoreUserPreferencesRepository(
 
     override val notificationsEnabledFlow: Flow<Boolean> = dataStore.data.map { preferences ->
         preferences[notificationsEnabledKey] ?: true
+    }
+
+    override suspend fun getSyncFailures(): Int = dataStore.data.map { it[syncFailuresKey] ?: 0 }.first()
+
+    override suspend fun saveSyncFailures(count: Int) {
+        dataStore.edit { it[syncFailuresKey] = count }
     }
 
     override val priceRefreshEnabledFlow: Flow<Boolean?> = dataStore.data.map { it[priceRefreshEnabledKey] }

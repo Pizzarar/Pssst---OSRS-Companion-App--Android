@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.SocketPolicy
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -270,6 +271,69 @@ class SyncWorkerTest {
         }
     }
 
+
+    // --- riding out drops, and stopping when told to -----------------------------------------------------------
+
+    private fun syncOnce(prefs: TestSyncUserPreferencesRepository): ListenableWorker.Result = runBlocking {
+        SyncWorker.defaultApiService = StateApiService.create(prefs, OkHttpClient.Builder().build())
+        SyncWorker.defaultDatabase = database
+        SyncWorker.defaultPreferences = prefs
+        TestListenableWorkerBuilder<SyncWorker>(context).build().doWork()
+    }
+
+    private fun serverPrefs() = TestSyncUserPreferencesRepository(testUuid, mockWebServer.url("/").toString())
+
+    @Test
+    fun syncWorker_oneOrTwoFailuresAreRetriedAndLookLikeNothingHappened() {
+        val prefs = serverPrefs()
+        prefs.lastStatus = "OK 10:00:00 inv=3 bank=100 slayer=none"
+
+        mockWebServer.enqueue(MockResponse().setResponseCode(503))
+        assertEquals(ListenableWorker.Result.retry(), syncOnce(prefs))
+        mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
+        assertEquals(ListenableWorker.Result.retry(), syncOnce(prefs))
+
+        assertEquals(2, prefs.failures)
+        assertEquals("the last good status is still what the user sees", "OK 10:00:00 inv=3 bank=100 slayer=none", prefs.lastStatus)
+    }
+
+    @Test
+    fun syncWorker_aRunOfFailuresShowsUnreachableAndTheNextSuccessClearsIt() {
+        val prefs = serverPrefs()
+        repeat(SyncWorker.FAILURES_BEFORE_UNREACHABLE) {
+            mockWebServer.enqueue(MockResponse().setResponseCode(502))
+            syncOnce(prefs)
+        }
+        assertTrue(prefs.lastStatus!!, prefs.lastStatus!!.startsWith("Server unreachable"))
+
+        mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody("""{"data": {"inventory": []}, "updated_at": 1}"""))
+        assertEquals(ListenableWorker.Result.success(), syncOnce(prefs))
+        assertEquals(0, prefs.failures)
+        assertTrue(prefs.lastStatus!!, prefs.lastStatus!!.startsWith("OK"))
+    }
+
+    @Test
+    fun syncWorker_tooManyRequestsStopsWithoutARetryLoop() {
+        val prefs = serverPrefs()
+        mockWebServer.enqueue(MockResponse().setResponseCode(429).setHeader("Retry-After", "1"))
+
+        assertEquals("a 429 ends this attempt; only the next scheduled run tries again", ListenableWorker.Result.failure(), syncOnce(prefs))
+        assertEquals(1, mockWebServer.requestCount)
+        assertEquals(1, prefs.failures)
+
+        mockWebServer.enqueue(MockResponse().setResponseCode(403))
+        assertEquals(ListenableWorker.Result.failure(), syncOnce(prefs))
+        assertEquals(2, mockWebServer.requestCount)
+    }
+
+    @Test
+    fun syncWorker_aRejectedTokenIsShownImmediately() {
+        val prefs = serverPrefs()
+        mockWebServer.enqueue(MockResponse().setResponseCode(401))
+        assertEquals(ListenableWorker.Result.failure(), syncOnce(prefs))
+        assertEquals("Unauthorized (token rejected)", prefs.lastStatus)
+    }
+
 }
 
 private class TestSyncUserPreferencesRepository(
@@ -293,6 +357,9 @@ private class TestSyncUserPreferencesRepository(
     override suspend fun saveSetup(serverUrl: String, uuid: String) {}
     var lastStatus: String? = null
     override suspend fun saveLastSyncStatus(status: String?) { lastStatus = status }
+    var failures: Int = 0
+    override suspend fun getSyncFailures(): Int = failures
+    override suspend fun saveSyncFailures(count: Int) { failures = count }
     override suspend fun getNotificationsEnabled(): Boolean = true
     override suspend fun saveNotificationsEnabled(enabled: Boolean) {}
 }

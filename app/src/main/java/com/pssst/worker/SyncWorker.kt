@@ -54,23 +54,29 @@ class SyncWorker(
             Log.i(TAG, "GET $fullUrl starting")
             val response = apiService.getState("Bearer $uuid")
             if (!response.isSuccessful) {
-                when (response.code()) {
+                when (val code = response.code()) {
                     404 -> {
                         Log.w(TAG, "No state on server yet (404)")
+                        preferencesRepository.saveSyncFailures(0)
                         preferencesRepository.saveLastSyncStatus("Connected, no state for this token yet")
                         return@withContext Result.success()
                     }
                     401 -> {
-                        val errorBody = response.errorBody()?.string()
-                        Log.e(TAG, "API error fetching state: 401 ${response.message()}: $errorBody")
+                        // A rejected token is a setup problem, not a flaky connection: show it straight away
+                        Log.e(TAG, "API error fetching state: 401 ${response.message()}")
                         preferencesRepository.saveLastSyncStatus("Unauthorized (token rejected)")
                         return@withContext Result.failure()
                     }
+                    403, 429 -> {
+                        // Told to stop: no retry loop. The next scheduled run is the only retry.
+                        Log.w(TAG, "Server said stop ($code); skipping until the next scheduled sync")
+                        recordFailure("HTTP $code")
+                        return@withContext Result.failure()
+                    }
                     else -> {
-                        val errorBody = response.errorBody()?.string()
-                        Log.e(TAG, "API error fetching state: ${response.code()} ${response.message()}: $errorBody")
-                        preferencesRepository.saveLastSyncStatus("HTTP ${response.code()}")
-                        return@withContext if (response.code() in 500..599) Result.retry() else Result.failure()
+                        Log.e(TAG, "API error fetching state: $code ${response.message()}")
+                        recordFailure("HTTP $code")
+                        return@withContext if (code in 500..599) Result.retry() else Result.failure()
                     }
                 }
             }
@@ -78,7 +84,7 @@ class SyncWorker(
             val stateResponse = response.body()
             if (stateResponse == null) {
                 Log.e(TAG, "Empty response body from /state")
-                preferencesRepository.saveLastSyncStatus("HTTP ${response.code()}")
+                recordFailure("empty response")
                 return@withContext Result.failure()
             }
 
@@ -134,14 +140,29 @@ class SyncWorker(
             val bankCount = data?.bank?.size ?: 0
             val slayerTaskName = data?.slayer?.taskName?.takeIf { it.isNotBlank() } ?: "none"
             val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
+            preferencesRepository.saveSyncFailures(0)
             preferencesRepository.saveLastSyncStatus("OK $timeStr inv=$invCount bank=$bankCount slayer=$slayerTaskName")
             Log.i(TAG, "Synced: inventory=$invCount bank=$bankCount varbits=${data?.varbits?.size ?: 0} slayer=$slayerTaskName")
             Log.i(TAG, "Successfully synced player state")
             Result.success()
         } catch (e: Exception) {
+            // A dropped connection must never end the schedule: WorkManager retries with backoff and the periodic
+            // sync carries on regardless
             Log.e(TAG, "Exception during player state sync ($fullUrl)", e)
-            preferencesRepository.saveLastSyncStatus("${e::class.java.simpleName}: ${e.message}")
+            recordFailure(e::class.java.simpleName)
             Result.retry()
+        }
+    }
+
+    /**
+     * Counts a failed sync. One or two in a row (flaky Wi-Fi, a server restart) change nothing the user sees; the
+     * "unreachable" status appears only after [FAILURES_BEFORE_UNREACHABLE] consecutive failures.
+     */
+    private suspend fun recordFailure(reason: String) {
+        val failures = preferencesRepository.getSyncFailures() + 1
+        preferencesRepository.saveSyncFailures(failures)
+        if (failures >= FAILURES_BEFORE_UNREACHABLE) {
+            preferencesRepository.saveLastSyncStatus("Server unreachable ($failures failed syncs in a row, $reason)")
         }
     }
 
@@ -149,6 +170,7 @@ class SyncWorker(
         const val TAG = "SyncWorker"
         const val KEY_UUID = "key_uuid"
         const val NOTIFICATION_BASE_ID = 1000
+        const val FAILURES_BEFORE_UNREACHABLE = 3
 
         @VisibleForTesting
         var defaultApiService: StateApiService? = null

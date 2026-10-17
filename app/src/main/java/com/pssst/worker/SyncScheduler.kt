@@ -56,6 +56,23 @@ object SyncScheduler {
         )
     }
 
+    /**
+     * Stops everything Pssst has scheduled: the periodic and immediate sync, queued reminders, and the price-refresh
+     * jobs older builds scheduled. Used on Disconnect so nothing keeps calling out with nobody paired. A network
+     * drop never calls this; those are ridden out by retries and the normal schedule.
+     */
+    fun cancelAll(context: Context) {
+        val workManager = WorkManager.getInstance(context)
+        workManager.cancelUniqueWork(SYNC_WORK_NAME)
+        workManager.cancelUniqueWork(SYNC_NOW_WORK_NAME)
+        workManager.cancelAllWorkByTag(SyncWorker.TAG)
+        workManager.cancelAllWorkByTag(ReminderWorker.TAG)
+        // Retired (prices now come from the plugin): clean up on installs that had scheduled them
+        workManager.cancelUniqueWork("pssst_price_refresh")
+        workManager.cancelUniqueWork("pssst_price_refresh_now")
+        workManager.cancelAllWorkByTag("PriceRefreshWorker")
+    }
+
     fun cancelSync(context: Context) {
         WorkManager.getInstance(context).cancelUniqueWork(SYNC_WORK_NAME)
     }
