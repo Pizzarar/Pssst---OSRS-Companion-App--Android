@@ -32,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.pssst.util.TimeFormat
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -71,7 +72,8 @@ fun TimersScreen(
 
     val readyDailiesCount = state.dailyTasks.count { it.isAvailable }
     val readyBirdhousesCount = state.birdHouses.count { it.isReady }
-    val readyFarmingCount = state.farmingPatches.count { it.isGrown }
+    val nowMs by rememberNowMs()
+    val readyFarmingCount = state.farmingPatches.count { it.isGrown(nowMs) }
 
     Column(
         modifier = modifier
@@ -146,7 +148,7 @@ fun TimersScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "No farming patch data available yet.",
+                                text = "No farming patches observed yet.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = OsrsTextMuted
                             )
@@ -156,8 +158,11 @@ fun TimersScreen(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(state.farmingPatches, key = { it.patchId }) { patch ->
-                                FarmingPatchCard(patch)
+                            val ordered = state.farmingPatches.sortedWith(
+                                compareBy({ !it.isGrown(nowMs) }, { it.doneAtMs ?: Long.MAX_VALUE })
+                            )
+                            items(ordered, key = { it.patchId }) { patch ->
+                                FarmingPatchCard(patch, nowMs)
                             }
                         }
                     }
@@ -523,7 +528,7 @@ fun DailyTaskCard(task: DailyTaskUiModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun FarmingPatchCard(patch: FarmingPatchUiModel, modifier: Modifier = Modifier) {
+fun FarmingPatchCard(patch: FarmingPatchUiModel, nowMs: Long, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -538,22 +543,22 @@ fun FarmingPatchCard(patch: FarmingPatchUiModel, modifier: Modifier = Modifier) 
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = patch.patchName,
+                        text = patch.patchLabel,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (patch.isGrown) OsrsHerbGreen else OsrsTextPrimary
+                        color = if (patch.isGrown(nowMs)) OsrsHerbGreen else OsrsTextPrimary
                     )
                     Text(
-                        text = "Varbit #${patch.patchId} • ${patch.statusText}",
+                        text = patch.statusText(nowMs),
                         style = MaterialTheme.typography.bodySmall,
                         color = OsrsTextMuted
                     )
                 }
 
-                if (patch.isGrown) {
+                if (patch.isGrown(nowMs)) {
                     SuggestionChip(
                         onClick = {},
-                        label = { Text("READY", fontWeight = FontWeight.ExtraBold, fontSize = 11.sp) },
+                        label = { Text("GROWN", fontWeight = FontWeight.ExtraBold, fontSize = 11.sp) },
                         colors = SuggestionChipDefaults.suggestionChipColors(
                             containerColor = OsrsHerbGreen,
                             labelColor = Color.Black
@@ -563,10 +568,11 @@ fun FarmingPatchCard(patch: FarmingPatchUiModel, modifier: Modifier = Modifier) 
                 }
             }
 
-            if (!patch.isGrown && patch.stage > 0) {
+            val status = patch.status(nowMs)
+            if (status == FarmingStatus.GROWING || status == FarmingStatus.REGROWING) {
                 Spacer(modifier = Modifier.height(8.dp))
                 LinearProgressIndicator(
-                    progress = { patch.progress },
+                    progress = { patch.progress(nowMs) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(6.dp),
@@ -574,6 +580,21 @@ fun FarmingPatchCard(patch: FarmingPatchUiModel, modifier: Modifier = Modifier) 
                     trackColor = OsrsSlotEmpty
                 )
             }
+
+            // The finish time is an estimate (it ignores the per-player farm tick offset), hence the "~"
+            val timing = buildString {
+                val doneAt = patch.doneAtMs
+                if ((status == FarmingStatus.GROWING || status == FarmingStatus.REGROWING) && doneAt != null) {
+                    append("Done in ~${TimeFormat.formatDuration(doneAt - nowMs)} • ")
+                }
+                append("Seen ${TimeFormat.formatDuration(nowMs - patch.observedAtMs)} ago")
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = timing,
+                style = MaterialTheme.typography.labelSmall,
+                color = OsrsTextMuted
+            )
         }
     }
 }

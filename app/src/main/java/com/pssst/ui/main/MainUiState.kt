@@ -1,5 +1,7 @@
 package com.pssst.ui.main
 
+import com.pssst.data.network.model.FarmingEntryDto
+import com.pssst.util.FarmingTiming
 import com.pssst.util.OsrsXpTable
 import java.util.Locale
 
@@ -46,16 +48,87 @@ data class DailyTaskUiModel(
     val estimatedProfitGp: Long = 0L
 )
 
+enum class FarmingStatus { UNKNOWN, WEEDS, EMPTY, GROWING, REGROWING, FILLING, GROWN, DISEASED, DEAD }
+
+/**
+ * A farming patch as last observed in-game. Status and progress depend on the current time, so they are functions of
+ * `nowMs` (the UI supplies a ticking clock) instead of being baked in when the state is parsed.
+ */
 data class FarmingPatchUiModel(
     val patchId: String,
-    val patchName: String,
+    val regionName: String,
+    val patchLabel: String,
+    val cropName: String?,
+    val itemId: Int,
+    val cropState: String?,
     val stage: Int,
-    val maxStage: Int = 8,
-    val isGrown: Boolean,
-    val statusText: String,
-    val cropName: String = "Herb"
+    val stages: Int,
+    val tickMinutes: Int,
+    val observedAtMs: Long,
+    val doneAtMs: Long?
 ) {
-    val progress: Float get() = if (maxStage > 0) (stage.toFloat() / maxStage).coerceIn(0f, 1f) else 0f
+    fun status(nowMs: Long): FarmingStatus = when {
+        cropState == null -> FarmingStatus.UNKNOWN
+        cropName == "Weeds" -> FarmingStatus.WEEDS
+        cropState == "EMPTY" -> FarmingStatus.EMPTY
+        cropState == "DISEASED" -> FarmingStatus.DISEASED
+        cropState == "DEAD" -> FarmingStatus.DEAD
+        cropState == "FILLING" -> FarmingStatus.FILLING
+        cropState == "GROWING" -> if (doneAtMs != null && nowMs >= doneAtMs) FarmingStatus.GROWN else FarmingStatus.GROWING
+        cropState == "HARVESTABLE" -> if (doneAtMs != null && nowMs < doneAtMs) FarmingStatus.REGROWING else FarmingStatus.GROWN
+        else -> FarmingStatus.UNKNOWN
+    }
+
+    fun isGrown(nowMs: Long): Boolean = status(nowMs) == FarmingStatus.GROWN
+
+    fun progress(nowMs: Long): Float = when (status(nowMs)) {
+        FarmingStatus.GROWN -> 1f
+        FarmingStatus.GROWING, FarmingStatus.REGROWING -> {
+            val lastStage = (stages - 1).coerceAtLeast(1)
+            (FarmingTiming.stageAt(toDto(), nowMs).toFloat() / lastStage).coerceIn(0f, 1f)
+        }
+        else -> 0f
+    }
+
+    fun statusText(nowMs: Long): String {
+        val crop = cropName ?: "Unknown crop"
+        return when (status(nowMs)) {
+            FarmingStatus.UNKNOWN -> "Unrecognised state"
+            FarmingStatus.WEEDS -> "Weeds"
+            FarmingStatus.EMPTY -> "Empty"
+            FarmingStatus.DISEASED -> "$crop • Diseased"
+            FarmingStatus.DEAD -> "$crop • Dead"
+            FarmingStatus.FILLING -> "$crop • Filling"
+            FarmingStatus.GROWN -> "$crop • Fully grown"
+            FarmingStatus.REGROWING -> "$crop • Regrowing"
+            FarmingStatus.GROWING -> "$crop • Stage ${FarmingTiming.stageAt(toDto(), nowMs) + 1}/${(stages - 1).coerceAtLeast(1)}"
+        }
+    }
+
+    // Timing only needs these fields; rebuilding the DTO keeps the arithmetic in one place (FarmingTiming)
+    private fun toDto() = FarmingEntryDto(
+        observedAt = observedAtMs, cropState = cropState, stage = stage, stages = stages, tickMinutes = tickMinutes
+    )
+
+    companion object {
+        fun from(dto: FarmingEntryDto): FarmingPatchUiModel {
+            val type = dto.patchType.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
+            val suffix = if (dto.patchName.isBlank()) "" else " (${dto.patchName})"
+            return FarmingPatchUiModel(
+                patchId = dto.patchKey,
+                regionName = dto.regionName,
+                patchLabel = "${dto.regionName} $type$suffix",
+                cropName = dto.cropName,
+                itemId = dto.itemId,
+                cropState = dto.cropState,
+                stage = dto.stage,
+                stages = dto.stages,
+                tickMinutes = dto.tickMinutes,
+                observedAtMs = dto.observedAt,
+                doneAtMs = FarmingTiming.doneAtMs(dto)
+            )
+        }
+    }
 }
 
 data class BirdHouseUiModel(

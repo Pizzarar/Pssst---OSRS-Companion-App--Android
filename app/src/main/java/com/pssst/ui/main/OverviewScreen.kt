@@ -16,6 +16,7 @@ import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,7 +41,8 @@ fun OverviewScreen(
 ) {
     val readyDailiesCount = state.dailyTasks.count { it.isAvailable }
     val readyBirdhousesCount = state.birdHouses.count { it.isReady }
-    val readyFarmingCount = state.farmingPatches.count { it.isGrown }
+    val nowMs by rememberNowMs()
+    val readyFarmingCount = state.farmingPatches.count { it.isGrown(nowMs) }
     val activeGeCount = state.geOffers.count { !it.isEmpty }
     val completeGeCount = state.geOffers.count { it.isComplete }
 

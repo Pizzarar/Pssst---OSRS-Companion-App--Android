@@ -1,0 +1,15 @@
+package com.pssst.util
+
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class TimeFormatTest {
+    @Test
+    fun formatDuration_picksTheTwoMostSignificantUnits() {
+        assertEquals("<1m", TimeFormat.formatDuration(-5_000))
+        assertEquals("<1m", TimeFormat.formatDuration(59_999))
+        assertEquals("42m", TimeFormat.formatDuration(42 * 60_000L))
+        assertEquals("3h 05m", TimeFormat.formatDuration((3 * 60 + 5) * 60_000L))
+        assertEquals("2d 4h", TimeFormat.formatDuration((2 * 24 * 60 + 4 * 60 + 30) * 60_000L))
+    }
+}

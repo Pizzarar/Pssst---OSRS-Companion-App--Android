@@ -14,6 +14,7 @@ import com.pssst.data.local.ItemManifestEntity
 import com.pssst.data.local.PlayerStateDao
 import com.pssst.data.local.PlayerStateEntity
 import com.pssst.data.local.UserPreferencesRepository
+import com.pssst.data.network.model.StateResponse
 import com.pssst.data.network.model.GeOfferDto
 import com.pssst.data.network.model.ItemEntryDto
 import com.pssst.data.network.model.PotionEntryDto
@@ -412,39 +413,13 @@ class MainViewModel(
             SlayerUiModel()
         }
 
-        // Parse Farming Patches
-        data class PatchDef(val name: String, val cropType: String, val maxStage: Int)
-        val patchDefs = listOf(
-            "4771" to PatchDef("Ardougne Herb Patch", "Herb", 8),
-            "4772" to PatchDef("Catherby Herb Patch", "Herb", 8),
-            "4773" to PatchDef("Falador Herb Patch", "Herb", 8),
-            "4774" to PatchDef("Port Phasmatys Herb Patch", "Herb", 8),
-            "4775" to PatchDef("Hosidius Herb Patch", "Herb", 8),
-            "7904" to PatchDef("Lumbridge Tree Patch", "Tree", 5),
-            "7905" to PatchDef("Varrock Tree Patch", "Tree", 5),
-            "7906" to PatchDef("Falador Tree Patch", "Tree", 5),
-            "7907" to PatchDef("Taverley Tree Patch", "Tree", 5),
-            "7908" to PatchDef("Hespori Patch", "Hespori", 4)
-        )
-
-        val farmingPatches = patchDefs.map { (varbitId, def) ->
-            val stage = varbits[varbitId] ?: 0
-            val isGrown = stage >= def.maxStage
-            val statusText = when {
-                stage == 0 -> "Empty / Weeds"
-                stage in 1 until def.maxStage -> "Growing (Stage $stage/${def.maxStage - 1})"
-                isGrown -> "Fully Grown - Ready!"
-                else -> "State $stage"
-            }
-            FarmingPatchUiModel(
-                patchId = varbitId,
-                patchName = def.name,
-                stage = stage,
-                maxStage = def.maxStage,
-                isGrown = isGrown,
-                statusText = statusText,
-                cropName = def.cropType
-            )
+        // Farming patches come straight from the plugin's per-region observations (stored in the raw payload)
+        val farmingPatches: List<FarmingPatchUiModel> = try {
+            gson.fromJson(entity.rawJson, StateResponse::class.java)?.data?.farming.orEmpty()
+                .map(FarmingPatchUiModel::from)
+                .sortedWith(compareBy({ it.regionName }, { it.patchLabel }))
+        } catch (e: Exception) {
+            emptyList()
         }
 
         // Parse Birdhouse Spaces

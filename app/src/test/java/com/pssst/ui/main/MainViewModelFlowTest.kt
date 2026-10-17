@@ -73,6 +73,21 @@ class MainViewModelFlowTest {
         assertTrue(state.inventorySlots.all { it.item == null })
     }
 
+    // Two regions share the same varbit slot (4774); Catherby's ranarr is mid-growth, Falador's guam is fully grown
+    private val farmingObservedAt = 1_000_020_000L // 7 minutes into a 20-minute tick
+    private val farmingRawJson = """
+        {"data": {"farming": [
+          {"regionId": 11062, "regionName": "Catherby", "patchName": "", "patchType": "HERB", "varbitId": 4774,
+           "value": 33, "observedAt": $farmingObservedAt, "cropName": "Ranarr", "itemId": 207,
+           "cropState": "GROWING", "stage": 1, "stages": 5, "tickMinutes": 20},
+          {"regionId": 12083, "regionName": "Falador", "patchName": "", "patchType": "HERB", "varbitId": 4774,
+           "value": 10, "observedAt": $farmingObservedAt, "cropName": "Guam", "itemId": 199,
+           "cropState": "HARVESTABLE", "stage": 0, "stages": 3, "tickMinutes": 0},
+          {"regionId": 14651, "regionName": "Fossil Island", "patchName": "East", "patchType": "HARDWOOD_TREE", "varbitId": 4771,
+           "value": 200, "observedAt": $farmingObservedAt}
+        ]}, "updated_at": 1729100000000}
+    """.trimIndent()
+
     @Test
     fun uiState_updatesAutomaticallyWhenMockDataInsertedIntoRoom() = runTest(testDispatcher) {
         testScheduler.advanceUntilIdle()
@@ -103,9 +118,7 @@ class MainViewModelFlowTest {
         val varbitsJson = """
             {
               "3948": 95,
-              "3949": 2500000,
-              "4771": 8,
-              "4772": 4
+              "3949": 2500000
             }
         """.trimIndent()
 
@@ -119,7 +132,7 @@ class MainViewModelFlowTest {
         val mockEntity = PlayerStateEntity(
             testUuid,
             1729100000L,
-            "{}",
+            farmingRawJson,
             varbitsJson,
             slayerJson,
             inventoryJson,
@@ -176,16 +189,31 @@ class MainViewModelFlowTest {
         assertEquals("Bloodvelds", state.slayer.taskName)
         assertEquals(80, state.slayer.amount)
 
-        // Farming checks
-        val ardougneHerb = state.farmingPatches.first { it.patchId == "4771" }
-        assertEquals(8, ardougneHerb.stage)
-        assertTrue(ardougneHerb.isGrown)
-        assertEquals("Fully Grown - Ready!", ardougneHerb.statusText)
+        // Farming: the same varbit slot (4774) is a different patch in each region
+        assertEquals(3, state.farmingPatches.size)
+        val catherbyHerb = state.farmingPatches.first { it.patchId == "11062.4774" }
+        assertEquals("Catherby Herb", catherbyHerb.patchLabel)
+        assertEquals("Ranarr", catherbyHerb.cropName)
+        // Done 3 ticks after the start of the tick it was seen in (stage 1 of 5, 20 min ticks)
+        val tickMs = 20 * 60_000L
+        assertEquals((farmingObservedAt / tickMs) * tickMs + 3 * tickMs, catherbyHerb.doneAtMs)
 
-        val catherbyHerb = state.farmingPatches.first { it.patchId == "4772" }
-        assertEquals(4, catherbyHerb.stage)
-        assertFalse(catherbyHerb.isGrown)
-        assertEquals("Growing (Stage 4/7)", catherbyHerb.statusText)
+        val tenMinutesLater = farmingObservedAt + 10 * 60_000L
+        assertEquals(FarmingStatus.GROWING, catherbyHerb.status(tenMinutesLater))
+        assertFalse(catherbyHerb.isGrown(tenMinutesLater))
+        assertEquals("Ranarr • Stage 2/4", catherbyHerb.statusText(tenMinutesLater))
+        assertEquals(0.25f, catherbyHerb.progress(tenMinutesLater))
+        assertTrue(catherbyHerb.isGrown(catherbyHerb.doneAtMs!!))
+
+        val faladorHerb = state.farmingPatches.first { it.patchId == "12083.4774" }
+        assertEquals("Falador Herb", faladorHerb.patchLabel)
+        assertTrue(faladorHerb.isGrown(tenMinutesLater))
+        assertEquals("Guam • Fully grown", faladorHerb.statusText(tenMinutesLater))
+
+        // A value the plugin could not decode stays visible but is not guessed at
+        val fossil = state.farmingPatches.first { it.patchId == "14651.4771" }
+        assertEquals("Fossil Island Hardwood tree (East)", fossil.patchLabel)
+        assertEquals(FarmingStatus.UNKNOWN, fossil.status(tenMinutesLater))
 
         // Search Query checks
         viewModel.onSearchQueryChanged("4151")
@@ -270,10 +298,7 @@ class MainViewModelFlowTest {
               "567": 26,
               "568": 19,
               "569": 0,
-              "570": 27,
-              "4771": 8,
-              "4772": 4,
-              "7904": 5
+              "570": 27
             }
         """.trimIndent()
 
@@ -313,12 +338,8 @@ class MainViewModelFlowTest {
         assertTrue(valleySW.isReady)
         assertEquals("Ready to Harvest!", valleySW.stateText)
 
-        // Check tree patch
-        val treePatch = state.farmingPatches.first { it.patchId == "7904" }
-        assertEquals("Tree", treePatch.cropName)
-        assertEquals(5, treePatch.maxStage)
-        assertTrue(treePatch.isGrown)
-        assertEquals(1.0f, treePatch.progress)
+        // Legacy fixed-patch varbits are no longer interpreted; only plugin observations count
+        assertTrue(state.farmingPatches.isEmpty())
     }
 
     @Test
@@ -338,7 +359,6 @@ class MainViewModelFlowTest {
         // Dailies: 4539 = 0 (Zaff available), 4481 = 1 (Hard diary = 60 staves)
         // NMZ: 3961 = 5 (5/15 claimed), 1060 = 50000 (can buy remaining 10)
         // Tears of Guthix: 5099 = 0, 456 = 0 (Ready)
-        // Hespori: 7908 = 4 (Ready)
         val varbitsJson = """
             {
               "72": 32,
@@ -352,8 +372,7 @@ class MainViewModelFlowTest {
               "3961": 5,
               "1060": 50000,
               "5099": 0,
-              "456": 0,
-              "7908": 4
+              "456": 0
             }
         """.trimIndent()
 
@@ -394,11 +413,7 @@ class MainViewModelFlowTest {
         assertEquals("Redwood Birdhouse", meadowNorth.houseType)
         assertTrue(meadowNorth.isSeeded)
 
-        // Hespori patch
-        val hespori = state.farmingPatches.first { it.patchId == "7908" }
-        assertEquals("Hespori Patch", hespori.patchName)
-        assertEquals("Hespori", hespori.cropName)
-        assertTrue(hespori.isGrown)
+        assertTrue(state.farmingPatches.isEmpty())
 
         // Dailies: Zaff staves
         val zaff = state.dailyTasks.first { it.id == "zaff_staves" }
