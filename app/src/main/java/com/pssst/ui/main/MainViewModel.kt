@@ -422,50 +422,12 @@ class MainViewModel(
             emptyList()
         }
 
-        // Parse Birdhouse Spaces
-        val birdHouseSpaces = listOf(
-            Triple("1626", "567", "Mushroom Meadow (North)"),
-            Triple("1627", "568", "Mushroom Meadow (South)"),
-            Triple("1628", "569", "Verdant Valley (Northeast)"),
-            Triple("1629", "570", "Verdant Valley (Southwest)")
-        )
-
-        val birdHouses = birdHouseSpaces.map { (realVarpId, fallbackVarpId, spaceName) ->
-            val value = varbits[realVarpId] ?: varbits[fallbackVarpId] ?: 0
-            val primaryId = if (varbits.containsKey(realVarpId)) realVarpId else fallbackVarpId
-            if (value == 0) {
-                BirdHouseUiModel(primaryId, spaceName, "No House", "Empty (Unbuilt)", isReady = false, isSeeded = false)
-            } else {
-                val houseType = when ((value - 1) / 3) {
-                    0 -> "Regular"
-                    1 -> "Oak"
-                    2 -> "Willow"
-                    3 -> "Teak"
-                    4 -> "Maple"
-                    5 -> "Mahogany"
-                    6 -> "Yew"
-                    7 -> "Magic"
-                    8 -> "Redwood"
-                    else -> "Bird"
-                }
-                val isSeeded = (value % 3) == 2
-                val isBuiltOnly = (value % 3) == 1
-                val isReady = !isSeeded && !isBuiltOnly && value > 0
-                val stateText = when {
-                    isSeeded -> "Seeded (50m timer active)"
-                    isBuiltOnly -> "Built (Needs Seeds)"
-                    isReady -> "Ready to Harvest!"
-                    else -> "State $value"
-                }
-                BirdHouseUiModel(
-                    varpId = primaryId,
-                    spaceName = spaceName,
-                    houseType = "$houseType Birdhouse",
-                    stateText = stateText,
-                    isReady = isReady,
-                    isSeeded = isSeeded
-                )
-            }
+        // Birdhouses come from the plugin's Fossil Island observations (stored in the raw payload)
+        val birdHouses: List<BirdHouseUiModel> = try {
+            gson.fromJson(entity.rawJson, StateResponse::class.java)?.data?.birdhouses.orEmpty()
+                .map(BirdHouseUiModel::from)
+        } catch (e: Exception) {
+            emptyList()
         }
 
         // Parse Dailies & Weeklies

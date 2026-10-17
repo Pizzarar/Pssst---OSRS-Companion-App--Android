@@ -289,56 +289,56 @@ class MainViewModelFlowTest {
     }
 
     @Test
-    fun uiState_birdHousesAndFarmingPatchesDecodedDeterministically() = runTest(testDispatcher) {
+    fun uiState_birdHousesComeFromPluginObservationsAndReadinessFollowsTheClock() = runTest(testDispatcher) {
         testScheduler.advanceUntilIdle()
         fakePrefs.emitUuid(testUuid)
 
-        val varbitsJson = """
-            {
-              "567": 26,
-              "568": 19,
-              "569": 0,
-              "570": 27
-            }
+        // 27 = seeded redwood (a multiple of 3 is seeded), 26 = redwood built but not seeded, 4 = oak built
+        val seededAt = 2_000_000_000_000L
+        val readyAt = seededAt + 50 * 60_000L
+        val rawJson = """
+            {"data": {"birdhouses": [
+              {"space": "MEADOW_NORTH", "spaceName": "Mushroom Meadow (North)", "varpId": 1626, "value": 27,
+               "observedAt": $seededAt, "state": "SEEDED", "houseType": "REDWOOD", "houseItemId": 22204, "readyAt": $readyAt},
+              {"space": "MEADOW_SOUTH", "spaceName": "Mushroom Meadow (South)", "varpId": 1627, "value": 26,
+               "observedAt": $seededAt, "state": "BUILT", "houseType": "REDWOOD", "houseItemId": 22204, "readyAt": 0},
+              {"space": "VALLEY_NORTH", "spaceName": "Verdant Valley (Northeast)", "varpId": 1628, "value": 0,
+               "observedAt": $seededAt, "state": "EMPTY", "readyAt": 0},
+              {"space": "VALLEY_SOUTH", "spaceName": "Verdant Valley (Southwest)", "varpId": 1629, "value": 4,
+               "observedAt": $seededAt, "state": "BUILT", "houseType": "OAK", "houseItemId": 21515, "readyAt": 0}
+            ]}}
         """.trimIndent()
 
-        val mockEntity = PlayerStateEntity(
-            testUuid,
-            1729100000L,
-            "{}",
-            varbitsJson,
-            "{}",
-            "[]",
-            "[]",
-            System.currentTimeMillis()
+        dao.upsert(
+            PlayerStateEntity(testUuid, 1729100000L, rawJson, "{}", "{}", "[]", "[]", System.currentTimeMillis())
         )
-        dao.upsert(mockEntity)
 
         val state = viewModel.uiState.first { it.birdHouses.isNotEmpty() }
         assertEquals(4, state.birdHouses.size)
 
-        val meadowNorth = state.birdHouses.first { it.varpId == "567" }
+        val tenMinutesIn = seededAt + 10 * 60_000L
+        val meadowNorth = state.birdHouses.first { it.varpId == "1626" }
         assertEquals("Mushroom Meadow (North)", meadowNorth.spaceName)
-        assertEquals("Redwood Birdhouse", meadowNorth.houseType)
-        assertTrue(meadowNorth.isSeeded)
-        assertFalse(meadowNorth.isReady)
+        assertEquals("Redwood birdhouse", meadowNorth.houseType)
+        assertEquals(BirdHouseStatus.SEEDED, meadowNorth.status(tenMinutesIn))
+        assertFalse(meadowNorth.isReady(tenMinutesIn))
+        assertEquals("Seeded \u2022 ready in ~40m", meadowNorth.statusText(tenMinutesIn))
+        // Ready is time based: 50 minutes after the seeded value was first observed, not a varp value
+        assertTrue(meadowNorth.isReady(readyAt))
+        assertEquals("Seeded \u2022 ready", meadowNorth.statusText(readyAt))
 
-        val meadowSouth = state.birdHouses.first { it.varpId == "568" }
-        assertEquals("Yew Birdhouse", meadowSouth.houseType)
-        assertFalse(meadowSouth.isSeeded)
-        assertFalse(meadowSouth.isReady)
-        assertEquals("Built (Needs Seeds)", meadowSouth.stateText)
+        val meadowSouth = state.birdHouses.first { it.varpId == "1627" }
+        assertEquals(BirdHouseStatus.BUILT, meadowSouth.status(readyAt + 24 * 60 * 60_000L))
+        assertFalse(meadowSouth.isReady(readyAt + 24 * 60 * 60_000L))
+        assertEquals("Built, not seeded", meadowSouth.statusText(tenMinutesIn))
 
-        val valleyNE = state.birdHouses.first { it.varpId == "569" }
-        assertEquals("No House", valleyNE.houseType)
-        assertEquals("Empty (Unbuilt)", valleyNE.stateText)
+        val valleyNE = state.birdHouses.first { it.varpId == "1628" }
+        assertNull(valleyNE.houseType)
+        assertEquals(BirdHouseStatus.EMPTY, valleyNE.status(tenMinutesIn))
 
-        val valleySW = state.birdHouses.first { it.varpId == "570" }
-        assertEquals("Redwood Birdhouse", valleySW.houseType)
-        assertTrue(valleySW.isReady)
-        assertEquals("Ready to Harvest!", valleySW.stateText)
+        assertEquals("Oak birdhouse", state.birdHouses.first { it.varpId == "1629" }.houseType)
 
-        // Legacy fixed-patch varbits are no longer interpreted; only plugin observations count
+        // The varps no longer feed birdhouses, and legacy fixed-patch varbits are not interpreted either
         assertTrue(state.farmingPatches.isEmpty())
     }
 
@@ -354,7 +354,6 @@ class MainViewModelFlowTest {
 
         // Real payload as sent from live RuneLite state.json:
         // Miscellania: 72 = 32 (32/127 = 25%), 74 = 2554 (2.6K GP)
-        // Birdhouses: 1626 = 26 (Redwood, seeded)
         // Slayer: taskLocation = "Karuulm Slayer Dungeon"
         // Dailies: 4539 = 0 (Zaff available), 4481 = 1 (Hard diary = 60 staves)
         // NMZ: 3961 = 5 (5/15 claimed), 1060 = 50000 (can buy remaining 10)
@@ -363,10 +362,6 @@ class MainViewModelFlowTest {
             {
               "72": 32,
               "74": 2554,
-              "1626": 26,
-              "1627": 0,
-              "1628": 0,
-              "1629": 0,
               "4539": 0,
               "4481": 1,
               "3961": 5,
@@ -408,10 +403,8 @@ class MainViewModelFlowTest {
         assertEquals(88, state.slayer.amount)
         assertEquals("Karuulm Slayer Dungeon", state.slayer.taskLocation)
 
-        // Birdhouse real VarPlayer 1626
-        val meadowNorth = state.birdHouses.first { it.varpId == "1626" }
-        assertEquals("Redwood Birdhouse", meadowNorth.houseType)
-        assertTrue(meadowNorth.isSeeded)
+        // Birdhouses are not read from varps any more
+        assertTrue(state.birdHouses.isEmpty())
 
         assertTrue(state.farmingPatches.isEmpty())
 

@@ -16,7 +16,8 @@ data class StateDataDto(
     @SerializedName("skills") val skills: List<SkillEntryDto> = emptyList(),
     @SerializedName("potion_storage", alternate = ["potionStorage"]) val potionStorage: List<PotionEntryDto> = emptyList(),
     @SerializedName("quests") val quests: Map<String, String> = emptyMap(),
-    @SerializedName("farming") val farming: List<FarmingEntryDto> = emptyList()
+    @SerializedName("farming") val farming: List<FarmingEntryDto> = emptyList(),
+    @SerializedName("birdhouses") val birdhouses: List<BirdhouseEntryDto> = emptyList()
 )
 
 /**
@@ -67,4 +68,21 @@ data class SkillEntryDto(
 data class PotionEntryDto(
     @SerializedName("itemId", alternate = ["item_id", "id"]) val itemId: Int = 0,
     @SerializedName("doses", alternate = ["quantity"]) val doses: Int = 0
+)
+
+/**
+ * One Fossil Island birdhouse space as last observed by the plugin. state is SEEDED, BUILT, EMPTY or UNKNOWN.
+ * houseType/houseItemId are absent for empty or unknown spaces. readyAt (epoch ms) is 50 minutes after the seeded
+ * value was first observed, and 0 when the space is not seeded.
+ */
+data class BirdhouseEntryDto(
+    @SerializedName("space") val space: String = "",
+    @SerializedName("spaceName") val spaceName: String = "",
+    @SerializedName("varpId") val varpId: Int = 0,
+    @SerializedName("value") val value: Int = 0,
+    @SerializedName("observedAt") val observedAt: Long = 0L,
+    @SerializedName("state") val state: String = "UNKNOWN",
+    @SerializedName("houseType") val houseType: String? = null,
+    @SerializedName("houseItemId") val houseItemId: Int = 0,
+    @SerializedName("readyAt") val readyAt: Long = 0L
 )

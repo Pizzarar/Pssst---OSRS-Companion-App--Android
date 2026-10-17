@@ -71,8 +71,8 @@ fun TimersScreen(
     var selectedTab by remember { mutableStateOf(TimersSubTab.DAILIES) }
 
     val readyDailiesCount = state.dailyTasks.count { it.isAvailable }
-    val readyBirdhousesCount = state.birdHouses.count { it.isReady }
     val nowMs by rememberNowMs()
+    val readyBirdhousesCount = state.birdHouses.count { it.isReady(nowMs) }
     val readyFarmingCount = state.farmingPatches.count { it.isGrown(nowMs) }
 
     Column(
@@ -124,7 +124,7 @@ fun TimersScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "No birdhouse data available yet.",
+                                text = "No birdhouses observed yet.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = OsrsTextMuted
                             )
@@ -135,7 +135,7 @@ fun TimersScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             items(state.birdHouses, key = { it.varpId }) { house ->
-                                BirdHouseCard(house)
+                                BirdHouseCard(house, nowMs)
                             }
                         }
                     }
@@ -600,7 +600,7 @@ fun FarmingPatchCard(patch: FarmingPatchUiModel, nowMs: Long, modifier: Modifier
 }
 
 @Composable
-fun BirdHouseCard(house: BirdHouseUiModel, modifier: Modifier = Modifier) {
+fun BirdHouseCard(house: BirdHouseUiModel, nowMs: Long, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -617,19 +617,21 @@ fun BirdHouseCard(house: BirdHouseUiModel, modifier: Modifier = Modifier) {
                     text = house.spaceName,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (house.isReady) OsrsHerbGreen else OsrsTextPrimary
+                    color = if (house.isReady(nowMs)) OsrsHerbGreen else OsrsTextPrimary
                 )
                 Text(
-                    text = "${house.houseType} • ${house.stateText}",
+                    text = listOfNotNull(house.houseType, house.statusText(nowMs)).joinToString(" \u2022 "),
                     style = MaterialTheme.typography.bodySmall,
                     color = OsrsTextMuted
                 )
             }
 
-            val (chipText, chipBg, chipTextCol) = when {
-                house.isReady -> Triple("READY", OsrsHerbGreen, Color.Black)
-                house.isSeeded -> Triple("ACTIVE", OsrsSlotEmpty, OsrsYellow)
-                else -> Triple("EMPTY", OsrsSlotEmpty, OsrsTextMuted)
+            val (chipText, chipBg, chipTextCol) = when (house.status(nowMs)) {
+                BirdHouseStatus.READY -> Triple("READY", OsrsHerbGreen, Color.Black)
+                BirdHouseStatus.SEEDED -> Triple("ACTIVE", OsrsSlotEmpty, OsrsYellow)
+                BirdHouseStatus.BUILT -> Triple("BUILT", OsrsSlotEmpty, OsrsTextPrimary)
+                BirdHouseStatus.EMPTY -> Triple("EMPTY", OsrsSlotEmpty, OsrsTextMuted)
+                BirdHouseStatus.UNKNOWN -> Triple("?", OsrsSlotEmpty, OsrsTextMuted)
             }
 
             SuggestionChip(

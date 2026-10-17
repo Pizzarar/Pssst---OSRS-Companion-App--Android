@@ -40,8 +40,8 @@ fun OverviewScreen(
     modifier: Modifier = Modifier
 ) {
     val readyDailiesCount = state.dailyTasks.count { it.isAvailable }
-    val readyBirdhousesCount = state.birdHouses.count { it.isReady }
     val nowMs by rememberNowMs()
+    val readyBirdhousesCount = state.birdHouses.count { it.isReady(nowMs) }
     val readyFarmingCount = state.farmingPatches.count { it.isGrown(nowMs) }
     val activeGeCount = state.geOffers.count { !it.isEmpty }
     val completeGeCount = state.geOffers.count { it.isComplete }

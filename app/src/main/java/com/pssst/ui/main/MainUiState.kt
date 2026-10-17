@@ -1,7 +1,9 @@
 package com.pssst.ui.main
 
+import com.pssst.data.network.model.BirdhouseEntryDto
 import com.pssst.data.network.model.FarmingEntryDto
 import com.pssst.util.FarmingTiming
+import com.pssst.util.TimeFormat
 import com.pssst.util.OsrsXpTable
 import java.util.Locale
 
@@ -131,14 +133,55 @@ data class FarmingPatchUiModel(
     }
 }
 
+enum class BirdHouseStatus { UNKNOWN, EMPTY, BUILT, SEEDED, READY }
+
+/**
+ * A birdhouse space as last seen on Fossil Island. Whether it is ready depends on the current time (50 minutes after
+ * the seeded value was first observed, which the plugin supplies as readyAtMs), so status is a function of `nowMs`.
+ */
 data class BirdHouseUiModel(
     val varpId: String,
     val spaceName: String,
-    val houseType: String,
-    val stateText: String,
-    val isReady: Boolean,
-    val isSeeded: Boolean
-)
+    val houseType: String?,
+    val state: String,
+    val observedAtMs: Long,
+    val readyAtMs: Long
+) {
+    fun status(nowMs: Long): BirdHouseStatus = when (state) {
+        "SEEDED" -> if (nowMs >= readyAtMs) BirdHouseStatus.READY else BirdHouseStatus.SEEDED
+        "BUILT" -> BirdHouseStatus.BUILT
+        "EMPTY" -> BirdHouseStatus.EMPTY
+        else -> BirdHouseStatus.UNKNOWN
+    }
+
+    fun isReady(nowMs: Long): Boolean = status(nowMs) == BirdHouseStatus.READY
+
+    fun statusText(nowMs: Long): String = when (status(nowMs)) {
+        BirdHouseStatus.READY -> "Seeded \u2022 ready"
+        BirdHouseStatus.SEEDED -> "Seeded \u2022 ready in ~${TimeFormat.formatDuration(readyAtMs - nowMs)}"
+        BirdHouseStatus.BUILT -> "Built, not seeded"
+        BirdHouseStatus.EMPTY -> "No birdhouse"
+        BirdHouseStatus.UNKNOWN -> "Unrecognised state"
+    }
+
+    companion object {
+        fun from(dto: BirdhouseEntryDto): BirdHouseUiModel {
+            val type = when (dto.houseType) {
+                null -> null
+                "NORMAL" -> "Regular birdhouse"
+                else -> "${dto.houseType.lowercase().replaceFirstChar { it.uppercase() }} birdhouse"
+            }
+            return BirdHouseUiModel(
+                varpId = dto.varpId.toString(),
+                spaceName = dto.spaceName,
+                houseType = type,
+                state = dto.state,
+                observedAtMs = dto.observedAt,
+                readyAtMs = dto.readyAt
+            )
+        }
+    }
+}
 
 enum class BankSortMode(val label: String) {
     DEFAULT("Slot Order"),
