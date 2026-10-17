@@ -15,8 +15,32 @@ data class StateDataDto(
     @SerializedName("ge_offers", alternate = ["geOffers"]) val geOffers: List<GeOfferDto> = emptyList(),
     @SerializedName("skills") val skills: List<SkillEntryDto> = emptyList(),
     @SerializedName("potion_storage", alternate = ["potionStorage"]) val potionStorage: List<PotionEntryDto> = emptyList(),
-    @SerializedName("quests") val quests: Map<String, String> = emptyMap()
+    @SerializedName("quests") val quests: Map<String, String> = emptyMap(),
+    @SerializedName("farming") val farming: List<FarmingEntryDto> = emptyList()
 )
+
+/**
+ * One farming patch as last observed by the plugin. regionId + varbitId identify the patch: the varbit is a
+ * per-region slot, not a fixed patch. observedAt is epoch ms and only moves when value changes. The crop fields
+ * are absent when the plugin could not decode the value. tickMinutes is 0 when nothing is advancing.
+ */
+data class FarmingEntryDto(
+    @SerializedName("regionId") val regionId: Int = 0,
+    @SerializedName("regionName") val regionName: String = "",
+    @SerializedName("patchName") val patchName: String = "",
+    @SerializedName("patchType") val patchType: String = "",
+    @SerializedName("varbitId") val varbitId: Int = 0,
+    @SerializedName("value") val value: Int = 0,
+    @SerializedName("observedAt") val observedAt: Long = 0L,
+    @SerializedName("cropName") val cropName: String? = null,
+    @SerializedName("itemId") val itemId: Int = 0,
+    @SerializedName("cropState") val cropState: String? = null,
+    @SerializedName("stage") val stage: Int = 0,
+    @SerializedName("stages") val stages: Int = 0,
+    @SerializedName("tickMinutes") val tickMinutes: Int = 0
+) {
+    val patchKey: String get() = "$regionId.$varbitId"
+}
 
 data class ItemEntryDto(
     @SerializedName("id") val id: Int,
