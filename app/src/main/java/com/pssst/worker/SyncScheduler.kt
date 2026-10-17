@@ -10,8 +10,9 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import android.util.Log
+import com.pssst.data.network.model.BirdhouseEntryDto
 import com.pssst.data.network.model.FarmingEntryDto
-import com.pssst.util.FarmingReminderPlanner
+import com.pssst.util.ReminderPlanner
 import com.pssst.util.QueuedReminder
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -59,69 +60,53 @@ object SyncScheduler {
         WorkManager.getInstance(context).cancelUniqueWork(SYNC_WORK_NAME)
     }
 
-    const val BIRDHOUSE_REMINDER_WORK_NAME = "pssst_birdhouse_reminder"
-
-    fun scheduleBirdhouseReminder(context: Context, delaySeconds: Long) {
-        if (delaySeconds <= 0) return
-
-        val request = OneTimeWorkRequestBuilder<BirdhouseReminderWorker>()
-            .setInitialDelay(delaySeconds, TimeUnit.SECONDS)
-            .addTag(BirdhouseReminderWorker.TAG)
-            .build()
-
-        // KEEP, not REPLACE: SyncWorker calls this on every sync while a house is seeded,
-        // so REPLACE pushed the 50-min reminder back every 15 min and it never fired.
-        WorkManager.getInstance(context).enqueueUniqueWork(
-            BIRDHOUSE_REMINDER_WORK_NAME,
-            ExistingWorkPolicy.KEEP,
-            request
-        )
-    }
-
-    fun cancelBirdhouseReminder(context: Context) {
-        WorkManager.getInstance(context).cancelUniqueWork(BIRDHOUSE_REMINDER_WORK_NAME)
-    }
-
     /**
-     * Makes the queued farming reminders match [entries]: one per growing patch at its estimated finish time.
-     * Reminders are keyed by (patch, finish time), so an unchanged patch is left alone on every sync and one whose
-     * observation moved is cancelled and re-queued. With notifications off, everything queued is cancelled.
+     * Makes the queued reminders match the latest observations: one per growing farming patch at its estimated
+     * finish, and one for the birdhouses when the last seeded one is ready. Reminders are keyed by (key, finish
+     * time), so an unchanged one is left alone on every sync and one whose observation moved is cancelled and
+     * re-queued. With notifications off, everything queued is cancelled.
      * Never throws: a reminder problem must not fail a sync.
      */
-    fun syncFarmingReminders(context: Context, entries: List<FarmingEntryDto>, notificationsEnabled: Boolean) {
+    fun syncReminders(
+        context: Context,
+        farming: List<FarmingEntryDto>,
+        birdhouses: List<BirdhouseEntryDto>,
+        notificationsEnabled: Boolean
+    ) {
         try {
             val workManager = WorkManager.getInstance(context)
+            val nowMs = System.currentTimeMillis()
             val desired = if (notificationsEnabled) {
-                FarmingReminderPlanner.desiredReminders(entries, System.currentTimeMillis())
+                ReminderPlanner.farmingReminders(farming, nowMs) + ReminderPlanner.birdhouseReminders(birdhouses, nowMs)
             } else {
                 emptyList()
             }
 
-            val queued = workManager.getWorkInfosByTag(FarmingReminderWorker.TAG).get()
+            val queued = workManager.getWorkInfosByTag(ReminderWorker.TAG).get()
                 .filter { !it.state.isFinished }
                 .mapNotNull { info ->
-                    val patch = info.tags.firstOrNull { it.startsWith(FarmingReminderWorker.TAG_PATCH_PREFIX) }
-                        ?.removePrefix(FarmingReminderWorker.TAG_PATCH_PREFIX)
-                    val eta = info.tags.firstOrNull { it.startsWith(FarmingReminderWorker.TAG_ETA_PREFIX) }
-                        ?.removePrefix(FarmingReminderWorker.TAG_ETA_PREFIX)?.toLongOrNull()
-                    if (patch == null || eta == null) null else QueuedReminder(info.id.toString(), patch, eta)
+                    val key = info.tags.firstOrNull { it.startsWith(ReminderWorker.TAG_KEY_PREFIX) }
+                        ?.removePrefix(ReminderWorker.TAG_KEY_PREFIX)
+                    val eta = info.tags.firstOrNull { it.startsWith(ReminderWorker.TAG_ETA_PREFIX) }
+                        ?.removePrefix(ReminderWorker.TAG_ETA_PREFIX)?.toLongOrNull()
+                    if (key == null || eta == null) null else QueuedReminder(info.id.toString(), key, eta)
                 }
 
-            val changes = FarmingReminderPlanner.diff(desired, queued)
+            val changes = ReminderPlanner.diff(desired, queued)
             changes.cancelWorkIds.forEach { workManager.cancelWorkById(UUID.fromString(it)) }
             changes.schedule.forEach { reminder ->
-                val request = OneTimeWorkRequestBuilder<FarmingReminderWorker>()
+                val request = OneTimeWorkRequestBuilder<ReminderWorker>()
                     .setInitialDelay(reminder.delayMs, TimeUnit.MILLISECONDS)
                     .setInputData(
                         workDataOf(
-                            FarmingReminderWorker.KEY_PATCH_KEY to reminder.patchKey,
-                            FarmingReminderWorker.KEY_TITLE to reminder.title,
-                            FarmingReminderWorker.KEY_MESSAGE to reminder.message
+                            ReminderWorker.KEY_REMINDER_KEY to reminder.key,
+                            ReminderWorker.KEY_TITLE to reminder.title,
+                            ReminderWorker.KEY_MESSAGE to reminder.message
                         )
                     )
-                    .addTag(FarmingReminderWorker.TAG)
-                    .addTag(FarmingReminderWorker.TAG_PATCH_PREFIX + reminder.patchKey)
-                    .addTag(FarmingReminderWorker.TAG_ETA_PREFIX + reminder.doneAtMs)
+                    .addTag(ReminderWorker.TAG)
+                    .addTag(ReminderWorker.TAG_KEY_PREFIX + reminder.key)
+                    .addTag(ReminderWorker.TAG_ETA_PREFIX + reminder.doneAtMs)
                     .build()
                 workManager.enqueue(request)
             }

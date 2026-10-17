@@ -29,36 +29,6 @@ class StateDiffAnalyzerTest {
     }
 
     @Test
-    fun findCompletedRunsOrPatches_detectsBirdhouseTransition() {
-        val prevVarbits = mapOf(
-            "1626" to 26 // Seeded (26 % 3 == 2)
-        )
-        val prevEntity = PlayerStateEntity(
-            testUuid,
-            1000L,
-            "{}",
-            gson.toJson(prevVarbits),
-            "{}",
-            "[]",
-            "[]",
-            1000L
-        )
-
-        val currVarbits = mapOf(
-            "1626" to 27 // Ready (27 % 3 == 0)
-        )
-        val currResponse = StateResponse(
-            updatedAt = 2000L,
-            data = StateDataDto(varbits = currVarbits)
-        )
-
-        val alerts = StateDiffAnalyzer.findCompletedRunsOrPatches(prevEntity, currResponse)
-        assertEquals(1, alerts.size)
-        assertEquals("Birdhouse Run Ready!", alerts[0].title)
-        assertTrue(alerts[0].message.contains("Mushroom Meadow (North) birdhouse is ready to harvest"))
-    }
-
-    @Test
     fun findCompletedRunsOrPatches_detectsDailyResetsAndKingdomWarning() {
         val prevVarbits = mapOf(
             "4539" to 1,     // Staves claimed

@@ -13,16 +13,9 @@ data class NotificationAlert(
 object StateDiffAnalyzer {
     private val gson = Gson()
 
-    private val BIRDHOUSE_SPACES = listOf(
-        Pair("1626", "567") to "Mushroom Meadow (North)",
-        Pair("1627", "568") to "Mushroom Meadow (South)",
-        Pair("1628", "569") to "Verdant Valley (Northeast)",
-        Pair("1629", "570") to "Verdant Valley (Southwest)"
-    )
-
     /**
-     * Compares previous and current state to identify completed
-     * birdhouses, daily resets, kingdom warnings, or completed slayer tasks.
+     * Compares previous and current state to identify
+     * daily resets, kingdom warnings, or completed slayer tasks.
      */
     fun findCompletedRunsOrPatches(
         previousEntity: PlayerStateEntity?,
@@ -42,27 +35,7 @@ object StateDiffAnalyzer {
 
         val currentVarbits = currentData.varbits
 
-        // 1. Check Birdhouses ready
-        for ((keys, spaceName) in BIRDHOUSE_SPACES) {
-            val (realKey, fallbackKey) = keys
-            val prevVal = previousVarbits[realKey] ?: previousVarbits[fallbackKey]
-            val currVal = currentVarbits[realKey] ?: currentVarbits[fallbackKey]
-
-            if (prevVal != null && currVal != null) {
-                val wasSeeded = (prevVal % 3) == 2
-                val isReadyNow = (currVal % 3) == 0 && currVal > 0
-                if (wasSeeded && isReadyNow) {
-                    alerts.add(
-                        NotificationAlert(
-                            title = "Birdhouse Run Ready!",
-                            message = "$spaceName birdhouse is ready to harvest."
-                        )
-                    )
-                }
-            }
-        }
-
-        // 2. Check Daily / Weekly Resets
+        // 1. Check Daily / Weekly Resets
         // Zaff's Battlestaves: was claimed (1) and now reset (0)
         val prevStaves = previousVarbits["4539"]
         val currStaves = currentVarbits["4539"]

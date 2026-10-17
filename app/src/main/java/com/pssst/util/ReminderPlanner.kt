@@ -1,10 +1,11 @@
 package com.pssst.util
 
+import com.pssst.data.network.model.BirdhouseEntryDto
 import com.pssst.data.network.model.FarmingEntryDto
 
-/** A one-shot "this patch should be fully grown" notification to fire at [doneAtMs]. */
+/** A one-shot notification to fire at [doneAtMs], identified by [key] (e.g. a farming patch, or "birdhouses"). */
 data class PlannedReminder(
-    val patchKey: String,
+    val key: String,
     val doneAtMs: Long,
     val delayMs: Long,
     val title: String,
@@ -14,7 +15,7 @@ data class PlannedReminder(
 /** A reminder already queued in WorkManager, as recovered from its tags. */
 data class QueuedReminder(
     val workId: String,
-    val patchKey: String,
+    val key: String,
     val doneAtMs: Long
 )
 
@@ -24,14 +25,16 @@ data class ReminderChanges(
 )
 
 /**
- * Decides which farming reminders should exist, and what to cancel or add to get there.
+ * Decides which timed reminders should exist, and what to cancel or add to get there.
  * Pure logic; SyncScheduler applies the result to WorkManager.
  */
-object FarmingReminderPlanner {
+object ReminderPlanner {
+    const val BIRDHOUSES_KEY = "birdhouses"
+
     // Compost bins and weeds also tick, but a notification for them is noise
     private val EXCLUDED_PATCH_TYPES = setOf("COMPOST", "BIG_COMPOST")
 
-    fun desiredReminders(entries: List<FarmingEntryDto>, nowMs: Long): List<PlannedReminder> =
+    fun farmingReminders(entries: List<FarmingEntryDto>, nowMs: Long): List<PlannedReminder> =
         entries.mapNotNull { entry ->
             if (entry.cropState != "GROWING" || entry.patchType in EXCLUDED_PATCH_TYPES || entry.cropName == "Weeds") {
                 return@mapNotNull null
@@ -41,7 +44,7 @@ object FarmingReminderPlanner {
             val type = entry.patchType.lowercase().replace('_', ' ')
             val where = if (entry.patchName.isBlank()) entry.regionName else "${entry.regionName} (${entry.patchName})"
             PlannedReminder(
-                patchKey = entry.patchKey,
+                key = entry.patchKey,
                 doneAtMs = doneAt,
                 delayMs = doneAt - nowMs,
                 title = "Farming patch grown",
@@ -50,12 +53,31 @@ object FarmingReminderPlanner {
             )
         }
 
+    /**
+     * One reminder for all birdhouses, at the moment the last seeded one is ready (as RuneLite does), so four
+     * houses seeded together do not produce four notifications.
+     */
+    fun birdhouseReminders(entries: List<BirdhouseEntryDto>, nowMs: Long): List<PlannedReminder> {
+        val lastReadyAt = entries.filter { it.state == "SEEDED" && it.readyAt > 0 }.maxOfOrNull { it.readyAt }
+            ?: return emptyList()
+        if (lastReadyAt <= nowMs) return emptyList()
+        return listOf(
+            PlannedReminder(
+                key = BIRDHOUSES_KEY,
+                doneAtMs = lastReadyAt,
+                delayMs = lastReadyAt - nowMs,
+                title = "Birdhouses ready",
+                message = "Your Fossil Island birdhouses should be ready by now."
+            )
+        )
+    }
+
     fun diff(desired: List<PlannedReminder>, queued: List<QueuedReminder>): ReminderChanges {
-        val wanted = desired.map { it.patchKey to it.doneAtMs }.toSet()
-        val present = queued.map { it.patchKey to it.doneAtMs }.toSet()
+        val wanted = desired.map { it.key to it.doneAtMs }.toSet()
+        val present = queued.map { it.key to it.doneAtMs }.toSet()
         return ReminderChanges(
-            cancelWorkIds = queued.filter { (it.patchKey to it.doneAtMs) !in wanted }.map { it.workId },
-            schedule = desired.filter { (it.patchKey to it.doneAtMs) !in present }
+            cancelWorkIds = queued.filter { (it.key to it.doneAtMs) !in wanted }.map { it.workId },
+            schedule = desired.filter { (it.key to it.doneAtMs) !in present }
         )
     }
 }

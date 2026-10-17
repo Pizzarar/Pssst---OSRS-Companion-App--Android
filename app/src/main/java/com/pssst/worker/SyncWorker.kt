@@ -95,19 +95,13 @@ class SyncWorker(
                 }
             }
 
-            // Keep one "grown" reminder per growing patch, at its estimated finish time
-            SyncScheduler.syncFarmingReminders(appContext, stateResponse.data?.farming.orEmpty(), notificationsEnabled)
-
-            // Schedule offline countdown alarm if any birdhouse was seeded
-            val varbits = stateResponse.data?.varbits ?: emptyMap()
-            val birdhouseKeys = listOf("1626", "1627", "1628", "1629", "567", "568", "569", "570")
-            val hasSeededBirdhouse = birdhouseKeys.any { key ->
-                val v = varbits[key] ?: 0
-                (v % 3) == 2
-            }
-            if (hasSeededBirdhouse && notificationsEnabled) {
-                SyncScheduler.scheduleBirdhouseReminder(appContext, 3000L)
-            }
+            // Keep timed reminders (growing farming patches, birdhouses) in step with the latest observations
+            SyncScheduler.syncReminders(
+                appContext,
+                stateResponse.data?.farming.orEmpty(),
+                stateResponse.data?.birdhouses.orEmpty(),
+                notificationsEnabled
+            )
 
             // Insert/update in Room database
             val rawJson = gson.toJson(stateResponse)
