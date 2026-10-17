@@ -365,7 +365,6 @@ class MainViewModelFlowTest {
               "4539": 0,
               "4481": 1,
               "3961": 5,
-              "1060": 50000,
               "5099": 0,
               "456": 0
             }
@@ -375,14 +374,20 @@ class MainViewModelFlowTest {
             {
               "taskName": "Hydras",
               "amount": 88,
-              "taskLocation": "Karuulm Slayer Dungeon"
+              "taskLocation": "Karuulm Slayer Dungeon",
+              "initialAmount": 130,
+              "points": 1234,
+              "streak": 45
             }
         """.trimIndent()
+
+        // NMZ reward points are a varp (1060), so they travel in varps{}, not varbits{}
+        val rawJson = """{"data": {"varps": {"1060": 50000}}}"""
 
         val mockEntity = PlayerStateEntity(
             testUuid,
             1729100000L,
-            "{}",
+            rawJson,
             varbitsJson,
             slayerJson,
             "[]",
@@ -402,6 +407,10 @@ class MainViewModelFlowTest {
         assertEquals("Hydras", state.slayer.taskName)
         assertEquals(88, state.slayer.amount)
         assertEquals("Karuulm Slayer Dungeon", state.slayer.taskLocation)
+        assertEquals(130, state.slayer.initialAmount)
+        assertEquals(1234, state.slayer.points)
+        assertEquals(45, state.slayer.streak)
+        assertTrue(state.slayer.hasTask)
 
         // Birdhouses are not read from varps any more
         assertTrue(state.birdHouses.isEmpty())
@@ -418,6 +427,8 @@ class MainViewModelFlowTest {
         val nmz = state.dailyTasks.first { it.id == "nmz_herb_boxes" }
         assertTrue(nmz.isAvailable)
         assertTrue(nmz.statusText.contains("5/15 claimed"))
+        // 50,000 points at 9,500 each affords 5, and 10 boxes remain
+        assertTrue(nmz.statusText.contains("Can buy 5"))
 
         // Weeklies: Tears of Guthix
         val tog = state.dailyTasks.first { it.id == "tears_of_guthix" }

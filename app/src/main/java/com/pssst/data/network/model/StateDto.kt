@@ -11,7 +11,8 @@ data class StateDataDto(
     @SerializedName("inventory") val inventory: List<ItemEntryDto> = emptyList(),
     @SerializedName("bank") val bank: List<ItemEntryDto> = emptyList(),
     @SerializedName("varbits") val varbits: Map<String, Int> = emptyMap(),
-    @SerializedName("slayer") val slayer: Map<String, Any?> = emptyMap(),
+    @SerializedName("varps") val varps: Map<String, Int> = emptyMap(),
+    @SerializedName("slayer") val slayer: SlayerEntryDto? = null,
     @SerializedName("ge_offers", alternate = ["geOffers"]) val geOffers: List<GeOfferDto> = emptyList(),
     @SerializedName("skills") val skills: List<SkillEntryDto> = emptyList(),
     @SerializedName("potion_storage", alternate = ["potionStorage"]) val potionStorage: List<PotionEntryDto> = emptyList(),
@@ -85,4 +86,17 @@ data class BirdhouseEntryDto(
     @SerializedName("houseType") val houseType: String? = null,
     @SerializedName("houseItemId") val houseItemId: Int = 0,
     @SerializedName("readyAt") val readyAt: Long = 0L
+)
+
+/**
+ * The current Slayer assignment. The plugin resolves the names from the game's own tables, so there is no task table
+ * on this side. amount is the kills remaining: 0 with no names means no assignment.
+ */
+data class SlayerEntryDto(
+    @SerializedName("taskName") val taskName: String? = null,
+    @SerializedName("taskLocation") val taskLocation: String? = null,
+    @SerializedName("amount") val amount: Int = 0,
+    @SerializedName("initialAmount") val initialAmount: Int = 0,
+    @SerializedName("points") val points: Int = 0,
+    @SerializedName("streak") val streak: Int = 0
 )

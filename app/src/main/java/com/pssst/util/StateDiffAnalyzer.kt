@@ -3,6 +3,7 @@ package com.pssst.util
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.pssst.data.local.PlayerStateEntity
+import com.pssst.data.network.model.SlayerEntryDto
 import com.pssst.data.network.model.StateResponse
 
 data class NotificationAlert(
@@ -97,7 +98,7 @@ object StateDiffAnalyzer {
 
         // 5. Check Slayer tasks
         val prevSlayerAmount = previousEntity?.let { extractSlayerAmount(it.slayerJson) } ?: -1
-        val currSlayerAmount = extractSlayerAmountFromMap(currentData.slayer)
+        val currSlayerAmount = currentData.slayer?.amount ?: -1
         if (prevSlayerAmount > 0 && currSlayerAmount == 0) {
             alerts.add(
                 NotificationAlert(
@@ -125,20 +126,9 @@ object StateDiffAnalyzer {
 
     private fun extractSlayerAmount(slayerJson: String): Int {
         return try {
-            val type = object : TypeToken<Map<String, Any?>>() {}.type
-            val map: Map<String, Any?> = gson.fromJson(slayerJson, type) ?: return -1
-            extractSlayerAmountFromMap(map)
+            gson.fromJson(slayerJson, SlayerEntryDto::class.java)?.amount ?: -1
         } catch (e: Exception) {
             -1
-        }
-    }
-
-    private fun extractSlayerAmountFromMap(map: Map<String, Any?>): Int {
-        val amount = map["amount"] ?: return -1
-        return when (amount) {
-            is Number -> amount.toInt()
-            is String -> amount.toIntOrNull() ?: -1
-            else -> -1
         }
     }
 }

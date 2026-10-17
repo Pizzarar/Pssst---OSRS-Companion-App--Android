@@ -2,6 +2,7 @@ package com.pssst.util
 
 import com.google.gson.Gson
 import com.pssst.data.local.PlayerStateEntity
+import com.pssst.data.network.model.SlayerEntryDto
 import com.pssst.data.network.model.StateDataDto
 import com.pssst.data.network.model.StateResponse
 import org.junit.Assert.assertEquals
@@ -84,7 +85,7 @@ class StateDiffAnalyzerTest {
 
         val currResponse = StateResponse(
             updatedAt = 2000L,
-            data = StateDataDto(slayer = mapOf("taskName" to "Gargoyles", "amount" to 0))
+            data = StateDataDto(slayer = SlayerEntryDto(amount = 0))
         )
 
         val alerts = StateDiffAnalyzer.findCompletedRunsOrPatches(prevEntity, currResponse)

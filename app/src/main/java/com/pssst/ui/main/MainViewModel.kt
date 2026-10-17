@@ -14,6 +14,8 @@ import com.pssst.data.local.ItemManifestEntity
 import com.pssst.data.local.PlayerStateDao
 import com.pssst.data.local.PlayerStateEntity
 import com.pssst.data.local.UserPreferencesRepository
+import com.pssst.data.network.model.SlayerEntryDto
+import com.pssst.data.network.model.StateDataDto
 import com.pssst.data.network.model.StateResponse
 import com.pssst.data.network.model.GeOfferDto
 import com.pssst.data.network.model.ItemEntryDto
@@ -397,25 +399,33 @@ class MainViewModel(
         val cofferAmount = (varbits["74"] ?: varbits["3949"] ?: varbits["4001"] ?: 0).toLong()
         val miscellania = MiscellaniaUiModel(approvalPercent, cofferAmount)
 
-        // Parse Slayer
-        val slayer: SlayerUiModel = try {
-            val type = object : TypeToken<Map<String, Any?>>() {}.type
-            val map: Map<String, Any?> = gson.fromJson(entity.slayerJson, type) ?: emptyMap()
-            val taskName = map["taskName"]?.toString() ?: "No Active Task"
-            val amount = when (val amt = map["amount"]) {
-                is Number -> amt.toInt()
-                is String -> amt.toIntOrNull() ?: 0
-                else -> 0
-            }
-            val taskLocation = map["taskLocation"]?.toString() ?: ""
-            SlayerUiModel(taskName, amount, taskLocation)
+        // Everything the plugin sends as structured sections lives in the raw payload; parse it once
+        val payload: StateDataDto? = try {
+            gson.fromJson(entity.rawJson, StateResponse::class.java)?.data
         } catch (e: Exception) {
-            SlayerUiModel()
+            null
         }
+
+        // Slayer: the plugin resolves the task and area names from the game's tables
+        val slayerEntry: SlayerEntryDto? = try {
+            gson.fromJson(entity.slayerJson, SlayerEntryDto::class.java)
+        } catch (e: Exception) {
+            null
+        }
+        val slayer = SlayerUiModel(
+            taskName = slayerEntry?.taskName?.takeIf { it.isNotBlank() } ?: "No Active Task",
+            amount = slayerEntry?.amount ?: 0,
+            taskLocation = slayerEntry?.taskLocation.orEmpty(),
+            initialAmount = slayerEntry?.initialAmount ?: 0,
+            points = slayerEntry?.points ?: 0,
+            streak = slayerEntry?.streak ?: 0
+        )
+
+        val varps: Map<String, Int> = payload?.varps.orEmpty()
 
         // Farming patches come straight from the plugin's per-region observations (stored in the raw payload)
         val farmingPatches: List<FarmingPatchUiModel> = try {
-            gson.fromJson(entity.rawJson, StateResponse::class.java)?.data?.farming.orEmpty()
+            payload?.farming.orEmpty()
                 .map(FarmingPatchUiModel::from)
                 .sortedWith(compareBy({ it.regionName }, { it.patchLabel }))
         } catch (e: Exception) {
@@ -424,7 +434,7 @@ class MainViewModel(
 
         // Birdhouses come from the plugin's Fossil Island observations (stored in the raw payload)
         val birdHouses: List<BirdHouseUiModel> = try {
-            gson.fromJson(entity.rawJson, StateResponse::class.java)?.data?.birdhouses.orEmpty()
+            payload?.birdhouses.orEmpty()
                 .map(BirdHouseUiModel::from)
         } catch (e: Exception) {
             emptyList()
@@ -459,7 +469,7 @@ class MainViewModel(
         // 2. NMZ Herb Boxes
         val herbBoxesClaimed = varbits["3961"] ?: 0
         val remainingBoxes = (15 - herbBoxesClaimed).coerceAtLeast(0)
-        val nmzPoints = varbits["1060"] ?: 0
+        val nmzPoints = varps["1060"] ?: 0
         val affordableBoxes = if (nmzPoints > 0) nmzPoints / 9500 else 0
         val canBuyCount = minOf(remainingBoxes, affordableBoxes)
         val nmzStatus = when {

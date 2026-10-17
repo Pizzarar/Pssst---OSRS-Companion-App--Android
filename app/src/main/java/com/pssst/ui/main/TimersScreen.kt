@@ -418,14 +418,14 @@ fun SlayerTaskCard(slayer: SlayerUiModel, modifier: Modifier = Modifier) {
                     onClick = {},
                     label = {
                         Text(
-                            text = if (slayer.amount > 0) "${slayer.amount} remaining" else "Completed",
+                            text = if (slayer.hasTask) "${slayer.amount} remaining" else "No task",
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp
                         )
                     },
                     colors = SuggestionChipDefaults.suggestionChipColors(
                         containerColor = OsrsSlotEmpty,
-                        labelColor = if (slayer.amount > 0) OsrsYellow else OsrsHerbGreen
+                        labelColor = if (slayer.hasTask) OsrsYellow else OsrsTextMuted
                     ),
                     border = SuggestionChipDefaults.suggestionChipBorder(
                         enabled = true,
@@ -433,6 +433,14 @@ fun SlayerTaskCard(slayer: SlayerUiModel, modifier: Modifier = Modifier) {
                     )
                 )
             }
+
+            Spacer(modifier = Modifier.height(6.dp))
+            val progress = if (slayer.hasTask && slayer.initialAmount > 0) "of ${slayer.initialAmount} \u2022 " else ""
+            Text(
+                text = "${progress}${slayer.points} points \u2022 ${slayer.streak} streak",
+                style = MaterialTheme.typography.labelSmall,
+                color = OsrsTextMuted
+            )
         }
     }
 }

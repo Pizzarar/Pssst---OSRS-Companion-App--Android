@@ -32,8 +32,13 @@ data class MiscellaniaUiModel(
 data class SlayerUiModel(
     val taskName: String = "No Active Task",
     val amount: Int = 0,
-    val taskLocation: String = ""
-)
+    val taskLocation: String = "",
+    val initialAmount: Int = 0,
+    val points: Int = 0,
+    val streak: Int = 0
+) {
+    val hasTask: Boolean get() = amount > 0
+}
 
 enum class ResetCategory {
     DAILY,

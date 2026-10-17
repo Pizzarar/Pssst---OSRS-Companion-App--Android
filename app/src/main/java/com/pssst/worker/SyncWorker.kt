@@ -113,7 +113,7 @@ class SyncWorker(
                 updatedAtMs,
                 rawJson,
                 gson.toJson(data?.varbits ?: emptyMap<String, Int>()),
-                gson.toJson(data?.slayer ?: emptyMap<String, Any?>()),
+                data?.slayer?.let { gson.toJson(it) } ?: "{}",
                 gson.toJson(data?.inventory ?: emptyList<Any>()),
                 gson.toJson(data?.bank ?: emptyList<Any>()),
                 System.currentTimeMillis(),
@@ -127,10 +127,10 @@ class SyncWorker(
 
             val invCount = data?.inventory?.size ?: 0
             val bankCount = data?.bank?.size ?: 0
-            val slayerTaskName = data?.slayer?.get("taskName")?.toString()?.takeIf { it.isNotBlank() } ?: "none"
+            val slayerTaskName = data?.slayer?.taskName?.takeIf { it.isNotBlank() } ?: "none"
             val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
             preferencesRepository.saveLastSyncStatus("OK $timeStr inv=$invCount bank=$bankCount slayer=$slayerTaskName")
-            Log.i(TAG, "Synced: inventory=$invCount bank=$bankCount varbits=${data?.varbits?.size ?: 0} slayer=${data?.slayer?.keys}")
+            Log.i(TAG, "Synced: inventory=$invCount bank=$bankCount varbits=${data?.varbits?.size ?: 0} slayer=$slayerTaskName")
             Log.i(TAG, "Successfully synced player state for UUID: $uuid")
             Result.success()
         } catch (e: Exception) {
