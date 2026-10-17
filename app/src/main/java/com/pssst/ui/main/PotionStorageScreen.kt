@@ -102,7 +102,7 @@ fun PotionStorageScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "No potion storage data synced yet.\nEnsure RuneLite companion plugin has Potion Storage tracking enabled.",
+                    text = "No potion storage data synced yet.\nIt appears after you open the potion store in your bank with Pssst Companion running.",
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.bodyLarge,
                     color = OsrsTextMuted

@@ -296,7 +296,7 @@ fun QuestsSubScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "No quest data synced yet.\nEnsure RuneLite companion plugin has Quest State tracking enabled.",
+                    text = "No quest data synced yet.\nIt appears after you log in with Pssst Companion running.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = OsrsTextMuted
                 )

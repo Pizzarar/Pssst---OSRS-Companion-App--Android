@@ -37,7 +37,7 @@ class SyncWorker(
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val uuid = inputData.getString(KEY_UUID) ?: preferencesRepository.getUuid()
         if (uuid.isNullOrBlank()) {
-            Log.w(TAG, "SyncWorker skipped: user UUID is not configured")
+            Log.w(TAG, "SyncWorker skipped: no Sync Token is configured")
             return@withContext Result.failure()
         }
 

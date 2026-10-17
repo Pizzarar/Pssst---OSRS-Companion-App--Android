@@ -171,7 +171,7 @@ fun DashboardScreen(
                                 )
                                 if (state.uuid.isNotBlank()) {
                                     Text(
-                                        text = "Token: ${state.uuid.take(6)}...${state.uuid.takeLast(6)}",
+                                        text = "Sync Token: ${state.uuid.take(6)}...${state.uuid.takeLast(6)}",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = OsrsTextMuted
                                     )

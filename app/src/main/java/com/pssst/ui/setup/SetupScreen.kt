@@ -61,7 +61,7 @@ fun SetupScreen(
     var urlWarningMessage by remember {
         mutableStateOf(
             if (DynamicStateApiService.isLoopbackUrl(initialServerUrl)) {
-                "On the emulator use http://10.0.2.2:8787"
+                "127.0.0.1 is this phone, not your PC. Use your PC's address, such as http://192.168.1.20:8788"
             } else {
                 null
             }
@@ -96,7 +96,7 @@ fun SetupScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Connect your RuneLite companion plugin to monitor your bank, inventory, and farming timers anywhere.",
+            text = "Connect to the Pssst Companion plugin in RuneLite to see your bank, inventory and farming timers on your phone.",
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.bodyMedium,
             color = OsrsTextMuted
@@ -126,14 +126,14 @@ fun SetupScreen(
                     onValueChange = {
                         serverUrlInput = it
                         urlWarningMessage = if (DynamicStateApiService.isLoopbackUrl(it)) {
-                            "On the emulator use http://10.0.2.2:8787"
+                            "127.0.0.1 is this phone, not your PC. Use your PC's address, such as http://192.168.1.20:8788"
                         } else {
                             null
                         }
                         errorMessage = null
                     },
                     label = { Text("Server URL", color = OsrsTextMuted) },
-                    placeholder = { Text("http://10.0.2.2:8787", color = OsrsTextMuted.copy(alpha = 0.5f)) },
+                    placeholder = { Text("http://192.168.1.20:8788", color = OsrsTextMuted.copy(alpha = 0.5f)) },
                     supportingText = urlWarningMessage?.let {
                         { Text(it, color = OsrsRed) }
                     },
@@ -144,7 +144,7 @@ fun SetupScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Sync Token (UUID) Field
+                // Sync Token field
                 Text(
                     text = "Sync Token",
                     style = MaterialTheme.typography.titleSmall,
@@ -161,7 +161,7 @@ fun SetupScreen(
                         errorMessage = null
                     },
                     label = { Text("Sync Token", color = OsrsTextMuted) },
-                    placeholder = { Text("Paste your UUID here", color = OsrsTextMuted.copy(alpha = 0.5f)) },
+                    placeholder = { Text("Paste your Sync Token", color = OsrsTextMuted.copy(alpha = 0.5f)) },
                     singleLine = true,
                     isError = errorMessage != null,
                     supportingText = errorMessage?.let { { Text(it, color = OsrsRed) } },
@@ -189,7 +189,7 @@ fun SetupScreen(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Remember this UUID on this device",
+                        text = "Remember this Sync Token on this device",
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (rememberMe) OsrsGold else OsrsTextMuted
                     )
@@ -204,14 +204,14 @@ fun SetupScreen(
                         val trimmedToken = tokenInput.trim()
                         val trimmedServerUrl = serverUrlInput.trim()
                         urlWarningMessage = if (DynamicStateApiService.isLoopbackUrl(trimmedServerUrl)) {
-                            "On the emulator use http://10.0.2.2:8787"
+                            "127.0.0.1 is this phone, not your PC. Use your PC's address, such as http://192.168.1.20:8788"
                         } else {
                             null
                         }
                         if (trimmedServerUrl.isEmpty()) {
-                            urlWarningMessage = "Enter the address of your own server, such as http://192.168.1.20:8788"
+                            urlWarningMessage = "Enter your server address, such as http://192.168.1.20:8788"
                         } else if (trimmedToken.isEmpty()) {
-                            errorMessage = "Please enter a valid Sync Token (UUID)"
+                            errorMessage = "Enter the Sync Token from Pssst Companion"
                         } else {
                             viewModel.saveSetup(trimmedServerUrl, trimmedToken, rememberUuid = rememberMe)
                             SyncScheduler.schedulePeriodicSync(context)
@@ -233,7 +233,7 @@ fun SetupScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Find your Sync Token (Auth Token) in RuneLite -> Configuration -> Companion Plugin.\nEnter a local IP or Nord Meshnet address for self-hosting.",
+            text = "Find your Sync Token in RuneLite → Configuration → Pssst Companion → Master Sync.\nFor the server, use your PC's address on the same Wi-Fi, or its Tailscale (or other VPN) address.",
             style = MaterialTheme.typography.bodySmall,
             color = OsrsTextMuted,
             textAlign = TextAlign.Center

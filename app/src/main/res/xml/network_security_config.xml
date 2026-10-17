@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Cleartext is allowed because LAN / Tailscale / Meshnet sync targets are plain http://<ip>:port
+  Cleartext is allowed because LAN / Tailscale / other VPN sync targets are plain http://<ip>:port
   and Android cannot whitelist arbitrary IPs. The previous config blocked every physical-device
   LAN connection. The hosted endpoint is https, so it is unaffected.
 -->

@@ -144,7 +144,7 @@ fun BankScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "No bank data synced yet.\nEnsure RuneLite companion plugin is running.",
+                    text = "No bank data synced yet.\nIt appears after you open your bank with Pssst Companion running.",
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.bodyLarge,
                     color = OsrsTextMuted
