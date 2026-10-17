@@ -5,7 +5,7 @@ import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
-@Database(entities = {PlayerStateEntity.class, ItemManifestEntity.class}, version = 4, exportSchema = false)
+@Database(entities = {PlayerStateEntity.class, ItemManifestEntity.class}, version = 4, exportSchema = true)
 public abstract class AppDatabase extends RoomDatabase {
     public abstract PlayerStateDao playerStateDao();
     public abstract ItemManifestDao itemManifestDao();

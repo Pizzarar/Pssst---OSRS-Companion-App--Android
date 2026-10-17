@@ -9,6 +9,12 @@ android {
     compileSdk = 36
     defaultConfig {
         applicationId = "com.pssst"
+        // Room writes one JSON per schema version here; migration tests open the old versions from these files
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments["room.schemaLocation"] = "$projectDir/schemas"
+            }
+        }
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -36,6 +42,11 @@ android {
       resources {
         excludes += "/META-INF/{AL2.0,LGPL2.1}"
       }
+    }
+
+    sourceSets {
+      // Lets MigrationTestHelper find the exported schemas when running under Robolectric
+      getByName("test").assets.srcDir("$projectDir/schemas")
     }
 
     testOptions {
