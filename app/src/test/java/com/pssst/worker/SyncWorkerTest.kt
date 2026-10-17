@@ -148,8 +148,8 @@ class SyncWorkerTest {
         // Verify StateDiffAnalyzer detected the completed patch and slayer task
         val parsedResponse = gson.fromJson(mockJson, StateResponse::class.java)
         val alerts = StateDiffAnalyzer.findCompletedRunsOrPatches(previousEntity, parsedResponse)
-        assertEquals(2, alerts.size)
-        assertTrue(alerts.any { it.title.contains("Farming Patch Ready") })
+        // Farming alerts are timed reminders now, not state diffs
+        assertEquals(1, alerts.size)
         assertTrue(alerts.any { it.title.contains("Slayer Task Complete") })
     }
 

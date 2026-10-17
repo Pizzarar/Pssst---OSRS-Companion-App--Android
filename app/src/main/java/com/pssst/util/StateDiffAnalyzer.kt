@@ -13,24 +13,6 @@ data class NotificationAlert(
 object StateDiffAnalyzer {
     private val gson = Gson()
 
-    val HERB_PATCH_VARBITS = setOf("4771", "4772", "4773", "4774", "4775")
-    val TREE_PATCH_VARBITS = setOf("7904", "7905", "7906", "7907")
-    val HESPORI_PATCH_VARBITS = setOf("7908")
-    val ALL_FARMING_VARBITS = HERB_PATCH_VARBITS + TREE_PATCH_VARBITS + HESPORI_PATCH_VARBITS
-
-    val PATCH_NAMES = mapOf(
-        "4771" to "Ardougne Herb Patch",
-        "4772" to "Catherby Herb Patch",
-        "4773" to "Falador Herb Patch",
-        "4774" to "Port Phasmatys Herb Patch",
-        "4775" to "Hosidius Herb Patch",
-        "7904" to "Lumbridge Tree Patch",
-        "7905" to "Varrock Tree Patch",
-        "7906" to "Falador Tree Patch",
-        "7907" to "Taverley Tree Patch",
-        "7908" to "Hespori Patch"
-    )
-
     private val BIRDHOUSE_SPACES = listOf(
         Pair("1626", "567") to "Mushroom Meadow (North)",
         Pair("1627", "568") to "Mushroom Meadow (South)",
@@ -39,7 +21,7 @@ object StateDiffAnalyzer {
     )
 
     /**
-     * Compares previous and current state to identify any completed farming patches,
+     * Compares previous and current state to identify completed
      * birdhouses, daily resets, kingdom warnings, or completed slayer tasks.
      */
     fun findCompletedRunsOrPatches(
@@ -60,23 +42,7 @@ object StateDiffAnalyzer {
 
         val currentVarbits = currentData.varbits
 
-        // 1. Check farming patches with human-readable names
-        for (varbitId in ALL_FARMING_VARBITS) {
-            val prevVal = previousVarbits[varbitId]
-            val currVal = currentVarbits[varbitId]
-
-            if (currVal != null && isPatchCompleted(varbitId, prevVal, currVal)) {
-                val patchName = PATCH_NAMES[varbitId] ?: "Farming patch ($varbitId)"
-                alerts.add(
-                    NotificationAlert(
-                        title = "Farming Patch Ready!",
-                        message = "$patchName is fully grown and ready to harvest."
-                    )
-                )
-            }
-        }
-
-        // 2. Check Birdhouses ready
+        // 1. Check Birdhouses ready
         for ((keys, spaceName) in BIRDHOUSE_SPACES) {
             val (realKey, fallbackKey) = keys
             val prevVal = previousVarbits[realKey] ?: previousVarbits[fallbackKey]
@@ -96,7 +62,7 @@ object StateDiffAnalyzer {
             }
         }
 
-        // 3. Check Daily / Weekly Resets
+        // 2. Check Daily / Weekly Resets
         // Zaff's Battlestaves: was claimed (1) and now reset (0)
         val prevStaves = previousVarbits["4539"]
         val currStaves = currentVarbits["4539"]
@@ -169,40 +135,6 @@ object StateDiffAnalyzer {
         }
 
         return alerts
-    }
-
-    /**
-     * Determines whether a patch transitioned from growing to fully grown.
-     */
-    fun isPatchCompleted(varbitId: String, prevVal: Int?, currVal: Int): Boolean {
-        if (prevVal == null) return false
-        if (prevVal == currVal) return false
-
-        // Herb patches: values 1..7 indicate growing, >= 8 indicates grown
-        if (HERB_PATCH_VARBITS.contains(varbitId)) {
-            val wasGrowing = prevVal in 1..7
-            val isGrown = currVal in 8..12
-            return wasGrowing && isGrown
-        }
-
-        // Tree patches: values 1..4 indicate growing, >= 5 indicates grown
-        if (TREE_PATCH_VARBITS.contains(varbitId)) {
-            val wasGrowing = prevVal in 1..4
-            val isGrown = currVal >= 5
-            return wasGrowing && isGrown
-        }
-
-        // Hespori patch: values 1..3 indicate growing, >= 4 indicates grown
-        if (HESPORI_PATCH_VARBITS.contains(varbitId)) {
-            val wasGrowing = prevVal in 1..3
-            val isGrown = currVal >= 4
-            return wasGrowing && isGrown
-        }
-
-        // Generic farming or tree check
-        val wasGrowing = prevVal in 1..25
-        val isGrown = currVal >= 26
-        return wasGrowing && isGrown
     }
 
     private fun extractKingdomApproval(varbits: Map<String, Int>): Int? {

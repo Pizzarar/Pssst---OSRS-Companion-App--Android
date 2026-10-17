@@ -14,41 +14,18 @@ class StateDiffAnalyzerTest {
     private val testUuid = "test-uuid"
 
     @Test
-    fun findCompletedRunsOrPatches_detectsHerbAndTreePatchReadyWithNames() {
-        val prevVarbits = mapOf(
-            "4771" to 4, // Ardougne herb growing (stage 4)
-            "7904" to 2  // Lumbridge tree growing (stage 2)
-        )
+    fun findCompletedRunsOrPatches_ignoresLegacyFixedPatchVarbits() {
+        // 4771/7904 are per-region slots, so a change in them says nothing without a region. Farming alerts
+        // come from timed reminders (FarmingReminderPlanner), never from diffing these.
         val prevEntity = PlayerStateEntity(
-            testUuid,
-            1000L,
-            "{}",
-            gson.toJson(prevVarbits),
-            "{}",
-            "[]",
-            "[]",
-            1000L
-        )
-
-        val currVarbits = mapOf(
-            "4771" to 8, // Fully grown
-            "7904" to 5  // Fully grown
+            testUuid, 1000L, "{}", gson.toJson(mapOf("4771" to 4, "7904" to 2)), "{}", "[]", "[]", 1000L
         )
         val currResponse = StateResponse(
             updatedAt = 2000L,
-            data = StateDataDto(varbits = currVarbits)
+            data = StateDataDto(varbits = mapOf("4771" to 8, "7904" to 5))
         )
 
-        val alerts = StateDiffAnalyzer.findCompletedRunsOrPatches(prevEntity, currResponse)
-        assertEquals(2, alerts.size)
-
-        val herbAlert = alerts.first { it.message.contains("Ardougne Herb Patch") }
-        assertEquals("Farming Patch Ready!", herbAlert.title)
-        assertTrue(herbAlert.message.contains("Ardougne Herb Patch is fully grown"))
-
-        val treeAlert = alerts.first { it.message.contains("Lumbridge Tree Patch") }
-        assertEquals("Farming Patch Ready!", treeAlert.title)
-        assertTrue(treeAlert.message.contains("Lumbridge Tree Patch is fully grown"))
+        assertTrue(StateDiffAnalyzer.findCompletedRunsOrPatches(prevEntity, currResponse).isEmpty())
     }
 
     @Test
