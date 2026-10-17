@@ -37,5 +37,8 @@ Change one side → update `StateDto.kt` **and** the plugin's `StateDTO.java` to
 - Third-party network features are off by default and carry an IP disclosure (plugin side: `ConfigItem.warning`).
 - Never log the bank contents or the bearer token. HTTP logging stays at BASIC with `Authorization` redacted.
 
+## Guardrails
+Read `GUIDELINES.md` in the plugin repo (`L:\Dev\Plugins\PssstRunelite`) before touching networking, prices, assets or game logic. It holds the "not Mystix" rules, the five pre-merge questions, and the list of open deviations.
+
 ## Workflow
 Feature branches named `claude/*`, one commit per logical change. Don't push or merge to `main` without asking.
