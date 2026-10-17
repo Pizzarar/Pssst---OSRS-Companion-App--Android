@@ -17,7 +17,7 @@ Companion to the RuneLite plugin at `L:\Dev\Plugins\PssstRunelite` and the optio
 | What | Command | Notes |
 |---|---|---|
 | Debug APK | `.\gradlew.bat :app:assembleDebug` | |
-| Unit tests | `.\gradlew.bat :app:testDebugUnitTest` | 57 tests, all pass |
+| Unit tests | `.\gradlew.bat :app:testDebugUnitTest` | 65 tests, all pass |
 | Mock server | `cd pssst-mock-server; npm start` | Port 8787 clashes with `wrangler dev`'s default (`PssstWorker`); don't run both |
 | Regenerate item manifest | `cd pssst-mock-server; $env:PSSST_CONTACT='https://github.com/<you>/<repo>'; npm run manifest` | 3 GETs (RuneLite names, Wiki mapping + latest); refuses to run without `PSSST_CONTACT`. Icons are carried over, not downloaded. Test: `npm run test:manifest` |
 | Mock server test | `cd pssst-mock-server; npm test` | Needs the server already running |

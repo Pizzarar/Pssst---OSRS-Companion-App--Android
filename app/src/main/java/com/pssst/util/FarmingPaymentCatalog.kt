@@ -9,6 +9,11 @@ data class FarmingPaymentDef(
     val fallbackItemName: String
 )
 
+/**
+ * UNVERIFIED. These crop-to-payment amounts and item ids were written by hand and have not been checked against the
+ * game or the Wiki's farmer pages, and nothing in RuneLite carries them. The Payments tab says so. Before removing
+ * that notice, check every row against its source and record the source here.
+ */
 object FarmingPaymentCatalog {
     val PAYMENTS = listOf(
         // Standard Trees

@@ -173,6 +173,14 @@ fun TimersScreen(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        item(key = "unverified_note") {
+                            // The amounts are bundled with the app, not read from the game, and have not been checked
+                            Text(
+                                text = "Payment amounts are unverified: they are not read from the game.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = OsrsTextMuted
+                            )
+                        }
                         items(state.farmingPayments, key = { "${it.cropName}_${it.paymentItemId}" }) { payment ->
                             FarmingPaymentCard(payment)
                         }

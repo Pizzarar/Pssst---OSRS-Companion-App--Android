@@ -21,6 +21,7 @@ import com.pssst.data.network.model.GeOfferDto
 import com.pssst.data.network.model.ItemEntryDto
 import com.pssst.data.network.model.PotionEntryDto
 import com.pssst.data.network.model.SkillEntryDto
+import com.pssst.util.DailyTasks
 import com.pssst.util.FarmingPaymentCatalog
 import com.pssst.util.OsrsXpTable
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -399,11 +400,10 @@ class MainViewModel(
             emptyMap()
         }
 
-        // Parse Miscellania
-        val rawApproval = varbits["72"]?.let { (it * 100) / 127 }
-            ?: (varbits["3948"] ?: varbits["4000"] ?: 0)
-        val approvalPercent = if (rawApproval > 100) (rawApproval * 100) / 127 else rawApproval
-        val cofferAmount = (varbits["74"] ?: varbits["3949"] ?: varbits["4001"] ?: 0).toLong()
+        // Miscellania, as RuneLite's Kingdom plugin reads it: approval is out of 127, the coffer is the raw coin count.
+        // Both are last-seen values (the game only updates them near the kingdom).
+        val approvalPercent = ((varbits["72"] ?: 0) * 100) / 127
+        val cofferAmount = (varbits["74"] ?: 0).toLong()
         val miscellania = MiscellaniaUiModel(approvalPercent, cofferAmount)
 
         // Everything the plugin sends as structured sections lives in the raw payload; parse it once
@@ -447,188 +447,8 @@ class MainViewModel(
             emptyList()
         }
 
-        // Parse Dailies & Weeklies
-        val tasks = mutableListOf<DailyTaskUiModel>()
-
-        // 1. Zaff's Battlestaves
-        val stavesClaimed = (varbits["4539"] ?: 0) == 1
-        val stavesCount = when {
-            varbits["4482"] == 1 -> 120
-            varbits["4481"] == 1 -> 60
-            varbits["4480"] == 1 -> 30
-            varbits["4479"] == 1 -> 15
-            else -> 15
-        }
-        tasks.add(
-            DailyTaskUiModel(
-                id = "zaff_staves",
-                title = "Zaff's Battlestaves",
-                subtitle = "Varrock Square ($stavesCount discounted staves)",
-                statusText = if (stavesClaimed) "Claimed today" else "Available ($stavesCount ready)",
-                isAvailable = !stavesClaimed,
-                category = ResetCategory.DAILY
-            )
-        )
-
-        // 2. NMZ Herb Boxes
-        val herbBoxesClaimed = varbits["3961"] ?: 0
-        val remainingBoxes = (15 - herbBoxesClaimed).coerceAtLeast(0)
-        val nmzPoints = varps["1060"] ?: 0
-        // Status only: how many are taken and what the player holds. What to do with it is not our business.
-        val nmzStatus = when {
-            remainingBoxes == 0 -> "All 15 claimed today"
-            nmzPoints > 0 -> "$herbBoxesClaimed/15 claimed today \u2022 ${formatQuantity(nmzPoints)} points"
-            else -> "$herbBoxesClaimed/15 claimed today"
-        }
-        tasks.add(
-            DailyTaskUiModel(
-                id = "nmz_herb_boxes",
-                title = "NMZ Herb Boxes",
-                subtitle = "Nightmare Zone Chest (Up to 15/day)",
-                statusText = nmzStatus,
-                isAvailable = remainingBoxes > 0,
-                category = ResetCategory.DAILY
-            )
-        )
-
-        // 3. Tears of Guthix (Weekly)
-        val togCountdown = varbits["5099"] ?: 0
-        val togQpBeforeReturn = varbits["456"] ?: 0
-        val togAvailable = togCountdown == 0 && togQpBeforeReturn == 0
-        val togStatus = when {
-            togAvailable -> "Available"
-            togCountdown > 0 -> "Cooldown active ($togCountdown days)"
-            togQpBeforeReturn > 0 -> "Need 1 QP or 100K XP"
-            else -> "Unavailable"
-        }
-        tasks.add(
-            DailyTaskUiModel(
-                id = "tears_of_guthix",
-                title = "Tears of Guthix",
-                subtitle = "Juna (Chasm of Tears)",
-                statusText = togStatus,
-                isAvailable = togAvailable,
-                category = ResetCategory.WEEKLY
-            )
-        )
-
-        // 4. Bert's Sand
-        val sandClaimed = (varbits["4549"] ?: 0) == 1
-        tasks.add(
-            DailyTaskUiModel(
-                id = "bert_sand",
-                title = "Bert's Sand",
-                subtitle = "Yanille (84 buckets to bank)",
-                statusText = if (sandClaimed) "Delivered today" else "Available",
-                isAvailable = !sandClaimed,
-                category = ResetCategory.DAILY
-            )
-        )
-
-        // 5. Robin's Bonemeal & Slime
-        val bonemealClaimed = (varbits["4543"] ?: 0) != 0
-        val bonemealCount = when {
-            varbits["4490"] == 1 -> 39
-            varbits["4489"] == 1 -> 26
-            else -> 13
-        }
-        tasks.add(
-            DailyTaskUiModel(
-                id = "robin_bonemeal",
-                title = "Robin's Bonemeal",
-                subtitle = "Port Phasmatys ($bonemealCount free pots of slime & bonemeal)",
-                statusText = if (bonemealClaimed) "Claimed today" else "Available ($bonemealCount exchanges)",
-                isAvailable = !bonemealClaimed,
-                category = ResetCategory.DAILY
-            )
-        )
-
-        // 6. Cromperty's Pure Essence
-        val essenceClaimed = (varbits["4547"] ?: 0) == 1
-        val essCount = when {
-            varbits["4461"] == 1 -> 250
-            varbits["4460"] == 1 -> 150
-            else -> 100
-        }
-        tasks.add(
-            DailyTaskUiModel(
-                id = "cromperty_essence",
-                title = "Cromperty's Essence",
-                subtitle = "East Ardougne ($essCount pure essence)",
-                statusText = if (essenceClaimed) "Claimed today" else "Available ($essCount essence)",
-                isAvailable = !essenceClaimed,
-                category = ResetCategory.DAILY
-            )
-        )
-
-        // 7. Flax Keeper Bowstrings
-        val flaxClaimed = (varbits["4559"] ?: 0) != 0
-        val flaxCount = when {
-            varbits["4478"] == 1 -> 250
-            varbits["4477"] == 1 -> 120
-            varbits["4476"] == 1 -> 60
-            else -> 30
-        }
-        tasks.add(
-            DailyTaskUiModel(
-                id = "flax_keeper",
-                title = "Flax Keeper",
-                subtitle = "Seers' Village ($flaxCount flax exchanged to bowstrings)",
-                statusText = if (flaxClaimed) "Exchanged today" else "Available ($flaxCount bowstrings)",
-                isAvailable = !flaxClaimed,
-                category = ResetCategory.DAILY
-            )
-        )
-
-        // 8. Thirus's Dynamite
-        val dynamiteClaimed = (varbits["7939"] ?: 0) == 1
-        val dynCount = when {
-            varbits["7928"] == 1 -> 80
-            varbits["7927"] == 1 -> 40
-            else -> 20
-        }
-        tasks.add(
-            DailyTaskUiModel(
-                id = "thirus_dynamite",
-                title = "Thirus's Dynamite",
-                subtitle = "Lovakengj ($dynCount free dynamite)",
-                statusText = if (dynamiteClaimed) "Claimed today" else "Available ($dynCount dynamite)",
-                isAvailable = !dynamiteClaimed,
-                category = ResetCategory.DAILY
-            )
-        )
-
-        // 9. Lundail's Runes
-        val runesClaimed = (varbits["4540"] ?: 0) == 1
-        tasks.add(
-            DailyTaskUiModel(
-                id = "lundail_runes",
-                title = "Lundail's Free Runes",
-                subtitle = "Mage Arena (Wilderness)",
-                statusText = if (runesClaimed) "Collected today" else "Available (50-250 free runes)",
-                isAvailable = !runesClaimed,
-                category = ResetCategory.DAILY
-            )
-        )
-
-        // 10. Rantz's Ogre Arrows
-        val arrowsClaimed = (varbits["4563"] ?: 0) != 0
-        tasks.add(
-            DailyTaskUiModel(
-                id = "rantz_arrows",
-                title = "Rantz's Ogre Arrows",
-                subtitle = "Feldip Hills (Free arrows / Western Diary)",
-                statusText = if (arrowsClaimed) "Collected today" else "Available",
-                isAvailable = !arrowsClaimed,
-                category = ResetCategory.DAILY
-            )
-        )
-
-        val dailyTasks = tasks.sortedWith(
-            compareByDescending<DailyTaskUiModel> { it.isAvailable }
-                .thenBy { it.category }
-                .thenBy { it.title }
-        )
+        // Dailies follow RuneLite's Daily Tasks plugin (see DailyTasks); nothing in them is guessed
+        val dailyTasks = DailyTasks.evaluate(varbits, varps)
 
         return MainDashboardUiState(
             uuid = uuid,

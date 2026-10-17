@@ -117,8 +117,8 @@ class MainViewModelFlowTest {
 
         val varbitsJson = """
             {
-              "3948": 95,
-              "3949": 2500000
+              "72": 121,
+              "74": 2500000
             }
         """.trimIndent()
 
@@ -355,7 +355,7 @@ class MainViewModelFlowTest {
         // Real payload as sent from live RuneLite state.json:
         // Miscellania: 72 = 32 (32/127 = 25%), 74 = 2554 (2.6K GP)
         // Slayer: taskLocation = "Karuulm Slayer Dungeon"
-        // Dailies: 4539 = 0 (Zaff available), 4481 = 1 (Hard diary = 60 staves)
+        // Dailies: 4479 = 1 (Varrock easy: the gate RuneLite checks), 4539 = 0 (Zaff not claimed yet)
         // NMZ: 3961 = 5 (5/15 claimed), 1060 = 50000 points
         // Tears of Guthix: 5099 = 0, 456 = 0 (Ready)
         val varbitsJson = """
@@ -363,6 +363,7 @@ class MainViewModelFlowTest {
               "72": 32,
               "74": 2554,
               "4539": 0,
+              "4479": 1,
               "4481": 1,
               "3961": 5,
               "5099": 0,
@@ -421,7 +422,8 @@ class MainViewModelFlowTest {
         val zaff = state.dailyTasks.first { it.id == "zaff_staves" }
         assertTrue(zaff.isAvailable)
         // Availability only: no profit estimate, nothing that reads as advice
-        assertEquals("Available (60 ready)", zaff.statusText)
+        assertEquals("Available", zaff.statusText)
+        assertEquals("the requirement is shown, not a reward amount", "Varrock Diary (Easy)", zaff.subtitle)
 
         // Dailies: NMZ herb boxes
         val nmz = state.dailyTasks.first { it.id == "nmz_herb_boxes" }
@@ -432,8 +434,8 @@ class MainViewModelFlowTest {
         // Weeklies: Tears of Guthix
         val tog = state.dailyTasks.first { it.id == "tears_of_guthix" }
         assertEquals(ResetCategory.WEEKLY, tog.category)
-        assertTrue(tog.isAvailable)
-        assertEquals("Available", tog.statusText)
+        assertEquals("Countdown: 0 \u2022 Quest points check: 0", tog.statusText)
+        assertFalse("no rule for these values, so never presented as available", tog.isAvailable)
     }
 
     @Test
