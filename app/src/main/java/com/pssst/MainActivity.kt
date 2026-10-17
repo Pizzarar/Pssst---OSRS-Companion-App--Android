@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
 
     lifecycleScope.launch(Dispatchers.IO) {
       val database = AppDatabase.getDatabase(applicationContext)
-      AssetDatabaseSeeder.seedIfEmpty(applicationContext, database)
+      AssetDatabaseSeeder.seedIfNeeded(applicationContext, database)
     }
 
     enableEdgeToEdge()

@@ -45,8 +45,9 @@ android {
     }
 
     sourceSets {
-      // Lets MigrationTestHelper find the exported schemas when running under Robolectric
-      getByName("test").assets.srcDir("$projectDir/schemas")
+      // Lets MigrationTestHelper find the exported schemas under Robolectric, which reads the app's merged assets.
+      // Debug builds only, so release APKs do not carry them.
+      getByName("debug").assets.srcDir("$projectDir/schemas")
     }
 
     testOptions {
@@ -109,6 +110,7 @@ dependencies {
   implementation(libs.androidx.room.runtime)
   implementation(libs.androidx.room.ktx)
   annotationProcessor(libs.androidx.room.compiler)
+  testImplementation(libs.androidx.room.testing)
 
   // Network (Retrofit, OkHttp, Gson)
   implementation(libs.retrofit)

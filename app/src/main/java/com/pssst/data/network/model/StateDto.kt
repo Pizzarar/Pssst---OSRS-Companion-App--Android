@@ -46,8 +46,13 @@ data class FarmingEntryDto(
 
 data class ItemEntryDto(
     @SerializedName("id") val id: Int,
-    @SerializedName("quantity") val quantity: Int
-)
+    @SerializedName("quantity") val quantity: Int,
+    /** For a noted item: the unnoted item id, which is the one that has a name and a price. Absent otherwise. */
+    @SerializedName("baseId") val baseId: Int? = null
+) {
+    /** The id to look up in the item manifest. */
+    val manifestId: Int get() = baseId ?: id
+}
 
 data class GeOfferDto(
     @SerializedName("slot") val slot: Int = 0,

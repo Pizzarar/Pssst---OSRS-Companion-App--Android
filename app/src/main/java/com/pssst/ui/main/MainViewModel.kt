@@ -240,7 +240,7 @@ class MainViewModel(
         // Query manifest names and icons from Room on Dispatchers.IO
         val allIds = (
             bankEntries.map { it.id } +
-            inventoryEntries.map { it.id } +
+            inventoryEntries.map { it.manifestId } +
             geOfferEntries.map { it.itemId } +
             potionEntries.map { it.itemId } +
             FarmingPaymentCatalog.ALL_PAYMENT_ITEM_IDS
@@ -277,13 +277,14 @@ class MainViewModel(
         val inventorySlots: List<InventorySlotUiModel> = (0 until 28).map { index ->
             val entry = inventoryEntries.getOrNull(index)
             if (entry != null && entry.id > 0 && entry.quantity > 0) {
-                val manifest = manifestMap[entry.id]
+                // A noted item has no name or price of its own; look up the unnoted item it stands for
+                val manifest = manifestMap[entry.manifestId]
                 InventorySlotUiModel(
                     index,
                     ItemUiModel(
                         id = entry.id,
                         quantity = entry.quantity,
-                        name = manifest?.name ?: "",
+                        name = manifest?.name?.let { if (entry.baseId != null) "$it (noted)" else it } ?: "",
                         iconBase64 = manifest?.iconBase64,
                         gePrice = manifest?.gePrice ?: 0L
                     )
@@ -310,7 +311,7 @@ class MainViewModel(
                 GeOfferSlotUiModel(
                     slot = slotNum,
                     itemId = offer.itemId,
-                    itemName = manifest?.name ?: "Item #${offer.itemId}",
+                    itemName = manifest?.name ?: "Unknown item (${offer.itemId})",
                     iconBase64 = manifest?.iconBase64,
                     quantitySold = offer.quantitySold,
                     totalQuantity = offer.totalQuantity,
@@ -342,7 +343,7 @@ class MainViewModel(
             val manifest = manifestMap[entry.itemId]
             PotionStorageItemUiModel(
                 itemId = entry.itemId,
-                name = manifest?.name ?: "Potion #${entry.itemId}",
+                name = manifest?.name ?: "Unknown item (${entry.itemId})",
                 iconBase64 = manifest?.iconBase64,
                 totalDoses = entry.doses,
                 gePrice = manifest?.gePrice ?: 0L

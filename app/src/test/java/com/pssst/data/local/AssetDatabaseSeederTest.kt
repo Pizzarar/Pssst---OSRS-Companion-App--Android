@@ -2,6 +2,7 @@ package com.pssst.data.local
 
 import android.content.Context
 import androidx.room.Room
+import com.google.gson.JsonParser
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -68,15 +69,15 @@ class AssetDatabaseSeederTest {
     }
 
     @Test
-    fun seedIfEmpty_seedsOnlyWhenDatabaseIsEmpty() = runTest {
+    fun seedIfNeeded_seedsOnlyWhenDatabaseIsEmpty() = runTest {
         assertEquals(0, dao.count())
 
-        val firstRunResult = AssetDatabaseSeeder.seedIfEmpty(context, database)
+        val firstRunResult = AssetDatabaseSeeder.seedIfNeeded(context, database)
         assertTrue(firstRunResult)
         val initialCount = dao.count()
         assertTrue(initialCount > 0)
 
-        val secondRunResult = AssetDatabaseSeeder.seedIfEmpty(context, database)
+        val secondRunResult = AssetDatabaseSeeder.seedIfNeeded(context, database)
         assertFalse(secondRunResult)
         assertEquals(initialCount, dao.count())
     }
@@ -94,5 +95,78 @@ class AssetDatabaseSeederTest {
 
         dao.clearAll()
         assertEquals(0, dao.count())
+    }
+
+    // --- versioned manifest and price-preserving reseed ---------------------------------------------------
+
+    private fun fixture(name: String) = AssetDatabaseSeeder.parseManifest(
+        JsonParser.parseString(javaClass.classLoader!!.getResourceAsStream(name)!!.reader().readText())
+    )
+
+    @Test
+    fun parseManifest_readsTheVersionedFormatAndStampsBakedPrices() {
+        val m = fixture("manifest-v1.json")
+        assertEquals(1, m.version)
+        assertEquals(1000L, m.generatedAt)
+        val whip = m.items.first { it.id == 4151 }
+        assertEquals(500L, whip.gePrice)
+        assertEquals(1000L, whip.priceUpdatedAt)
+        // No price means no timestamp: it can never overwrite a refreshed price
+        assertEquals(0L, m.items.first { it.id == 6000 }.priceUpdatedAt)
+    }
+
+    @Test
+    fun parseManifest_stillReadsTheOriginalBareArray() {
+        val m = AssetDatabaseSeeder.parseManifest(
+            JsonParser.parseString("""[{"id":995,"name":"Coins","gePrice":1}]""")
+        )
+        assertEquals(0, m.version)
+        assertEquals("Coins", m.items.single().name)
+        assertEquals(0L, m.items.single().priceUpdatedAt)
+    }
+
+    @Test
+    fun seedIfNeeded_reappliesOnlyWhenTheBundleIsNewer() = runTest {
+        assertTrue(AssetDatabaseSeeder.seedIfNeeded(context, database, fixture("manifest-v1.json")))
+        assertFalse("same version, table already populated", AssetDatabaseSeeder.seedIfNeeded(context, database, fixture("manifest-v1.json")))
+        assertEquals("Untradeable thing", dao.getItemById(6000).name)
+
+        assertTrue(AssetDatabaseSeeder.seedIfNeeded(context, database, fixture("manifest-v2.json")))
+        assertEquals("Renamed thing", dao.getItemById(6000).name)
+        assertEquals("a brand new id arrives", "New item", dao.getItemById(6001).name)
+    }
+
+    @Test
+    fun reseed_neverReplacesAFresherRefreshedPriceButTakesNewerBakedOnes() = runTest {
+        AssetDatabaseSeeder.seedIfNeeded(context, database, fixture("manifest-v1.json")) // whip 500 @1000
+        dao.applyPrices(mapOf(4151 to 900L), 2000L)                                     // refreshed @2000
+
+        // v2 bundle is generated at 3000 with 700: newer than the refresh, so it wins
+        AssetDatabaseSeeder.seedIfNeeded(context, database, fixture("manifest-v2.json"))
+        assertEquals(700L, dao.getItemById(4151).gePrice)
+        assertEquals(3000L, dao.getItemById(4151).priceUpdatedAt)
+
+        // A refresh at 5000 and then a reseed of the (older, 3000) bundle must keep the refresh
+        dao.applyPrices(mapOf(4151 to 950L), 5000L)
+        AssetDatabaseSeeder.seed(context, database) // real asset has no timestamp newer than 5000
+        dao.mergeBundled(fixture("manifest-v2.json").items)
+        assertEquals(950L, dao.getItemById(4151).gePrice)
+        assertEquals(5000L, dao.getItemById(4151).priceUpdatedAt)
+    }
+
+    @Test
+    fun reseed_keepsAnIconTheNewBundleOmits() = runTest {
+        AssetDatabaseSeeder.seedIfNeeded(context, database, fixture("manifest-v1.json")) // whip has an icon
+        AssetDatabaseSeeder.seedIfNeeded(context, database, fixture("manifest-v2.json")) // v2 whip has none
+        assertEquals("aWNvbg==", dao.getItemById(4151).iconBase64)
+    }
+
+    @Test
+    fun applyPrices_updatesKnownItemsAndIgnoresUnknownOnes() = runTest {
+        AssetDatabaseSeeder.seedIfNeeded(context, database, fixture("manifest-v1.json"))
+        dao.applyPrices(mapOf(4151 to 123L, 99999 to 5L), 4000L)
+        assertEquals(123L, dao.getItemById(4151).gePrice)
+        assertEquals(4000L, dao.latestPriceTimestamp())
+        assertEquals(null, dao.getItemById(99999))
     }
 }

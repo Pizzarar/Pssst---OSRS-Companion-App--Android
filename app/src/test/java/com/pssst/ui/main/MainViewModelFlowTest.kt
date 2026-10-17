@@ -607,6 +607,32 @@ class MainViewModelFlowTest {
         assertEquals(1, completedQuests.filteredQuests.size)
         assertEquals("Cook's Assistant", completedQuests.filteredQuests[0].name)
     }
+
+    @Test
+    fun uiState_notedInventoryItemsTakeTheNameAndPriceOfTheirUnnotedItem() = runTest(testDispatcher) {
+        testScheduler.advanceUntilIdle()
+        fakePrefs.emitUuid(testUuid)
+        database.itemManifestDao().insertAll(listOf(ItemManifestEntity(4151, "Abyssal whip", null, 1_500_000L)))
+
+        // 4152 is the noted whip: it has no manifest row of its own, the plugin says it stands for 4151
+        val inventoryJson = """[{"id": 4152, "quantity": 3, "baseId": 4151}, {"id": 4151, "quantity": 1}, {"id": 31337, "quantity": 2}]"""
+        dao.upsert(
+            PlayerStateEntity(testUuid, 1729100000L, "{}", "{}", "{}", inventoryJson, "[]", System.currentTimeMillis())
+        )
+
+        val state = viewModel.uiState.first { it.inventorySlots.any { slot -> slot.item != null } }
+        val noted = state.inventorySlots[0].item!!
+        assertEquals(4152, noted.id)
+        assertEquals("Abyssal whip (noted)", noted.name)
+        assertEquals(4_500_000L, noted.stackValue)
+
+        assertEquals("Abyssal whip", state.inventorySlots[1].item!!.name)
+
+        // Unknown ids stay recognisably unknown instead of pretending to be a name
+        val unknown = state.inventorySlots[2].item!!
+        assertEquals("", unknown.name)
+        assertEquals(0L, unknown.stackValue)
+    }
 }
 
 private class FakeUserPreferencesRepository : UserPreferencesRepository {

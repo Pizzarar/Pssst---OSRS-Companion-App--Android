@@ -118,7 +118,7 @@ fun InventorySlotCard(slot: InventorySlotUiModel, modifier: Modifier = Modifier)
                 )
             } else {
                 Text(
-                    text = item.name.ifBlank { "#${item.id}" },
+                    text = item.name.ifBlank { "Unknown item (${item.id})" },
                     color = OsrsTextPrimary,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
