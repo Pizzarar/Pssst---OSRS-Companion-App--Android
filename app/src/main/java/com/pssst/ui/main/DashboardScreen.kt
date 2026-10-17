@@ -207,7 +207,7 @@ fun DashboardScreen(
                                     color = OsrsTextPrimary
                                 )
                                 Text(
-                                    text = "From your RuneLite client \u2022 as of ${TimeFormat.formatDate(state.pricesAsOfMs)}",
+                                    text = "As of ${TimeFormat.formatDate(state.pricesAsOfMs)} \u2022 refreshed from your RuneLite client on each sync",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = OsrsTextMuted
                                 )
