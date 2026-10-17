@@ -1,5 +1,6 @@
 package com.pssst
 
+import com.pssst.worker.SyncScheduler
 import android.app.Application
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,6 +24,7 @@ fun MainNavigation(
     )
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val appContext = LocalContext.current.applicationContext
     val initialKey = if (uiState.hasConfiguredUuid) DashboardNavKey else SetupNavKey
     val backStack = rememberNavBackStack(initialKey)
 
@@ -55,6 +57,10 @@ fun MainNavigation(
                     onQuestSearchQueryChanged = { viewModel.onQuestSearchQueryChanged(it) },
                     onQuestFilterChanged = { viewModel.onQuestFilterChanged(it) },
                     onToggleNotifications = { viewModel.setNotificationsEnabled(it) },
+                    onTogglePriceRefresh = { enabled ->
+                        viewModel.setPriceRefreshEnabled(enabled)
+                        SyncScheduler.applyPriceRefreshChoice(appContext, enabled)
+                    },
                     onDisconnect = {
                         viewModel.clearUuid()
                         backStack.clear()

@@ -1,5 +1,8 @@
 package com.pssst.ui.main
 
+import com.pssst.util.TimeFormat
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.AlertDialog
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -97,9 +100,11 @@ fun DashboardScreen(
     onQuestFilterChanged: (QuestFilter) -> Unit,
     onDisconnect: () -> Unit,
     onToggleNotifications: (Boolean) -> Unit = {},
+    onTogglePriceRefresh: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    var showPriceDisclosure by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -111,6 +116,28 @@ fun DashboardScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         onToggleNotifications(isGranted)
+    }
+
+    if (showPriceDisclosure) {
+        AlertDialog(
+            onDismissRequest = { showPriceDisclosure = false },
+            title = { Text("Fetch prices from the OSRS Wiki?") },
+            text = {
+                Text(
+                    "The app will contact prices.runescape.wiki about twice a day. The Wiki's server will see your " +
+                        "IP address, and nothing else about you or your character is sent."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPriceDisclosure = false
+                    onTogglePriceRefresh(true)
+                }) { Text("Turn on") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPriceDisclosure = false }) { Text("Cancel") }
+            }
+        )
     }
 
     ModalNavigationDrawer(
@@ -183,6 +210,48 @@ fun DashboardScreen(
                                     )
                                 }
                             }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Live prices row (the choice is asked explicitly: it contacts the OSRS Wiki)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .osrsPanel()
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Live item prices",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = OsrsTextPrimary
+                                )
+                                Text(
+                                    text = when (state.priceRefreshEnabled) {
+                                        true -> "From the OSRS Wiki \u2022 as of ${TimeFormat.formatDate(state.pricesAsOfMs)}"
+                                        false -> "Off \u2022 bundled prices as of ${TimeFormat.formatDate(state.pricesAsOfMs)}"
+                                        null -> "Not chosen \u2022 bundled prices as of ${TimeFormat.formatDate(state.pricesAsOfMs)}"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = OsrsTextMuted
+                                )
+                            }
+                            Switch(
+                                checked = state.priceRefreshEnabled == true,
+                                onCheckedChange = { enabled ->
+                                    if (enabled) showPriceDisclosure = true else onTogglePriceRefresh(false)
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.Black,
+                                    checkedTrackColor = OsrsHerbGreen,
+                                    uncheckedThumbColor = OsrsTextMuted,
+                                    uncheckedTrackColor = OsrsSlotEmpty
+                                )
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))

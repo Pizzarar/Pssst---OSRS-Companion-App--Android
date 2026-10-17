@@ -83,8 +83,9 @@ class MainViewModel(
     val uiState: StateFlow<MainDashboardUiState> = combine(
         prefsFlow,
         playerStateDao.getLatestStateFlow(),
-        filtersFlow
-    ) { prefs, entityList, filters ->
+        filtersFlow,
+        preferencesRepository.priceRefreshEnabledFlow
+    ) { prefs, entityList, filters, priceRefreshEnabled ->
         val hasUuid = !prefs.uuid.isNullOrBlank()
         val currentServerUrl = prefs.serverUrl ?: ""
         val activeUuid = prefs.uuid?.trim().orEmpty()
@@ -101,6 +102,7 @@ class MainViewModel(
                 hasConfiguredUuid = hasUuid,
                 lastSyncStatus = prefs.lastSyncStatus,
                 notificationsEnabled = prefs.notificationsEnabled,
+                priceRefreshEnabled = priceRefreshEnabled,
                 searchQuery = filters.searchQuery,
                 potionSearchQuery = filters.potionSearchQuery,
                 questSearchQuery = filters.questSearchQuery,
@@ -114,6 +116,7 @@ class MainViewModel(
                 currentServerUrl,
                 prefs.lastSyncStatus,
                 prefs.notificationsEnabled,
+                priceRefreshEnabled,
                 entity,
                 filters
             )
@@ -179,6 +182,13 @@ class MainViewModel(
         }
     }
 
+    /** Records the user's explicit choice about fetching live prices from the OSRS Wiki. */
+    fun setPriceRefreshEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.savePriceRefreshEnabled(enabled)
+        }
+    }
+
     fun setNotificationsEnabled(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.saveNotificationsEnabled(enabled)
@@ -191,6 +201,7 @@ class MainViewModel(
         serverUrl: String,
         lastSyncStatus: String?,
         notificationsEnabled: Boolean,
+        priceRefreshEnabled: Boolean?,
         entity: PlayerStateEntity,
         filters: FilterState
     ): MainDashboardUiState {
@@ -260,6 +271,12 @@ class MainViewModel(
         } else {
             emptyMap()
         }
+
+        val pricesAsOfMs: Long = itemManifestDao?.let { manifestDao ->
+            runCatching {
+                kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) { manifestDao.latestPriceTimestamp() }
+            }.getOrDefault(0L)
+        } ?: 0L
 
         // Map to ItemUiModel with name, base64 icon, and gePrice
         val bankItems: List<ItemUiModel> = bankEntries.map { entry ->
@@ -649,6 +666,8 @@ class MainViewModel(
             farmingPayments = farmingPayments,
             quests = quests,
             notificationsEnabled = notificationsEnabled,
+            priceRefreshEnabled = priceRefreshEnabled,
+            pricesAsOfMs = pricesAsOfMs,
             isLoading = false,
             searchQuery = filters.searchQuery,
             potionSearchQuery = filters.potionSearchQuery,

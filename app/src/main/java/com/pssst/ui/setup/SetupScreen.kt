@@ -1,5 +1,7 @@
 package com.pssst.ui.setup
 
+import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.RadioButton
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -56,6 +58,9 @@ fun SetupScreen(
     var tokenInput by remember { mutableStateOf(initialUuid) }
     var rememberMe by remember { mutableStateOf(viewModel.uiState.value.rememberedUuid.isNotBlank() || initialUuid.isNotBlank()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    // Live prices contact a third party (the OSRS Wiki sees the IP address), so nothing is preselected
+    var priceChoice by remember { mutableStateOf(viewModel.uiState.value.priceRefreshEnabled) }
+    var priceChoiceMissing by remember { mutableStateOf(false) }
     var urlWarningMessage by remember {
         mutableStateOf(
             if (DynamicStateApiService.isLoopbackUrl(initialServerUrl)) {
@@ -195,6 +200,34 @@ fun SetupScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                Text(
+                    text = "Item prices",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = OsrsGold
+                )
+                PriceChoiceRow(
+                    selected = priceChoice == true,
+                    title = "Fetch live prices from the OSRS Wiki",
+                    subtitle = "The Wiki's price server will see your IP address. Refreshes about twice a day.",
+                    onSelect = { priceChoice = true; priceChoiceMissing = false }
+                )
+                PriceChoiceRow(
+                    selected = priceChoice == false,
+                    title = "Use the prices bundled with the app",
+                    subtitle = "No extra network requests. Prices get older until the app is updated.",
+                    onSelect = { priceChoice = false; priceChoiceMissing = false }
+                )
+                if (priceChoiceMissing) {
+                    Text(
+                        text = "Choose how to get item prices",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = OsrsRed
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Button(
                     onClick = {
                         val trimmedToken = tokenInput.trim()
@@ -204,9 +237,14 @@ fun SetupScreen(
                         } else {
                             null
                         }
+                        val chosenPrices = priceChoice
                         if (trimmedToken.isEmpty()) {
                             errorMessage = "Please enter a valid Sync Token (UUID)"
+                        } else if (chosenPrices == null) {
+                            priceChoiceMissing = true
                         } else {
+                            viewModel.setPriceRefreshEnabled(chosenPrices)
+                            SyncScheduler.applyPriceRefreshChoice(context, chosenPrices)
                             viewModel.saveSetup(trimmedServerUrl, trimmedToken, rememberUuid = rememberMe)
                             SyncScheduler.schedulePeriodicSync(context)
                             SyncScheduler.syncNow(context)
@@ -232,5 +270,36 @@ fun SetupScreen(
             color = OsrsTextMuted,
             textAlign = TextAlign.Center
         )
+    }
+}
+
+@Composable
+private fun PriceChoiceRow(
+    selected: Boolean,
+    title: String,
+    subtitle: String,
+    onSelect: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onSelect)
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onSelect,
+            colors = RadioButtonDefaults.colors(selectedColor = OsrsGold, unselectedColor = OsrsBorderOutline)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Column(modifier = Modifier.padding(top = 12.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (selected) OsrsGold else OsrsTextPrimary
+            )
+            Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = OsrsTextMuted)
+        }
     }
 }

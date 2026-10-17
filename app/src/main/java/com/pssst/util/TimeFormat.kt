@@ -14,4 +14,10 @@ object TimeFormat {
             else -> "${minutes}m"
         }
     }
+
+    /** "17 Oct 2026", in the device's time zone, or "unknown" for a zero/negative timestamp. */
+    fun formatDate(epochMs: Long): String {
+        if (epochMs <= 0) return "unknown"
+        return java.text.SimpleDateFormat("d MMM yyyy", java.util.Locale.US).format(java.util.Date(epochMs))
+    }
 }

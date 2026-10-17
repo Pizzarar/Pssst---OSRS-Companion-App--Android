@@ -60,6 +60,40 @@ object SyncScheduler {
         WorkManager.getInstance(context).cancelUniqueWork(SYNC_WORK_NAME)
     }
 
+    const val PRICE_REFRESH_WORK_NAME = "pssst_price_refresh"
+    const val PRICE_REFRESH_NOW_WORK_NAME = "pssst_price_refresh_now"
+
+    /**
+     * Applies the user's choice about live prices: schedule a refresh about twice a day (plus one right away), or
+     * cancel everything. Never called without an explicit choice.
+     */
+    fun applyPriceRefreshChoice(context: Context, enabled: Boolean) {
+        val workManager = WorkManager.getInstance(context)
+        if (!enabled) {
+            workManager.cancelUniqueWork(PRICE_REFRESH_WORK_NAME)
+            workManager.cancelUniqueWork(PRICE_REFRESH_NOW_WORK_NAME)
+            return
+        }
+        val constraints = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+        val periodic = PeriodicWorkRequestBuilder<PriceRefreshWorker>(12, TimeUnit.HOURS)
+            .setConstraints(constraints)
+            .setBackoffCriteria(androidx.work.BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES)
+            .addTag(PriceRefreshWorker.TAG)
+            .build()
+        workManager.enqueueUniquePeriodicWork(PRICE_REFRESH_WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, periodic)
+        refreshPricesNow(context)
+    }
+
+    /** One refresh now; the worker itself skips it if prices were refreshed in the last 10 minutes. */
+    fun refreshPricesNow(context: Context) {
+        val request = OneTimeWorkRequestBuilder<PriceRefreshWorker>()
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .setBackoffCriteria(androidx.work.BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES)
+            .addTag(PriceRefreshWorker.TAG)
+            .build()
+        WorkManager.getInstance(context).enqueueUniqueWork(PRICE_REFRESH_NOW_WORK_NAME, ExistingWorkPolicy.KEEP, request)
+    }
+
     /**
      * Makes the queued reminders match the latest observations: one per growing farming patch at its estimated
      * finish, and one for the birdhouses when the last seeded one is ready. Reminders are keyed by (key, finish
