@@ -148,7 +148,6 @@ class AssetDatabaseSeederTest {
 
         // A refresh at 5000 and then a reseed of the (older, 3000) bundle must keep the refresh
         dao.applyPrices(mapOf(4151 to 950L), 5000L)
-        AssetDatabaseSeeder.seed(context, database) // real asset has no timestamp newer than 5000
         dao.mergeBundled(fixture("manifest-v2.json").items)
         assertEquals(950L, dao.getItemById(4151).gePrice)
         assertEquals(5000L, dao.getItemById(4151).priceUpdatedAt)

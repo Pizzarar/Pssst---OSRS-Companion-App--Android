@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node test.js"
+    "test": "node test.js",
+    "test:manifest": "node --test \"scripts/*.test.js\"",
+    "manifest": "node scripts/build-item-manifest.js"
   },
   "dependencies": {
     "body-parser": "^1.20.3",
