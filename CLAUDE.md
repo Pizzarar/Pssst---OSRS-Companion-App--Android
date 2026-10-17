@@ -41,5 +41,8 @@ Change one side → update `StateDto.kt` **and** the plugin's `StateDTO.java` to
 ## Guardrails
 Read `GUIDELINES.md` in the plugin repo (`L:\Dev\Plugins\PssstRunelite`) before touching networking, prices, assets or game logic. It holds the "not Mystix" rules, the five pre-merge questions, and the list of open deviations.
 
+## Roadmap
+Open work and plans: `docs/ROADMAP.md` in the plugin repo (`L:\Dev\Plugins\PssstRunelite`), with details in its `docs/plans/`.
+
 ## Workflow
 Feature branches named `claude/*`, one commit per logical change. Don't push or merge to `main` without asking.
