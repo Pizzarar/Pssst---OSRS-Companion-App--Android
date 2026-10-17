@@ -18,11 +18,12 @@ interface StateApiService {
     ): Response<StateResponse>
 
     companion object {
-        const val DEFAULT_BASE_URL = "https://pssst.rosserlogic.tech/"
+        // Retrofit insists on a base URL, but every request uses an absolute @Url taken from the user's own setting.
+        // Nothing is ever sent here, and there is deliberately no default server.
+        private const val UNUSED_BASE_URL = "https://localhost/"
 
         fun create(
             preferencesRepository: UserPreferencesRepository? = null,
-            baseUrl: String = DEFAULT_BASE_URL,
             okHttpClient: OkHttpClient? = null
         ): StateApiService {
             val client = okHttpClient ?: OkHttpClient.Builder()
@@ -35,20 +36,14 @@ interface StateApiService {
                 })
                 .build()
 
-            val validBaseUrl = if (baseUrl.startsWith("http://") || baseUrl.startsWith("https://")) {
-                if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
-            } else {
-                "https://localhost/"
-            }
-
             val retrofitApi = Retrofit.Builder()
-                .baseUrl(validBaseUrl)
+                .baseUrl(UNUSED_BASE_URL)
                 .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
                 .create(StateRetrofitApi::class.java)
 
-            return DynamicStateApiService(preferencesRepository, baseUrl, retrofitApi)
+            return DynamicStateApiService(preferencesRepository, retrofitApi)
         }
     }
 }
@@ -63,13 +58,12 @@ internal interface StateRetrofitApi {
 
 internal class DynamicStateApiService(
     private val preferencesRepository: UserPreferencesRepository?,
-    private val defaultBaseUrl: String = StateApiService.DEFAULT_BASE_URL,
     private val retrofitApi: StateRetrofitApi
 ) : StateApiService {
 
     override suspend fun getState(authHeader: String): Response<StateResponse> {
-        val configuredUrl = preferencesRepository?.getServerUrl()
-        val rawBase = if (!configuredUrl.isNullOrBlank()) configuredUrl else defaultBaseUrl
+        val rawBase = preferencesRepository?.getServerUrl()?.takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException("No server URL is configured")
         val isRobolectric = runCatching { android.os.Build.FINGERPRINT == "robolectric" }.getOrDefault(false)
         val fullUrl = buildStateUrl(rawBase, rewriteLoopback = !isRobolectric)
         return retrofitApi.getState(fullUrl, authHeader)

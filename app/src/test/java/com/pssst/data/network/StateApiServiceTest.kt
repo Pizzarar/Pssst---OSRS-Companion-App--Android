@@ -56,12 +56,12 @@ class StateApiServiceTest {
     @Test
     fun normalizeBaseUrl_preservesHttpsHost() {
         assertEquals(
-            "https://pssst.rosserlogic.tech/",
-            DynamicStateApiService.normalizeBaseUrl("https://pssst.rosserlogic.tech/")
+            "https://example.com/",
+            DynamicStateApiService.normalizeBaseUrl("https://example.com/")
         )
         assertEquals(
-            "https://pssst.rosserlogic.tech/state",
-            DynamicStateApiService.buildStateUrl("https://pssst.rosserlogic.tech/")
+            "https://example.com/state",
+            DynamicStateApiService.buildStateUrl("https://example.com/")
         )
     }
 }

@@ -23,12 +23,14 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.shadows.ShadowLog
 import org.robolectric.annotation.Config
 import retrofit2.Response
 
@@ -110,14 +112,14 @@ class SyncWorkerTest {
 
         // Create API service pointing to MockWebServer
         val apiService = StateApiService.create(
-            baseUrl = mockWebServer.url("/").toString(),
+            preferencesRepository = TestSyncUserPreferencesRepository(testUuid, mockWebServer.url("/").toString()),
             okHttpClient = OkHttpClient.Builder().build()
         )
 
         // Configure test worker dependencies
         SyncWorker.defaultApiService = apiService
         SyncWorker.defaultDatabase = database
-        SyncWorker.defaultPreferences = TestSyncUserPreferencesRepository(testUuid)
+        SyncWorker.defaultPreferences = TestSyncUserPreferencesRepository(testUuid, mockWebServer.url("/").toString())
 
         // Build worker via WorkManager test harness
         val worker = TestListenableWorkerBuilder<SyncWorker>(context)
@@ -212,13 +214,13 @@ class SyncWorkerTest {
         )
 
         val apiService = StateApiService.create(
-            baseUrl = mockWebServer.url("/").toString(),
+            preferencesRepository = TestSyncUserPreferencesRepository(testUuid, mockWebServer.url("/").toString()),
             okHttpClient = OkHttpClient.Builder().build()
         )
 
         SyncWorker.defaultApiService = apiService
         SyncWorker.defaultDatabase = database
-        SyncWorker.defaultPreferences = TestSyncUserPreferencesRepository(testUuid)
+        SyncWorker.defaultPreferences = TestSyncUserPreferencesRepository(testUuid, mockWebServer.url("/").toString())
 
         val worker = TestListenableWorkerBuilder<SyncWorker>(context)
             .setInputData(workDataOf(SyncWorker.KEY_UUID to testUuid))
@@ -228,6 +230,46 @@ class SyncWorkerTest {
 
         assertEquals(ListenableWorker.Result.success(), result)
     }
+
+    @Test
+    fun syncWorker_withNoServerConfiguredMakesNoRequestAndSaysSo() = runBlocking {
+        val prefs = TestSyncUserPreferencesRepository(testUuid, serverUrl = null)
+        SyncWorker.defaultApiService = StateApiService.create(prefs, OkHttpClient.Builder().build())
+        SyncWorker.defaultDatabase = database
+        SyncWorker.defaultPreferences = prefs
+
+        val result = TestListenableWorkerBuilder<SyncWorker>(context)
+            .setInputData(workDataOf(SyncWorker.KEY_UUID to testUuid))
+            .build()
+            .doWork()
+
+        assertEquals(ListenableWorker.Result.success(), result)
+        assertEquals("no central server to fall back to", 0, mockWebServer.requestCount)
+        assertEquals("No server configured", prefs.lastStatus)
+    }
+
+    @Test
+    fun syncWorker_neverLogsAnyPartOfTheToken() = runBlocking {
+        val secret = "SECRETTOKEN-9f8e7d6c5b4a39281706"
+        mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody("""{"data": {"inventory": []}, "updated_at": 1}"""))
+        val prefs = TestSyncUserPreferencesRepository(secret, mockWebServer.url("/").toString())
+        SyncWorker.defaultApiService = StateApiService.create(prefs, OkHttpClient.Builder().build())
+        SyncWorker.defaultDatabase = database
+        SyncWorker.defaultPreferences = prefs
+        ShadowLog.clear()
+
+        TestListenableWorkerBuilder<SyncWorker>(context)
+            .setInputData(workDataOf(SyncWorker.KEY_UUID to secret))
+            .build()
+            .doWork()
+
+        val logged = ShadowLog.getLogs().joinToString("\n") { it.msg ?: "" }
+        assertTrue("worker should have logged something", logged.isNotEmpty())
+        for (length in listOf(4, 8, secret.length)) {
+            assertFalse("log contains the first $length chars of the token", logged.contains(secret.take(length)))
+        }
+    }
+
 }
 
 private class TestSyncUserPreferencesRepository(
@@ -249,7 +291,8 @@ private class TestSyncUserPreferencesRepository(
     override suspend fun saveServerUrl(serverUrl: String) {}
     override suspend fun clearServerUrl() {}
     override suspend fun saveSetup(serverUrl: String, uuid: String) {}
-    override suspend fun saveLastSyncStatus(status: String?) {}
+    var lastStatus: String? = null
+    override suspend fun saveLastSyncStatus(status: String?) { lastStatus = status }
     override suspend fun getNotificationsEnabled(): Boolean = true
     override suspend fun saveNotificationsEnabled(enabled: Boolean) {}
 }

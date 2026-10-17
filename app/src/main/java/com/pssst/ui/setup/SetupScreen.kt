@@ -51,7 +51,7 @@ fun SetupScreen(
     onSetupComplete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val initialServerUrl = viewModel.uiState.value.serverUrl.ifBlank { "http://10.0.2.2:8787" }
+    val initialServerUrl = viewModel.uiState.value.serverUrl
     val initialUuid = viewModel.uiState.value.uuid.ifBlank { viewModel.uiState.value.rememberedUuid }
 
     var serverUrlInput by remember { mutableStateOf(initialServerUrl) }
@@ -231,14 +231,16 @@ fun SetupScreen(
                 Button(
                     onClick = {
                         val trimmedToken = tokenInput.trim()
-                        val trimmedServerUrl = serverUrlInput.trim().ifEmpty { "http://10.0.2.2:8787" }
+                        val trimmedServerUrl = serverUrlInput.trim()
                         urlWarningMessage = if (DynamicStateApiService.isLoopbackUrl(trimmedServerUrl)) {
                             "On the emulator use http://10.0.2.2:8787"
                         } else {
                             null
                         }
                         val chosenPrices = priceChoice
-                        if (trimmedToken.isEmpty()) {
+                        if (trimmedServerUrl.isEmpty()) {
+                            urlWarningMessage = "Enter the address of your own server, such as http://192.168.1.20:8788"
+                        } else if (trimmedToken.isEmpty()) {
                             errorMessage = "Please enter a valid Sync Token (UUID)"
                         } else if (chosenPrices == null) {
                             priceChoiceMissing = true

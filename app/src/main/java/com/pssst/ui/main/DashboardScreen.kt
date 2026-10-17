@@ -110,7 +110,7 @@ fun DashboardScreen(
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
     val tabs = DashboardTab.entries
     val currentTab = tabs[selectedTabIndex]
-    val displayServerUrl = state.serverUrl.ifBlank { StateApiService.DEFAULT_BASE_URL }
+    val displayServerUrl = state.serverUrl.ifBlank { "Not set" }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()

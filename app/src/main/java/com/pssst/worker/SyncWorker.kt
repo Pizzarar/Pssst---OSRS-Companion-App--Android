@@ -41,12 +41,17 @@ class SyncWorker(
             return@withContext Result.failure()
         }
 
+        // Self-hosted by design: there is no central Pssst server to fall back to, so no URL means no request
         val configuredUrl = preferencesRepository.getServerUrl()
-        val rawBase = if (!configuredUrl.isNullOrBlank()) configuredUrl else StateApiService.DEFAULT_BASE_URL
-        val fullUrl = DynamicStateApiService.buildStateUrl(rawBase)
+        if (configuredUrl.isNullOrBlank()) {
+            Log.w(TAG, "SyncWorker skipped: no server URL is configured")
+            preferencesRepository.saveLastSyncStatus("No server configured")
+            return@withContext Result.success()
+        }
+        val fullUrl = DynamicStateApiService.buildStateUrl(configuredUrl)
 
         try {
-            Log.i(TAG, "GET $fullUrl starting (token=${uuid.take(4)}…)")
+            Log.i(TAG, "GET $fullUrl starting")
             val response = apiService.getState("Bearer $uuid")
             if (!response.isSuccessful) {
                 when (response.code()) {
@@ -131,7 +136,7 @@ class SyncWorker(
             val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
             preferencesRepository.saveLastSyncStatus("OK $timeStr inv=$invCount bank=$bankCount slayer=$slayerTaskName")
             Log.i(TAG, "Synced: inventory=$invCount bank=$bankCount varbits=${data?.varbits?.size ?: 0} slayer=$slayerTaskName")
-            Log.i(TAG, "Successfully synced player state for UUID: $uuid")
+            Log.i(TAG, "Successfully synced player state")
             Result.success()
         } catch (e: Exception) {
             Log.e(TAG, "Exception during player state sync ($fullUrl)", e)
