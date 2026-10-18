@@ -50,4 +50,19 @@ class ListLayoutTest {
         val layout = ListLayout(order = listOf("gone", "sand", "herbs"), hidden = setOf("gone2"))
         assertEquals(listOf("sand", "herbs", "staves", "flax"), arrange(layout).visible)
     }
+
+    @Test
+    fun draggingSavesTheWholeOrderIncludingHiddenRows() {
+        val layout = ListLayout().hide("sand").withOrder(listOf("flax", "sand", "herbs", "staves"))
+        val arranged = arrange(layout)
+        assertEquals(listOf("flax", "herbs", "staves"), arranged.visible)
+        assertEquals("the edit view keeps hidden rows in place", listOf("flax", "sand", "herbs", "staves"), arranged.all)
+    }
+
+    @Test
+    fun theCheckboxShowsAndHides() {
+        val hidden = ListLayout().setShown("sand", false)
+        assertEquals(listOf("sand"), arrange(hidden).hidden)
+        assertEquals(dailies, arrange(hidden.setShown("sand", true)).visible)
+    }
 }

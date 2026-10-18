@@ -8,7 +8,13 @@ data class ListLayout(
     val order: List<String> = emptyList(),
     val hidden: Set<String> = emptySet()
 ) {
-    data class Arranged<T>(val visible: List<T>, val hidden: List<T>)
+    /** [all] is every row in the player's order (shown and hidden), for the edit view. */
+    data class Arranged<T>(val visible: List<T>, val hidden: List<T>, val all: List<T> = visible + hidden)
+
+    /** The player dragged rows into this order (every key, shown and hidden). */
+    fun withOrder(keys: List<String>) = copy(order = keys)
+
+    fun setShown(key: String, shown: Boolean) = if (shown) show(key) else hide(key)
 
     /** Moves [key] one place up (delta -1) or down (+1) among the rows currently shown. */
     fun move(key: String, delta: Int, visibleKeys: List<String>): ListLayout {
@@ -32,7 +38,8 @@ data class ListLayout(
             val ordered = layout.order.mapNotNull { byKey[it] } + items.filter { key(it) !in layout.order }
             return Arranged(
                 visible = ordered.filter { key(it) !in layout.hidden },
-                hidden = ordered.filter { key(it) in layout.hidden }
+                hidden = ordered.filter { key(it) in layout.hidden },
+                all = ordered
             )
         }
     }
