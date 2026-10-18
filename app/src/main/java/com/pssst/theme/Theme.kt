@@ -1,18 +1,14 @@
 package com.pssst.theme
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,7 +16,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,20 +27,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -56,21 +44,27 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pssst.theme.art.EngravedRule
 import com.pssst.theme.art.FrameWeight
-import com.pssst.theme.art.Ornaments.drawDomedRivet
-import com.pssst.theme.art.Ornaments.drawFacetedDiamond
+import com.pssst.theme.art.Ornaments
+import com.pssst.theme.art.PixelIcon
+import com.pssst.theme.art.Sprite
+import com.pssst.theme.art.SpriteTones
 import com.pssst.theme.art.Textures
 import com.pssst.theme.art.bookmarkTab
+import com.pssst.theme.art.computeArtPx
 import com.pssst.theme.art.ledgerPanelFrame
+import com.pssst.theme.art.pixelArt
+import com.pssst.theme.art.pixelBevelBox
+import kotlin.math.roundToInt
 
 private val OsrsColorScheme = darkColorScheme(
     primary = OsrsGold,
     onPrimary = Color.Black,
     primaryContainer = OsrsPanelLight,
     onPrimaryContainer = OsrsGold,
-    secondary = OsrsYellow,
+    secondary = OsrsGold,
     onSecondary = Color.Black,
     secondaryContainer = OsrsSlotRecessed,
-    onSecondaryContainer = OsrsYellow,
+    onSecondaryContainer = OsrsGold,
     tertiary = OsrsHerbGreen,
     onTertiary = Color.Black,
     background = OsrsDarkStone,
@@ -83,6 +77,21 @@ private val OsrsColorScheme = darkColorScheme(
     outlineVariant = OsrsBorderOutline,
     error = OsrsRed,
     onError = Color.Black
+)
+
+private val CheckboxCheckSprite = Sprite(
+    "............",
+    ".........oo.",
+    "........ohbo",
+    ".......ohbso",
+    "..oo..ohbso.",
+    ".ohboohbso..",
+    "ohbbhhbso...",
+    ".osbbbbso...",
+    "..osbbso....",
+    "...osso.....",
+    "....oo......",
+    "............"
 )
 
 @Composable
@@ -99,74 +108,34 @@ fun PssstTheme(
 }
 
 /**
- * Applies a Carved Stone Ledger panel background with cached procedural stone grain,
- * outer dark frame, chiseled 3D raised bevel, and forged wrought-iron corner hardware.
+ * Applies a Carved Stone Ledger panel background with cached procedural pixel stone mottling,
+ * outer 1-art-px dark frame, 1-art-px bevel, and wrought-iron corner hardware.
  */
 fun Modifier.osrsPanel(
-    cornerRadius: Dp = 2.dp,
+    cornerRadius: Dp = 0.dp,
     borderWidth: Dp = 1.dp,
     showRivets: Boolean = false,
     weight: FrameWeight = if (showRivets) FrameWeight.HEAVY else FrameWeight.MEDIUM,
     seed: Int = 101
-): Modifier = this
-    .clip(RoundedCornerShape(cornerRadius))
-    .ledgerPanelFrame(weight = weight, seed = seed)
+): Modifier = this.ledgerPanelFrame(weight = weight, seed = seed)
 
 /**
- * Applies a deep recessed carved-stone slot well (top/left dark inset shadow, bottom/right rim highlight).
+ * Applies a deep recessed carved-stone slot well as integer-aligned art-pixel rects (no bitmap allocation).
  */
 fun Modifier.osrsSlot(
     hasItem: Boolean = true,
-    cornerRadius: Dp = 2.dp,
+    cornerRadius: Dp = 0.dp,
     highlightBorderColor: Color? = null
-): Modifier = this
-    .clip(RoundedCornerShape(cornerRadius))
-    .drawWithCache {
-        val fillColor = if (hasItem) OsrsSlotRecessed else OsrsSlotEmpty
-        val outer = 1.dp.toPx()
-        val shadowW = 1.5.dp.toPx()
-        val hiW = 1.dp.toPx()
-        val rimColor = highlightBorderColor ?: OsrsOuterFrame
-        val catchColor = highlightBorderColor?.copy(alpha = 0.75f) ?: OsrsBorderLight.copy(alpha = 0.6f)
-
-        onDrawBehind {
-            drawRect(color = rimColor)
-            drawRect(
-                color = fillColor,
-                topLeft = Offset(outer, outer),
-                size = Size(size.width - outer * 2, size.height - outer * 2)
-            )
-            // Deep top/left chiseled inset shadow
-            drawLine(
-                color = OsrsBorderDark,
-                start = Offset(outer, outer + shadowW / 2f),
-                end = Offset(size.width - outer, outer + shadowW / 2f),
-                strokeWidth = shadowW
-            )
-            drawLine(
-                color = OsrsBorderDark,
-                start = Offset(outer + shadowW / 2f, outer),
-                end = Offset(outer + shadowW / 2f, size.height - outer),
-                strokeWidth = shadowW
-            )
-            // Bottom/right caught light
-            drawLine(
-                color = catchColor,
-                start = Offset(outer, size.height - outer - hiW / 2f),
-                end = Offset(size.width - outer, size.height - outer - hiW / 2f),
-                strokeWidth = hiW
-            )
-            drawLine(
-                color = catchColor,
-                start = Offset(size.width - outer - hiW / 2f, outer),
-                end = Offset(size.width - outer - hiW / 2f, size.height - outer),
-                strokeWidth = hiW
-            )
-        }
-    }
+): Modifier = this.pixelBevelBox(
+    fill = if (hasItem) OsrsSlotRecessed else OsrsSlotEmpty,
+    outline = OsrsOuterFrame,
+    light = highlightBorderColor ?: OsrsBorderLight,
+    dark = OsrsBorderDark,
+    raised = false
+)
 
 /**
- * Engraved horizontal stone groove with 45-degree diamond chisel end-caps separating headers from bodies.
+ * Engraved horizontal pixel groove with 3x3 stepped diamond end caps separating headers from bodies.
  */
 @Composable
 fun OsrsHeaderDivider(
@@ -182,8 +151,8 @@ fun OsrsHeaderDivider(
 }
 
 /**
- * Framed rectangular OSRS progress bar with recessed wrought-iron trough, 25/50/75% tick notches,
- * and 3-band shaded fill.
+ * Framed rectangular pixel progress bar with recessed trough, 1-art-px top highlight row,
+ * 1-art-px bottom shadow row taken from the fill ramp, and 1-art-px 25/50/75% tick notches.
  */
 @Composable
 fun OsrsProgressBar(
@@ -195,76 +164,57 @@ fun OsrsProgressBar(
 ) {
     val clamped = progress.coerceIn(0f, 1f)
     val barHeight = height ?: if (thin) 6.dp else 8.dp
-    Canvas(
+    val (hiRowColor, loRowColor) = when (color) {
+        OsrsHerbGreen -> OsrsHerbLight to OsrsHerbDark
+        OsrsGold -> OsrsGoldHighlight to OsrsGoldDark
+        OsrsRed -> OsrsTextPrimary to OsrsRedDark
+        else -> OsrsGoldHighlight to OsrsBorderDark
+    }
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .height(barHeight)
-            .clip(RoundedCornerShape(2.dp))
-    ) {
-        val w = size.width
-        val h = size.height
-        val stroke = 1.dp.toPx()
+            .drawWithCache {
+                val p = computeArtPx(density).toFloat()
+                val w = size.width.roundToInt().toFloat()
+                val h = size.height.roundToInt().toFloat()
+                onDrawBehind {
+                    if (w <= 0f || h <= 0f) return@onDrawBehind
+                    // Outer 1-art-px dark frame
+                    drawRect(color = OsrsOuterFrame, topLeft = Offset.Zero, size = Size(w, h))
+                    val innerW = (w - 2f * p).coerceAtLeast(0f)
+                    val innerH = (h - 2f * p).coerceAtLeast(0f)
+                    if (innerW <= 0f || innerH <= 0f) return@onDrawBehind
 
-        // Trough fill
-        drawRect(color = OsrsSlotEmpty, size = size)
-        // Trough top inner shadow
-        drawRect(
-            color = OsrsBorderDark.copy(alpha = 0.85f),
-            topLeft = Offset(stroke, stroke),
-            size = Size((w - stroke * 2).coerceAtLeast(0f), stroke)
-        )
+                    // Recessed trough fill + 1-art-px top shadow
+                    drawRect(color = OsrsSlotEmpty, topLeft = Offset(p, p), size = Size(innerW, innerH))
+                    drawRect(color = OsrsBorderDark, topLeft = Offset(p, p), size = Size(innerW, p.coerceAtMost(innerH)))
 
-        // 3-band shaded fill
-        val innerW = (w - stroke * 2).coerceAtLeast(0f) * clamped
-        val innerH = (h - stroke * 2).coerceAtLeast(0f)
-        if (innerW > 0.5f && innerH > 0f) {
-            drawRect(
-                color = color,
-                topLeft = Offset(stroke, stroke),
-                size = Size(innerW, innerH)
-            )
-            val bandH = (1.25.dp.toPx()).coerceAtMost(innerH / 2.5f)
-            drawRect(
-                color = Color.White.copy(alpha = 0.28f),
-                topLeft = Offset(stroke, stroke),
-                size = Size(innerW, bandH)
-            )
-            drawRect(
-                color = Color.Black.copy(alpha = 0.35f),
-                topLeft = Offset(stroke, stroke + innerH - bandH),
-                size = Size(innerW, bandH)
-            )
-            if (clamped < 0.99f) {
-                drawLine(
-                    color = OsrsOuterFrame,
-                    start = Offset(stroke + innerW, stroke),
-                    end = Offset(stroke + innerW, h - stroke),
-                    strokeWidth = stroke
-                )
+                    // Integer-snapped progress fill
+                    val fillSteps = ((innerW / p) * clamped).roundToInt()
+                    val fillW = (fillSteps * p).coerceIn(0f, innerW)
+                    if (fillW >= p) {
+                        drawRect(color = color, topLeft = Offset(p, p), size = Size(fillW, innerH))
+                        if (innerH >= 3f * p) {
+                            drawRect(color = hiRowColor, topLeft = Offset(p, p), size = Size(fillW, p))
+                            drawRect(color = loRowColor, topLeft = Offset(p, p + innerH - p), size = Size(fillW, p))
+                        }
+                        if (fillW < innerW) {
+                            drawRect(color = OsrsOuterFrame, topLeft = Offset(p + fillW, p), size = Size(p, innerH))
+                        }
+                    }
+
+                    // 1-art-px quarter gauge tick notches
+                    if (!thin && innerW >= 24f * p) {
+                        for (q in 1..3) {
+                            val tickX = p + ((innerW * (q * 0.25f)) / p).roundToInt() * p
+                            drawRect(color = OsrsOuterFrame, topLeft = Offset(tickX, p), size = Size(p, innerH))
+                        }
+                    }
+                }
             }
-        }
-
-        // Engraved 25%, 50%, 75% gauge tick notches
-        if (!thin && w > 48.dp.toPx()) {
-            for (q in 1..3) {
-                val tx = w * (q * 0.25f)
-                drawLine(
-                    color = OsrsOuterFrame.copy(alpha = 0.55f),
-                    start = Offset(tx, stroke),
-                    end = Offset(tx, h - stroke),
-                    strokeWidth = stroke
-                )
-            }
-        }
-
-        // Outer 1dp chiseled iron frame
-        drawRect(
-            color = OsrsOuterFrame,
-            topLeft = Offset(stroke / 2f, stroke / 2f),
-            size = Size(w - stroke, h - stroke),
-            style = Stroke(width = stroke)
-        )
-    }
+    )
 }
 
 enum class OsrsButtonVariant {
@@ -274,7 +224,7 @@ enum class OsrsButtonVariant {
 }
 
 /**
- * Chiseled OSRS plaque button with raised/pressed 3D bevels and forged corner rivets.
+ * Pixel plaque button with raised/pressed 1-art-px bevels and seated 3x3 pixel rivets.
  */
 @Composable
 fun OsrsButton(
@@ -289,69 +239,96 @@ fun OsrsButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    val bgBrush = when (variant) {
-        OsrsButtonVariant.GOLD -> Brush.verticalGradient(
-            if (isPressed) listOf(OsrsGoldDark, OsrsGold) else listOf(OsrsGold, OsrsGoldDark)
-        )
-        OsrsButtonVariant.STONE -> Brush.verticalGradient(
-            if (isPressed) listOf(OsrsSlotEmpty, OsrsSlotRecessed) else listOf(OsrsPanelLight, OsrsPanelDark)
-        )
-        OsrsButtonVariant.DANGER -> Brush.verticalGradient(
-            if (isPressed) listOf(OsrsWaxShadow, OsrsPanelDark) else listOf(OsrsWaxCrimson.copy(alpha = 0.55f), OsrsSlotEmpty)
-        )
-    }
-    val hiColor = when (variant) {
-        OsrsButtonVariant.GOLD -> OsrsGoldHighlight
-        OsrsButtonVariant.STONE -> OsrsBorderLight
-        OsrsButtonVariant.DANGER -> OsrsRed.copy(alpha = 0.65f)
-    }
-    val loColor = when (variant) {
-        OsrsButtonVariant.GOLD -> OsrsGoldShadow
-        OsrsButtonVariant.STONE -> OsrsBorderDark
-        OsrsButtonVariant.DANGER -> OsrsBorderDark
-    }
-    val topLeftBevel = if (isPressed) loColor else hiColor
-    val bottomRightBevel = if (isPressed) hiColor else loColor
     val fg = textColor ?: when (variant) {
         OsrsButtonVariant.GOLD -> Color.Black
-        OsrsButtonVariant.STONE -> OsrsYellow
+        OsrsButtonVariant.STONE -> OsrsGold
         OsrsButtonVariant.DANGER -> OsrsRed
     }
 
     Box(
         modifier = modifier
             .height(if (compact) 30.dp else 38.dp)
-            .clip(RoundedCornerShape(2.dp))
-            .background(bgBrush)
-            .border(1.dp, OsrsOuterFrame, RoundedCornerShape(2.dp))
+            .pixelArt(key = Triple("OsrsButton", variant, isPressed to compact)) {
+                val outline = OsrsOuterFrame.toArgb()
+                when (variant) {
+                    OsrsButtonVariant.GOLD -> {
+                        val bodyPair = if (isPressed) {
+                            intArrayOf(OsrsGoldShadow.toArgb(), OsrsGoldDark.toArgb())
+                        } else {
+                            intArrayOf(OsrsGoldDark.toArgb(), OsrsGold.toArgb())
+                        }
+                        for (y in 0 until h) {
+                            for (x in 0 until w) {
+                                val v = 96 + ((h - 1 - y) * 96) / h.coerceAtLeast(1)
+                                set(x, y, com.pssst.theme.art.PixelNoise.quantise(v, bodyPair, x, y))
+                            }
+                        }
+                        bevelBox(
+                            x = 0,
+                            y = 0,
+                            bw = w,
+                            bh = h,
+                            outline = outline,
+                            light = OsrsGoldHighlight.toArgb(),
+                            dark = OsrsGoldShadow.toArgb(),
+                            raised = !isPressed
+                        )
+                    }
+
+                    OsrsButtonVariant.STONE -> {
+                        if (isPressed) {
+                            clear(OsrsSlotEmpty.toArgb())
+                        } else {
+                            Textures.drawPanelStone(this, seed = 115)
+                        }
+                        bevelBox(
+                            x = 0,
+                            y = 0,
+                            bw = w,
+                            bh = h,
+                            outline = outline,
+                            light = OsrsBorderLight.toArgb(),
+                            dark = OsrsBorderDark.toArgb(),
+                            raised = !isPressed
+                        )
+                    }
+
+                    OsrsButtonVariant.DANGER -> {
+                        if (isPressed) {
+                            clear(OsrsSlotEmpty.toArgb())
+                        } else {
+                            Textures.drawPanelStone(this, seed = 119)
+                        }
+                        bevelBox(
+                            x = 0,
+                            y = 0,
+                            bw = w,
+                            bh = h,
+                            outline = outline,
+                            light = OsrsRed.toArgb(),
+                            dark = OsrsRedDark.toArgb(),
+                            raised = !isPressed
+                        )
+                    }
+                }
+                if (!compact && w >= 24 && h >= 8) {
+                    val ry = (h / 2 - 1).coerceAtLeast(2)
+                    rivet(3, ry, size = 3)
+                    rivet(w - 6, ry, size = 3)
+                }
+            }
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 enabled = enabled,
                 onClick = onClick
             )
-            .drawBehind {
-                val outer = 1.dp.toPx()
-                val bevel = 1.2.dp.toPx()
-                val inset = outer + bevel / 2f
-                drawLine(topLeftBevel, Offset(outer, inset), Offset(size.width - outer, inset), bevel)
-                drawLine(topLeftBevel, Offset(inset, outer), Offset(inset, size.height - outer), bevel)
-                drawLine(bottomRightBevel, Offset(outer, size.height - inset), Offset(size.width - outer, size.height - inset), bevel)
-                drawLine(bottomRightBevel, Offset(size.width - inset, outer), Offset(size.width - inset, size.height - outer), bevel)
-
-                if (!compact && size.width > 56.dp.toPx()) {
-                    val r = 1.6.dp.toPx()
-                    val pad = 5.dp.toPx()
-                    drawDomedRivet(Offset(pad, size.height * 0.5f), r)
-                    drawDomedRivet(Offset(size.width - pad, size.height * 0.5f), r)
-                }
-            }
             .padding(horizontal = if (compact) 10.dp else 18.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = text,
-            color = if (enabled) fg else fg.copy(alpha = 0.45f),
+            color = if (enabled) fg else OsrsTextMuted,
             fontSize = if (compact) 12.sp else 14.sp,
             fontWeight = FontWeight.Bold,
             style = if (variant == OsrsButtonVariant.GOLD) {
@@ -367,7 +344,7 @@ fun OsrsButton(
 }
 
 /**
- * Chamfered stamped metal/wax OSRS status badge.
+ * Square pixel-bevel OSRS status badge.
  */
 @Composable
 fun OsrsStatusBadge(
@@ -378,34 +355,16 @@ fun OsrsStatusBadge(
     modifier: Modifier = Modifier
 ) {
     val isReadyFill = containerColor == OsrsHerbGreen
+    val lightEdge = if (isReadyFill) OsrsHerbLight else OsrsBrassMid
+    val darkEdge = if (isReadyFill) OsrsHerbDark else OsrsBorderDark
     val baseMod = modifier
-        .drawWithCache {
-            val cut = 3.dp.toPx()
-            val strokePx = 1.dp.toPx()
-            val borderCol = if (isReadyFill) OsrsOuterFrame else OsrsBrassMid.copy(alpha = 0.65f)
-            val fillBrush = if (isReadyFill) {
-                Brush.verticalGradient(listOf(Color(0xFF5CD660), Color(0xFF388E3C)))
-            } else {
-                Brush.verticalGradient(listOf(containerColor, containerColor))
-            }
-            onDrawBehind {
-                val w = size.width
-                val h = size.height
-                val tag = Path().apply {
-                    moveTo(cut, 0f)
-                    lineTo(w - cut, 0f)
-                    lineTo(w, cut)
-                    lineTo(w, h - cut)
-                    lineTo(w - cut, h)
-                    lineTo(cut, h)
-                    lineTo(0f, h - cut)
-                    lineTo(0f, cut)
-                    close()
-                }
-                drawPath(tag, brush = fillBrush)
-                drawPath(tag, color = borderCol, style = Stroke(width = strokePx, join = StrokeJoin.Bevel))
-            }
-        }
+        .pixelBevelBox(
+            fill = containerColor,
+            outline = OsrsOuterFrame,
+            light = lightEdge,
+            dark = darkEdge,
+            raised = true
+        )
         .let { m -> if (onClick != null) m.clickable(onClick = onClick) else m }
         .padding(horizontal = 7.dp, vertical = 2.dp)
 
@@ -426,7 +385,8 @@ fun OsrsStatusBadge(
 }
 
 /**
- * Stamped chamfered metal filter chip with faceted brass diamond stud when selected.
+ * Square pixel filter chip: selected chip is recessed with gold text and a 3x3 pixel diamond;
+ * unselected chip is raised dark stone with muted text.
  */
 @Composable
 fun OsrsFilterChip(
@@ -436,34 +396,43 @@ fun OsrsFilterChip(
     modifier: Modifier = Modifier
 ) {
     val chipMod = modifier
-        .drawWithCache {
-            val cut = 3.5.dp.toPx()
-            val strokePx = 1.1.dp.toPx()
-            val bg = if (selected) OsrsLeatherBase else OsrsPanelDark.copy(alpha = 0.72f)
-            val border = if (selected) OsrsGold else OsrsBorderOutline.copy(alpha = 0.7f)
-            onDrawBehind {
-                val w = size.width
-                val h = size.height
-                val tag = Path().apply {
-                    moveTo(cut, 0f)
-                    lineTo(w - cut, 0f)
-                    lineTo(w, cut)
-                    lineTo(w, h - cut)
-                    lineTo(w - cut, h)
-                    lineTo(cut, h)
-                    lineTo(0f, h - cut)
-                    lineTo(0f, cut)
-                    close()
-                }
-                drawPath(tag, color = bg)
-                drawPath(tag, color = border, style = Stroke(width = strokePx, join = StrokeJoin.Bevel))
-                if (selected && w > 36.dp.toPx()) {
-                    drawFacetedDiamond(
-                        center = Offset(5.dp.toPx(), h * 0.5f),
-                        halfSize = 2.dp.toPx(),
-                        fill = OsrsGold
+        .pixelArt(key = Pair("OsrsFilterChip", selected)) {
+            val outline = OsrsOuterFrame.toArgb()
+            if (selected) {
+                clear(OsrsSlotEmpty.toArgb())
+                bevelBox(
+                    x = 0,
+                    y = 0,
+                    bw = w,
+                    bh = h,
+                    outline = outline,
+                    light = OsrsGold.toArgb(),
+                    dark = OsrsBorderDark.toArgb(),
+                    raised = false
+                )
+                if (w >= 16 && h >= 7) {
+                    Ornaments.drawPixelDiamond(
+                        canvas = this,
+                        cx = 4,
+                        cy = h / 2,
+                        radius = 1,
+                        fill = OsrsGold.toArgb(),
+                        highlight = OsrsGoldHighlight.toArgb(),
+                        shadow = OsrsGoldDark.toArgb()
                     )
                 }
+            } else {
+                clear(OsrsPanelDark.toArgb())
+                bevelBox(
+                    x = 0,
+                    y = 0,
+                    bw = w,
+                    bh = h,
+                    outline = outline,
+                    light = OsrsBorderLight.toArgb(),
+                    dark = OsrsBorderDark.toArgb(),
+                    raised = true
+                )
             }
         }
         .clickable(onClick = onClick)
@@ -483,7 +452,7 @@ fun OsrsFilterChip(
 }
 
 /**
- * Physical stitched-leather bookmark segmented tabs sitting in a recessed stone-and-iron rail.
+ * Segmented pixel tabs sitting in a recessed stone-and-iron rail.
  */
 @Composable
 fun OsrsSegmentedTabs(
@@ -496,7 +465,6 @@ fun OsrsSegmentedTabs(
         modifier = modifier
             .fillMaxWidth()
             .background(OsrsSlotEmpty)
-            .border(1.dp, OsrsOuterFrame, RoundedCornerShape(2.dp))
     ) {
         Row(
             modifier = Modifier.fillMaxWidth()
@@ -531,7 +499,7 @@ fun OsrsSegmentedTabs(
 }
 
 /**
- * Recessed wrought-iron toggle switch with a riveted brass/green slider thumb.
+ * Recessed stone toggle switch with a riveted pixel slider thumb.
  */
 @Composable
 fun OsrsSwitch(
@@ -542,34 +510,39 @@ fun OsrsSwitch(
     Box(
         modifier = modifier
             .size(width = 48.dp, height = 26.dp)
-            .osrsSlot(hasItem = false, cornerRadius = 2.dp, highlightBorderColor = if (checked) OsrsHerbGreen else OsrsOuterFrame)
+            .osrsSlot(hasItem = false, highlightBorderColor = if (checked) OsrsHerbGreen else OsrsBorderLight)
             .clickable { onCheckedChange(!checked) }
             .padding(3.dp),
         contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart
     ) {
-        val thumbBg = if (checked) OsrsHerbGreen else OsrsBrassMid
-        val thumbHi = if (checked) Color.White.copy(alpha = 0.4f) else OsrsGoldHighlight
-        val thumbLo = if (checked) Color.Black.copy(alpha = 0.45f) else OsrsBorderDark
         Box(
             modifier = Modifier
                 .size(width = 20.dp, height = 18.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(thumbBg)
-                .border(1.dp, OsrsOuterFrame, RoundedCornerShape(2.dp))
-                .drawBehind {
-                    val b = 1.dp.toPx()
-                    drawLine(thumbHi, Offset(b, b), Offset(size.width - b, b), b)
-                    drawLine(thumbHi, Offset(b, b), Offset(b, size.height - b), b)
-                    drawLine(thumbLo, Offset(b, size.height - b), Offset(size.width - b, size.height - b), b)
-                    drawLine(thumbLo, Offset(size.width - b, b), Offset(size.width - b, size.height - b), b)
-                    drawDomedRivet(Offset(size.width * 0.5f, size.height * 0.5f), radius = 1.6.dp.toPx())
+                .pixelArt(key = Pair("OsrsSwitchThumb", checked)) {
+                    val fill = if (checked) OsrsHerbGreen.toArgb() else OsrsBrassMid.toArgb()
+                    val hi = if (checked) OsrsHerbLight.toArgb() else OsrsGoldHighlight.toArgb()
+                    val lo = if (checked) OsrsHerbDark.toArgb() else OsrsBorderDark.toArgb()
+                    clear(fill)
+                    bevelBox(
+                        x = 0,
+                        y = 0,
+                        bw = w,
+                        bh = h,
+                        outline = OsrsOuterFrame.toArgb(),
+                        light = hi,
+                        dark = lo,
+                        raised = true
+                    )
+                    if (w >= 7 && h >= 7) {
+                        rivet(w / 2 - 1, h / 2 - 1, size = 3)
+                    }
                 }
         )
     }
 }
 
 /**
- * Recessed stone-slot checkbox with beveled gold check mark when checked.
+ * Recessed stone-slot checkbox with a 12x12 pixel check mark sprite when checked.
  */
 @Composable
 fun OsrsCheckbox(
@@ -590,20 +563,16 @@ fun OsrsCheckbox(
                 .size(20.dp)
                 .osrsSlot(
                     hasItem = checked,
-                    cornerRadius = 2.dp,
                     highlightBorderColor = if (checked) OsrsGold else OsrsBorderOutline
                 ),
             contentAlignment = Alignment.Center
         ) {
             if (checked) {
-                Canvas(modifier = Modifier.size(12.dp)) {
-                    val p = Path().apply {
-                        moveTo(size.width * 0.15f, size.height * 0.52f)
-                        lineTo(size.width * 0.42f, size.height * 0.80f)
-                        lineTo(size.width * 0.86f, size.height * 0.22f)
-                    }
-                    drawPath(p, color = OsrsGold, style = Stroke(width = 2.2.dp.toPx()))
-                }
+                PixelIcon(
+                    sprite = CheckboxCheckSprite,
+                    tones = SpriteTones.GOLD,
+                    modifier = Modifier.size(12.dp)
+                )
             }
         }
         Spacer(modifier = Modifier.width(10.dp))
@@ -616,7 +585,7 @@ fun OsrsCheckbox(
 }
 
 /**
- * Recessed dark-vellum text input with forged iron corner ticks.
+ * Recessed dark-vellum parchment text input with pixel bevel and brass corner marks.
  */
 @Composable
 fun OsrsTextField(
@@ -633,7 +602,7 @@ fun OsrsTextField(
     val borderColor = when {
         isError -> OsrsRed
         isFocused -> OsrsGold
-        else -> OsrsBrassMid.copy(alpha = 0.65f)
+        else -> OsrsBrassMid
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -667,27 +636,25 @@ fun OsrsTextField(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(40.dp)
-                .drawWithCache {
-                    val vellum = Textures.parchmentBrush(seed = 309)
-                    val strokePx = 1.2.dp.toPx()
-                    val tick = 4.dp.toPx()
-                    onDrawBehind {
-                        drawRect(color = OsrsParchmentDark)
-                        drawRect(brush = vellum, alpha = 0.75f)
-                        drawLine(OsrsBorderDark, Offset(0f, 0f), Offset(size.width, 0f), strokePx * 1.4f)
-                        drawLine(OsrsBorderDark, Offset(0f, 0f), Offset(0f, size.height), strokePx * 1.4f)
-                        drawRect(
-                            color = borderColor,
-                            topLeft = Offset(strokePx * 0.5f, strokePx * 0.5f),
-                            size = Size(size.width - strokePx, size.height - strokePx),
-                            style = Stroke(width = strokePx)
-                        )
-                        // Forged corner ticks
-                        drawLine(OsrsBrassMid, Offset(2f, 2f), Offset(2f + tick, 2f), strokePx)
-                        drawLine(OsrsBrassMid, Offset(2f, 2f), Offset(2f, 2f + tick), strokePx)
-                        drawLine(OsrsBrassMid, Offset(size.width - 2f, 2f), Offset(size.width - 2f - tick, 2f), strokePx)
-                        drawLine(OsrsBrassMid, Offset(size.width - 2f, 2f), Offset(size.width - 2f, 2f + tick), strokePx)
-                    }
+                .pixelArt(key = Pair("OsrsTextField", borderColor.toArgb())) {
+                    Textures.drawParchment(this, seed = 309, showStainVignette = true)
+                    bevelBox(
+                        x = 0,
+                        y = 0,
+                        bw = w,
+                        bh = h,
+                        outline = OsrsOuterFrame.toArgb(),
+                        light = borderColor.toArgb(),
+                        dark = OsrsBorderDark.toArgb(),
+                        raised = false
+                    )
+                    Ornaments.drawCornerMarks(
+                        canvas = this,
+                        inset = 2,
+                        arm = 3,
+                        baseColor = OsrsBrassMid.toArgb(),
+                        highlightColor = OsrsGoldHighlight.toArgb()
+                    )
                 }
                 .onFocusChanged { isFocused = it.isFocused }
                 .padding(horizontal = 12.dp),
@@ -699,7 +666,7 @@ fun OsrsTextField(
                     if (value.isEmpty()) {
                         Text(
                             text = placeholder,
-                            color = OsrsTextMuted.copy(alpha = 0.45f),
+                            color = OsrsTextMuted,
                             fontSize = 14.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -719,5 +686,3 @@ fun OsrsTextField(
         }
     }
 }
-
-
