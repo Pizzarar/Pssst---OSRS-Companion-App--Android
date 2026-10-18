@@ -30,6 +30,37 @@ val OsrsRed = Color(0xFFFF4D4D)            // Warning / error / low approval
 val OsrsTextMuted = Color(0xFFB8A88A)      // Muted subtext / parchment
 val OsrsTextPrimary = Color(0xFFFFE0A0)    // Primary warm text
 
+// Art Packet Derived Shades — Carved Stone
+val OsrsStonePoreDark = Color(0xFF14110D)  // Deep stone pit / pore speckle shadow
+val OsrsStoneFlecks = Color(0xFF473E31)    // Warm mineral fleck highlight in carved stone
+
+// Art Packet Derived Shades — Aged Dark Oak
+val OsrsOakBase = Color(0xFF241B13)        // Heartwood plank base fill for top bar & table headers
+val OsrsOakGrainDark = Color(0xFF16100B)   // Wood growth-ring trough & plank seam shadow
+val OsrsOakGrainLight = Color(0xFF36281C)  // Planed oak ridge highlight
+
+// Art Packet Derived Shades — Weathered Parchment (dark-UI vellum)
+val OsrsParchmentDark = Color(0xFF332B20)  // Darkened vellum ground (keeps >9:1 contrast with OsrsTextPrimary)
+val OsrsParchmentWarm = Color(0xFF3F3527)  // Aged paper highlight stop & linen fiber ridge
+val OsrsParchmentStain = Color(0xFF261F16) // Edge foxing & water-stain vignette stop
+val OsrsLedgerRowAlt = Color(0xFF312A20)   // Alternating odd row wash in Timers tables (>5.1:1 with OsrsTextMuted)
+
+// Art Packet Derived Shades — Worn Binding Leather
+val OsrsLeatherBase = Color(0xFF281C15)    // Oxblood-brown leather cover fill (drawer, pack tray, bookmark tabs)
+val OsrsLeatherCrease = Color(0xFF18100C)  // Pebble-grain crease shadow
+val OsrsLeatherHighlight = Color(0xFF3A291F) // Worn leather crown highlight
+val OsrsLeatherStitch = Color(0xFF7A6548)  // Waxed linen saddle-stitch thread dash
+
+// Art Packet Derived Shades — Wrought Iron & Aged Brass Hardware
+val OsrsIronBody = Color(0xFF23201D)       // Forged wrought-iron strap, bracket & hinge fill
+val OsrsIronEdgeLight = Color(0xFF524B42)  // Hammered iron bevel glint
+val OsrsIronEdgeDark = Color(0xFF0E0C0A)   // Forged iron shadow & deep groove
+val OsrsBrassMid = Color(0xFFB8863B)       // Aged brass bezel & plaque trim
+
+// Art Packet Derived Shades — Crimson Sealing Wax
+val OsrsWaxCrimson = Color(0xFF7A1C1C)     // Melted crimson wax seal body
+val OsrsWaxHighlight = Color(0xFFB83232)   // Wax seal raised rim ridge
+val OsrsWaxShadow = Color(0xFF3D0B0B)      // Stamped wax recess & outer shadow
 
 // Legacy Material aliases
 val Purple80 = OsrsGold
@@ -39,3 +70,4 @@ val Pink80 = OsrsYellow
 val Purple40 = OsrsGold
 val PurpleGrey40 = OsrsTextMuted
 val Pink40 = OsrsYellow
+
