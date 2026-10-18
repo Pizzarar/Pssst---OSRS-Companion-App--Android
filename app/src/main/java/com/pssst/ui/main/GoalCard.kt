@@ -61,6 +61,11 @@ import com.pssst.theme.OsrsTextField
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.OsrsYellow
+import com.pssst.theme.art.BulletGlyph
+import com.pssst.theme.art.EmptyStateKind
+import com.pssst.theme.art.EmptyStateVignette
+import com.pssst.theme.art.FrameWeight
+import com.pssst.theme.art.GoldLeafText
 import com.pssst.theme.osrsPanel
 import com.pssst.theme.osrsSlot
 import com.pssst.util.GoalMath
@@ -147,7 +152,7 @@ fun GoalCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .osrsPanel(showRivets = true)
+            .osrsPanel(showRivets = true, weight = FrameWeight.HEAVY)
             .padding(14.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -157,12 +162,15 @@ fun GoalCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Goal Tracker",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = OsrsGold
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BulletGlyph(size = 7.dp, color = OsrsGold)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    GoldLeafText(
+                        text = "Goal Tracker",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -225,16 +233,25 @@ fun GoalCard(
             Spacer(modifier = Modifier.height(10.dp))
 
             if (!goalConfig.isConfigured) {
-                // Empty state: prompt to set a goal
+                // Empty state: prompt to set a goal with ledger bookmark vignette
                 Column(
                     modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = "Track your bank value against an item or GP target.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = OsrsTextMuted
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        EmptyStateVignette(kind = EmptyStateKind.LEDGER_BOOKMARK, size = 44.dp)
+                        Text(
+                            text = "Track your bank value against an item or GP target.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OsrsTextMuted,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                     OsrsButton(
                         text = "Set a goal",
                         onClick = { showSettingsDialog = true },

@@ -21,16 +21,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pssst.data.local.GoalConfig
 import com.pssst.theme.OsrsGold
 import com.pssst.theme.OsrsHeaderDivider
 import com.pssst.theme.OsrsHerbGreen
 import com.pssst.theme.OsrsSlotEmpty
 import com.pssst.theme.OsrsStatusBadge
 import com.pssst.theme.OsrsTextMuted
-import com.pssst.data.local.GoalConfig
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.OsrsYellow
+import com.pssst.theme.art.BulletGlyph
+import com.pssst.theme.art.FrameWeight
+import com.pssst.theme.art.GoldLeafText
+import com.pssst.theme.art.parchmentNotice
 import com.pssst.theme.osrsPanel
+import androidx.compose.foundation.layout.width
 
 /** The Overview tab's cards, in their default order. */
 enum class OverviewCard(val title: String) {
@@ -114,7 +119,7 @@ fun TotalWealthCard(state: MainDashboardUiState, modifier: Modifier = Modifier) 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .osrsPanel(showRivets = true)
+            .osrsPanel(showRivets = true, weight = FrameWeight.HEAVY)
             .padding(14.dp)
     ) {
         Column {
@@ -123,12 +128,15 @@ fun TotalWealthCard(state: MainDashboardUiState, modifier: Modifier = Modifier) 
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Total Account Wealth",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = OsrsGold
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BulletGlyph(size = 7.dp, color = OsrsGold)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    GoldLeafText(
+                        text = "Total Account Wealth",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
                 Text(
                     text = state.formattedTotalAccountWealth,
                     style = MaterialTheme.typography.titleMedium,
@@ -179,15 +187,18 @@ fun QuickActionsBanner(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .osrsPanel(showRivets = true)
+            .parchmentNotice()
             .padding(12.dp)
     ) {
-        Text(
-            text = "Activity Status",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = OsrsGold
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            BulletGlyph(size = 7.dp, color = OsrsGold)
+            Spacer(modifier = Modifier.width(6.dp))
+            GoldLeafText(
+                text = "Activity Status",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+        }
         Spacer(modifier = Modifier.height(6.dp))
         OsrsHeaderDivider()
         Spacer(modifier = Modifier.height(8.dp))
@@ -224,3 +235,4 @@ fun QuickActionsBanner(
         }
     }
 }
+

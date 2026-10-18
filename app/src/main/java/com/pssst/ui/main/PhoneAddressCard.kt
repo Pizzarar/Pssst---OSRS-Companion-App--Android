@@ -1,9 +1,13 @@
 package com.pssst.ui.main
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -18,9 +22,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pssst.theme.OsrsGold
+import com.pssst.theme.OsrsHeaderDivider
 import com.pssst.theme.OsrsRed
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
+import com.pssst.theme.art.GoldLeafText
+import com.pssst.theme.art.WaxSealMedallion
+import com.pssst.theme.art.parchmentNotice
 import com.pssst.theme.osrsPanel
 import com.pssst.util.PhoneAddresses
 
@@ -38,18 +46,27 @@ fun PhoneAddressCard(state: MainDashboardUiState, modifier: Modifier = Modifier,
             .osrsPanel()
             .padding(16.dp)
     ) {
-        Text(
-            text = if (waiting) "Waiting for your PC" else "Phone Address for RuneLite",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = OsrsGold
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            WaxSealMedallion(label = "IP", size = 26.dp)
+            GoldLeafText(
+                text = if (waiting) "Waiting for your PC" else "Phone Address for RuneLite",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        OsrsHeaderDivider()
+        Spacer(modifier = Modifier.height(8.dp))
         if (waiting) {
             Text(
                 text = "In RuneLite → Pssst Companion → Phone, turn on Send to My Phone and type this into Phone Address:",
                 style = MaterialTheme.typography.bodyMedium,
                 color = OsrsTextPrimary
             )
+            Spacer(modifier = Modifier.height(6.dp))
         }
         if (addresses.isEmpty()) {
             Text(
@@ -62,7 +79,14 @@ fun PhoneAddressCard(state: MainDashboardUiState, modifier: Modifier = Modifier,
             }
         }
         addresses.forEach { address ->
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 3.dp)
+                    .parchmentNotice()
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(address.host, style = MaterialTheme.typography.titleLarge, color = OsrsGold, fontWeight = FontWeight.Bold)
                     Text(address.label, style = MaterialTheme.typography.labelSmall, color = OsrsTextMuted)
@@ -77,3 +101,4 @@ fun PhoneAddressCard(state: MainDashboardUiState, modifier: Modifier = Modifier,
         }
     }
 }
+
