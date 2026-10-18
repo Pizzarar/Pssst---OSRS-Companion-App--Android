@@ -1,37 +1,42 @@
 package com.pssst.ui.main
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.pssst.theme.JetBrainsMonoFontFamily
+import com.pssst.theme.OsrsBorderOutline
+import com.pssst.theme.OsrsHardShadow
 import com.pssst.theme.OsrsHerbGreen
 import com.pssst.theme.OsrsSlotEmpty
 import com.pssst.theme.OsrsTextMuted
-import com.pssst.util.IconWishlist
+import com.pssst.theme.Typography
 
-/** What is waiting for the player right now. One place for the counts the top bar, Overview and Timers all show. */
+/** What is waiting for the player right now. One place for the counts Overview and Timers show. */
 data class ReadyCounts(
     val farming: Int,
     val birdhouses: Int,
@@ -49,47 +54,75 @@ fun MainDashboardUiState.readyCounts(nowMs: Long) = ReadyCounts(
     slayerLeft = if (slayer.amount > 0) slayer.amount else 0
 )
 
-/** A slim row under the title with small item icons and counts; tapping one jumps to where it lives. Empty when nothing is ready. */
+private data class ReadyChipSpec(
+    val itemId: Int,
+    val count: Int,
+    val fallbackLabel: String,
+    val tab: DashboardTab,
+    val subTab: TimersSubTab?
+)
+
+/**
+ * 4-slot quick-status strip for the right side of the top bar (Patches, Birdhouses, Dailies, GE).
+ * Always shows all 4 slots so the header bar stays balanced; ready slots (> 0) light up in green.
+ */
 @Composable
-fun ReadyStrip(
+fun TopBarReadyRow(
     state: MainDashboardUiState,
     nowMs: Long,
-    onOpen: (DashboardTab, TimersSubTab?) -> Unit,
+    onNavigate: (DashboardTab, TimersSubTab?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val ready = state.readyCounts(nowMs)
+    val counts = remember(state, nowMs) { state.readyCounts(nowMs) }
     val chips = listOf(
-        Triple(IconWishlist.RANARR_WEED, ready.farming, "Patches") to { onOpen(DashboardTab.TIMERS, TimersSubTab.FARMING) },
-        Triple(IconWishlist.BIRD_HOUSE, ready.birdhouses, "Birdhouses") to { onOpen(DashboardTab.TIMERS, TimersSubTab.BIRDHOUSES) },
-        Triple(IconWishlist.COINS, ready.geDone, "Exchange") to { onOpen(DashboardTab.GE, null) },
-        Triple(IconWishlist.SLAYER_HELMET, ready.slayerLeft, "Slayer") to { onOpen(DashboardTab.OVERVIEW, null) }
-    ).filter { it.first.second > 0 }
-    if (chips.isEmpty()) return
+        ReadyChipSpec(257, counts.farming, "Patches", DashboardTab.TIMERS, TimersSubTab.FARMING),
+        ReadyChipSpec(21512, counts.birdhouses, "Birdhouses", DashboardTab.TIMERS, TimersSubTab.BIRDHOUSES),
+        ReadyChipSpec(11738, counts.dailies, "Dailies", DashboardTab.TIMERS, TimersSubTab.DAILIES),
+        ReadyChipSpec(995, counts.geDone, "GE", DashboardTab.GE, null)
+    )
 
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, bottom = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        chips.forEach { (spec, open) ->
-            val (itemId, count, name) = spec
+        chips.forEach { chip ->
+            val isReady = chip.count > 0
+            val iconBase64 = state.topBarIcons[chip.itemId]
+            val bitmap = remember(chip.itemId, iconBase64) {
+                ItemIconCache.getOrCreate(chip.itemId, iconBase64)
+            }
             Row(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(OsrsSlotEmpty)
-                    .clickable { open() }
-                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(if (isReady) Color(0xFF1B2B18) else OsrsSlotEmpty)
+                    .border(
+                        width = 1.dp,
+                        color = if (isReady) OsrsHerbGreen.copy(alpha = 0.75f) else OsrsBorderOutline,
+                        shape = RoundedCornerShape(2.dp)
+                    )
+                    .clickable { onNavigate(chip.tab, chip.subTab) }
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                ItemIcon(itemId, state.wishlistIcons[itemId], name, size = 20.dp)
-                Spacer(modifier = Modifier.width(4.dp))
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap,
+                        contentDescription = chip.fallbackLabel,
+                        filterQuality = FilterQuality.None,
+                        contentScale = ContentScale.Fit,
+                        alpha = if (isReady) 1f else 0.65f,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
                 Text(
-                    text = count.toString(),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = OsrsHerbGreen
+                    text = "${chip.count}",
+                    color = if (isReady) OsrsHerbGreen else OsrsTextMuted.copy(alpha = 0.65f),
+                    fontSize = 11.sp,
+                    fontFamily = JetBrainsMonoFontFamily,
+                    fontWeight = if (isReady) FontWeight.Bold else FontWeight.Medium,
+                    style = Typography.labelSmall.copy(shadow = OsrsHardShadow)
                 )
             }
         }
@@ -127,24 +160,5 @@ fun CheckVectorIcon(tint: Color, modifier: Modifier = Modifier.size(22.dp)) {
             lineTo(w * 0.82f, h * 0.28f)
         }
         drawPath(path, tint, style = Stroke(width = w * 0.12f, cap = StrokeCap.Round))
-    }
-}
-
-/** Two arrows chasing each other: refresh. Turned by [rotation] degrees so the caller can spin it. */
-@Composable
-fun RefreshVectorIcon(tint: Color, rotation: Float = 0f, modifier: Modifier = Modifier.size(22.dp)) {
-    Canvas(modifier = modifier.rotate(rotation)) {
-        val w = size.width
-        val h = size.height
-        val stroke = Stroke(width = w * 0.1f, cap = StrokeCap.Round)
-        val inset = w * 0.18f
-        val arcSize = Size(w - 2 * inset, h - 2 * inset)
-        drawArc(tint, startAngle = 20f, sweepAngle = 140f, useCenter = false, topLeft = Offset(inset, inset), size = arcSize, style = stroke)
-        drawArc(tint, startAngle = 200f, sweepAngle = 140f, useCenter = false, topLeft = Offset(inset, inset), size = arcSize, style = stroke)
-        val head = Path().apply {
-            moveTo(w * 0.72f, h * 0.10f); lineTo(w * 0.86f, h * 0.30f); lineTo(w * 0.62f, h * 0.30f); close()
-            moveTo(w * 0.28f, h * 0.90f); lineTo(w * 0.14f, h * 0.70f); lineTo(w * 0.38f, h * 0.70f); close()
-        }
-        drawPath(head, tint)
     }
 }

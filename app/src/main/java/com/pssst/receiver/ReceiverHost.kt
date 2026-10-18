@@ -76,7 +76,10 @@ object ReceiverHost {
                     ingest.missingIcons(snapshot)
                 }
             },
-            onDeliveredTo = { address -> ReceiverPrefs.saveLastDeliveredTo(context, address) }
+            onDeliveredTo = { address -> ReceiverPrefs.saveLastDeliveredTo(context, address) },
+            onRejected = {
+                prefs.saveLastSyncStatus("Rejected PC connection: Sync Token did not match")
+            }
         )
     }
 }

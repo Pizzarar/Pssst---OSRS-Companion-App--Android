@@ -86,23 +86,29 @@ class SetupFlowTest {
         val state = viewModel.uiState.first { it.hasConfiguredUuid }
         assertEquals(serverUrl, fakePrefs.savedServerUrl)
         assertEquals(token, fakePrefs.savedUuid)
-        assertEquals(token, fakePrefs.savedRememberedUuid)
+        assertEquals("Unverified token is only promoted once a snapshot arrives", null, fakePrefs.savedRememberedUuid)
+        assertTrue(fakePrefs.savedRememberPref)
         assertEquals(serverUrl, state.serverUrl)
         assertEquals(token, state.uuid)
         assertTrue(state.hasConfiguredUuid)
+        assertFalse(state.hasSyncedData)
     }
 
     @Test
     fun setupFlow_rememberMeControlsSavedRememberedUuid() = runTest(testDispatcher) {
-        val token = "token-to-forget"
+        val token = "Goblin"
+        dao.upsert(
+            com.pssst.data.local.PlayerStateEntity(token, 1729100000L, "{}", "{}", "{}", "[]", "[]", System.currentTimeMillis())
+        )
         viewModel.saveSetup("http://10.0.2.2:8787", token, rememberUuid = false)
         testScheduler.advanceUntilIdle()
         assertEquals(token, fakePrefs.savedUuid)
         assertEquals(null, fakePrefs.savedRememberedUuid)
 
         viewModel.saveSetup("http://10.0.2.2:8787", token, rememberUuid = true)
-        testScheduler.advanceUntilIdle()
+        val syncedState = viewModel.uiState.first { it.hasConfiguredUuid && it.hasSyncedData && it.rememberedUuid == token }
         assertEquals(token, fakePrefs.savedRememberedUuid)
+        assertTrue(syncedState.hasSyncedData)
 
         viewModel.clearUuid()
         testScheduler.advanceUntilIdle()
@@ -125,8 +131,14 @@ private class TestUserPreferencesRepository : UserPreferencesRepository {
 
     var savedUuid: String? = null
     var savedRememberedUuid: String? = null
+    var savedRememberPref: Boolean = true
     var savedServerUrl: String? = null
     var savedLastSyncStatus: String? = null
+
+    override suspend fun getRememberTokenPreference(): Boolean = savedRememberPref
+    override suspend fun saveRememberTokenPreference(remember: Boolean) {
+        savedRememberPref = remember
+    }
 
     override suspend fun getUuid(): String? = savedUuid
 

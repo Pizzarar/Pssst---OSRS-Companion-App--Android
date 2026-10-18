@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pssst.theme.OsrsGold
+import com.pssst.theme.OsrsSegmentedTabs
 import com.pssst.theme.OsrsSlotEmpty
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.osrsPanel
@@ -38,7 +39,7 @@ enum class StorageSubTab(val title: String) {
 private fun BankSharingOff() {
     Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
         Text(
-            text = "Bank sharing is off. Turn on Include Bank in RuneLite → Pssst Companion → Phone to see your bank and potion storage here.",
+            text = "Bank sharing is off. Turn on Include Bank in RuneLite \u2192 Pssst Companion \u2192 Phone to see your bank and potion storage here.",
             style = MaterialTheme.typography.bodyMedium,
             color = OsrsTextMuted
         )
@@ -54,46 +55,27 @@ fun StorageScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(StorageSubTab.BANK) }
+    val tabs = StorageSubTab.entries
 
     Column(
         modifier = modifier.fillMaxSize()
     ) {
         // Sub-Tab Switcher
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .osrsPanel()
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            StorageSubTab.entries.forEach { tab ->
-                val isSelected = tab == selectedTab
+        OsrsSegmentedTabs(
+            tabs = tabs.map { tab ->
                 val label = when (tab) {
                     StorageSubTab.BANK -> "Bank (${state.bankItems.size})"
                     StorageSubTab.INVENTORY -> "Inventory (${state.inventorySlots.count { it.item != null }}/28)"
                     StorageSubTab.POTIONS -> "Potions (${state.potionStorageItems.size})"
                 }
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(
-                            color = if (isSelected) OsrsSlotEmpty else Color.Transparent,
-                            shape = RoundedCornerShape(4.dp)
-                        )
-                        .clickable { selectedTab = tab }
-                        .padding(vertical = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) OsrsGold else OsrsTextMuted
-                    )
-                }
-            }
-        }
+                label to 0
+            },
+            selectedIndex = tabs.indexOf(selectedTab),
+            onTabSelected = { selectedTab = tabs[it] },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        )
 
         // Sub-Tab Content
         Box(modifier = Modifier.fillMaxSize()) {

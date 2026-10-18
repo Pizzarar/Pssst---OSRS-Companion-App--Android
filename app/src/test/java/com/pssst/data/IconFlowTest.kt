@@ -108,7 +108,8 @@ class IconFlowTest {
 
         assertTrue(missing.toString(), missing.containsAll(listOf(5952, 2446, 27277, 4152)))
         assertFalse("already has an icon", missing.contains(4151))
-        assertTrue("the app's own icons are asked for too", missing.contains(com.pssst.util.IconWishlist.BIRD_HOUSE))
+        assertTrue("the app's own birdhouse/daily icons are asked for too", missing.contains(21512))
+        assertTrue("inventory and GE icons are requested before bank icons", missing.indexOf(4152) < missing.indexOf(5952))
         assertTrue(missing.size <= SnapshotIngest.MAX_ICON_REQUESTS)
     }
 

@@ -1,47 +1,48 @@
 package com.pssst.ui.main
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pssst.theme.OsrsBorderOutline
+import com.pssst.theme.JetBrainsMonoFontFamily
+import com.pssst.theme.OsrsFilterChip
 import com.pssst.theme.OsrsGold
 import com.pssst.theme.OsrsHerbGreen
-import com.pssst.theme.OsrsPanelDark
+import com.pssst.theme.OsrsProgressBar
 import com.pssst.theme.OsrsRed
-import com.pssst.theme.OsrsSlotEmpty
+import com.pssst.theme.OsrsSegmentedTabs
+import com.pssst.theme.OsrsTextField
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.OsrsYellow
@@ -60,43 +61,19 @@ fun ProgressionScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(ProgressionSubTab.SKILLS) }
+    val tabs = ProgressionSubTab.entries
 
     Column(modifier = modifier.fillMaxSize()) {
-        // Sub-Tab Switcher
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .osrsPanel()
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            ProgressionSubTab.entries.forEach { tab ->
-                val isSelected = tab == selectedTab
-                val label = when (tab) {
-                    ProgressionSubTab.SKILLS -> "Skills (Total: ${state.totalLevel})"
-                    ProgressionSubTab.QUESTS -> "Quests (${state.quests.count { it.state == QuestState.COMPLETED }}/${state.quests.size})"
-                }
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(
-                            color = if (isSelected) OsrsSlotEmpty else Color.Transparent,
-                            shape = RoundedCornerShape(4.dp)
-                        )
-                        .clickable { selectedTab = tab }
-                        .padding(vertical = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) OsrsGold else OsrsTextMuted
-                    )
-                }
-            }
-        }
+        val completedCount = state.quests.count { it.state == QuestState.COMPLETED }
+        OsrsSegmentedTabs(
+            tabs = listOf(
+                "Skills (Total: ${state.totalLevel})" to 0,
+                "Quests ($completedCount/${state.quests.size})" to 0
+            ),
+            selectedIndex = tabs.indexOf(selectedTab),
+            onTabSelected = { selectedTab = tabs[it] },
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+        )
 
         Box(modifier = Modifier.fillMaxSize()) {
             when (selectedTab) {
@@ -116,66 +93,41 @@ fun SkillsSubScreen(state: MainDashboardUiState, modifier: Modifier = Modifier) 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
-        // Summary Header Card
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .osrsPanel()
-                .padding(14.dp)
-        ) {
+        // 8 rows x 3 columns = 24 cells (23 skills + Total card in cell 24) filling the entire tab height
+        for (row in 0 until 8) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
-                Column {
-                    Text(
-                        text = "Total Level: ${state.totalLevel}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = OsrsGold
-                    )
-                    Text(
-                        text = "23 Skills Tracked",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = OsrsTextMuted
-                    )
+                for (col in 0 until 3) {
+                    val index = row * 3 + col
+                    if (index < 23) {
+                        val skill = state.skills.getOrNull(index)
+                        if (skill != null) {
+                            SkillCard(
+                                skill = skill,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    } else {
+                        TotalSkillCard(
+                            totalLevel = state.totalLevel,
+                            totalXp = state.totalXp,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                        )
+                    }
                 }
-
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "Total XP",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = OsrsTextMuted
-                    )
-                    Text(
-                        text = formatQuantity(state.totalXp.toInt()) + " XP",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = OsrsYellow
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Skills 3-column Grid
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
-            contentPadding = PaddingValues(bottom = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(state.skills, key = { it.name }) { skill ->
-                SkillCard(skill)
-            }
-            // 23 skills leave one empty cell in the last row of three
-            if (state.skills.size % 3 != 0) {
-                item(key = "__easter_egg") { EasterEggCell(state) }
             }
         }
     }
@@ -183,48 +135,155 @@ fun SkillsSubScreen(state: MainDashboardUiState, modifier: Modifier = Modifier) 
 
 @Composable
 fun SkillCard(skill: SkillUiModel, modifier: Modifier = Modifier) {
+    val bitmap = remember(skill.itemId, skill.iconBase64) {
+        if (skill.itemId > 0) ItemIconCache.getOrCreate(skill.itemId, skill.iconBase64) else null
+    }
+
     Box(
         modifier = modifier
-            .osrsPanel()
-            .padding(8.dp)
+            .osrsPanel(showRivets = false)
+            .padding(horizontal = 8.dp, vertical = 7.dp)
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap,
+                            contentDescription = skill.name,
+                            filterQuality = FilterQuality.None,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                    }
+                    Text(
+                        text = skill.name,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = OsrsTextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Spacer(modifier = Modifier.width(3.dp))
+                Text(
+                    text = "${skill.level}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontFamily = JetBrainsMonoFontFamily,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (skill.level >= 99) OsrsHerbGreen else OsrsYellow
+                )
+            }
+
+            OsrsProgressBar(
+                progress = skill.progress,
+                color = if (skill.level >= 99) OsrsHerbGreen else OsrsGold,
+                thin = true
+            )
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = skill.name,
+                    text = "${formatQuantity(skill.xp.toInt())} XP",
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
+                    fontFamily = JetBrainsMonoFontFamily,
+                    fontSize = 10.sp,
                     color = OsrsTextMuted
                 )
                 Text(
-                    text = "${skill.level}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = if (skill.level >= 99) OsrsHerbGreen else OsrsYellow
+                    text = if (skill.level >= 99) "MAX" else "${(skill.progress * 100).toInt()}%",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = JetBrainsMonoFontFamily,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (skill.level >= 99) OsrsHerbGreen else OsrsTextMuted
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TotalSkillCard(
+    totalLevel: Int,
+    totalXp: Long,
+    modifier: Modifier = Modifier
+) {
+    val maxTotalLevel = 2277
+    val isMaxed = totalLevel >= maxTotalLevel
+    Box(
+        modifier = modifier
+            .osrsPanel(showRivets = false)
+            .padding(horizontal = 8.dp, vertical = 7.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                StarVectorIcon(
+                    tint = OsrsGold,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(5.dp))
+                Text(
+                    text = "Total Level",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = OsrsGold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
-
-            LinearProgressIndicator(
-                progress = { skill.progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp),
-                color = if (skill.level >= 99) OsrsHerbGreen else OsrsGold,
-                trackColor = OsrsSlotEmpty
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Text(
+                    text = "$totalLevel",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontFamily = JetBrainsMonoFontFamily,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (isMaxed) OsrsHerbGreen else OsrsYellow
+                )
+                Text(
+                    text = "/ $maxTotalLevel",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = JetBrainsMonoFontFamily,
+                    fontSize = 10.sp,
+                    color = OsrsTextMuted
+                )
+            }
 
             Text(
-                text = "${formatQuantity(skill.xp.toInt())} XP",
+                text = "${formatQuantity(totalXp.toInt())} XP",
                 style = MaterialTheme.typography.labelSmall,
-                fontSize = 9.sp,
+                fontFamily = JetBrainsMonoFontFamily,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
                 color = OsrsTextPrimary
             )
         }
@@ -244,21 +303,11 @@ fun QuestsSubScreen(
             .padding(16.dp)
     ) {
         // Search Input
-        OutlinedTextField(
+        OsrsTextField(
             value = state.questSearchQuery,
             onValueChange = onQuestSearchQueryChanged,
-            label = { Text("Search Quests", color = OsrsTextMuted) },
-            placeholder = { Text("e.g. Dragon Slayer or Desert Treasure", color = OsrsTextMuted.copy(alpha = 0.5f)) },
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = OsrsTextPrimary,
-                unfocusedTextColor = OsrsTextPrimary,
-                focusedBorderColor = OsrsGold,
-                unfocusedBorderColor = OsrsBorderOutline,
-                focusedContainerColor = OsrsPanelDark,
-                unfocusedContainerColor = OsrsPanelDark,
-                cursorColor = OsrsGold
-            ),
+            label = "Search Quests",
+            placeholder = "e.g. Dragon Slayer or Desert Treasure",
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -277,14 +326,11 @@ fun QuestsSubScreen(
                     QuestFilter.IN_PROGRESS -> state.quests.count { it.state == QuestState.IN_PROGRESS }
                     QuestFilter.NOT_STARTED -> state.quests.count { it.state == QuestState.NOT_STARTED }
                 }
-                SuggestionChip(
+                OsrsFilterChip(
+                    text = "${filter.label} ($count)",
+                    selected = isSelected,
                     onClick = { onQuestFilterChanged(filter) },
-                    label = { Text("${filter.label} ($count)", fontSize = 11.sp, fontWeight = FontWeight.SemiBold) },
-                    colors = SuggestionChipDefaults.suggestionChipColors(
-                        containerColor = if (isSelected) OsrsSlotEmpty else Color.Transparent,
-                        labelColor = if (isSelected) OsrsGold else OsrsTextMuted
-                    ),
-                    border = SuggestionChipDefaults.suggestionChipBorder(enabled = true, borderColor = if (isSelected) OsrsGold else OsrsBorderOutline)
+                    modifier = Modifier.weight(1f)
                 )
             }
         }

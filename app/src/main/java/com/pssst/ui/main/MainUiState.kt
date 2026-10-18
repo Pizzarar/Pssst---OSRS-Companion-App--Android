@@ -52,6 +52,8 @@ data class DailyTaskUiModel(
     val statusText: String,
     val isAvailable: Boolean,
     val category: ResetCategory = ResetCategory.DAILY,
+    val itemId: Int = 0,
+    val iconBase64: String? = null
 )
 
 enum class FarmingStatus { UNKNOWN, WEEDS, EMPTY, GROWING, REGROWING, FILLING, GROWN, DISEASED, DEAD }
@@ -66,6 +68,7 @@ data class FarmingPatchUiModel(
     val patchLabel: String,
     val cropName: String?,
     val itemId: Int,
+    val iconBase64: String? = null,
     val cropState: String?,
     val stage: Int,
     val stages: Int,
@@ -117,15 +120,17 @@ data class FarmingPatchUiModel(
     )
 
     companion object {
-        fun from(dto: FarmingEntryDto): FarmingPatchUiModel {
+        fun from(dto: FarmingEntryDto, iconBase64: String? = null): FarmingPatchUiModel {
             val type = dto.patchType.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
             val suffix = if (dto.patchName.isBlank()) "" else " (${dto.patchName})"
+            val resolvedItemId = if (dto.itemId > 0) dto.itemId else 6055
             return FarmingPatchUiModel(
                 patchId = dto.patchKey,
                 regionName = dto.regionName,
                 patchLabel = "${dto.regionName} $type$suffix",
                 cropName = dto.cropName,
-                itemId = dto.itemId,
+                itemId = resolvedItemId,
+                iconBase64 = iconBase64,
                 cropState = dto.cropState,
                 stage = dto.stage,
                 stages = dto.stages,
@@ -147,6 +152,8 @@ data class BirdHouseUiModel(
     val varpId: String,
     val spaceName: String,
     val houseType: String?,
+    val itemId: Int = 21512,
+    val iconBase64: String? = null,
     val state: String,
     val observedAtMs: Long,
     val readyAtMs: Long
@@ -169,16 +176,33 @@ data class BirdHouseUiModel(
     }
 
     companion object {
-        fun from(dto: BirdhouseEntryDto): BirdHouseUiModel {
+        val ALL_BIRDHOUSE_ITEM_IDS = listOf(21512, 21515, 21518, 21521, 22192, 22195, 22198, 22201, 22204)
+
+        fun itemIdForType(rawType: String?): Int = when (rawType?.uppercase()) {
+            "OAK" -> 21515
+            "WILLOW" -> 21518
+            "TEAK" -> 21521
+            "MAPLE" -> 22192
+            "MAHOGANY" -> 22195
+            "YEW" -> 22198
+            "MAGIC" -> 22201
+            "REDWOOD" -> 22204
+            else -> 21512
+        }
+
+        fun from(dto: BirdhouseEntryDto, iconBase64: String? = null): BirdHouseUiModel {
             val type = when (dto.houseType) {
                 null -> null
                 "NORMAL" -> "Regular birdhouse"
                 else -> "${dto.houseType.lowercase().replaceFirstChar { it.uppercase() }} birdhouse"
             }
+            val itemId = itemIdForType(dto.houseType)
             return BirdHouseUiModel(
                 varpId = dto.varpId.toString(),
                 spaceName = dto.spaceName,
                 houseType = type,
+                itemId = itemId,
+                iconBase64 = iconBase64,
                 state = dto.state,
                 observedAtMs = dto.observedAt,
                 readyAtMs = dto.readyAt
@@ -191,7 +215,7 @@ enum class BankSortMode(val label: String) {
     DEFAULT("Slot order"),
     /** Quantity x price: a big stack of cheap runes can outrank one expensive item. */
     VALUE("Total value"),
-    /** Price of one: the most expensive item first. */
+    /** Price each: the most expensive item first. */
     PRICE("Price each"),
     QUANTITY("Quantity")
 }
@@ -230,11 +254,41 @@ data class SkillUiModel(
     val level: Int = 1,
     val boostedLevel: Int = 1,
     val xp: Long = 0L,
+    val itemId: Int = SKILL_ITEM_IDS[name] ?: 0,
+    val iconBase64: String? = null,
     val virtualLevel: Int = OsrsXpTable.levelForXp(xp),
     val nextLevelXp: Long = OsrsXpTable.xpForLevel(virtualLevel + 1),
     val xpRemaining: Long = OsrsXpTable.xpRemainingToNextLevel(xp, virtualLevel),
     val progress: Float = OsrsXpTable.progressToNextLevel(xp, virtualLevel)
-)
+) {
+    companion object {
+        val SKILL_ITEM_IDS: Map<String, Int> = mapOf(
+            "Attack" to 4151,
+            "Strength" to 11802,
+            "Defence" to 11283,
+            "Ranged" to 853,
+            "Prayer" to 536,
+            "Magic" to 556,
+            "Runecraft" to 561,
+            "Construction" to 8794,
+            "Hitpoints" to 9769,
+            "Agility" to 11849,
+            "Herblore" to 257,
+            "Thieving" to 1523,
+            "Crafting" to 1755,
+            "Fletching" to 314,
+            "Slayer" to 4155,
+            "Hunter" to 10034,
+            "Mining" to 12797,
+            "Smithing" to 2347,
+            "Fishing" to 311,
+            "Cooking" to 385,
+            "Firemaking" to 590,
+            "Woodcutting" to 1357,
+            "Farming" to 5331
+        )
+    }
+}
 
 data class PotionStorageItemUiModel(
     val itemId: Int,
@@ -286,14 +340,13 @@ data class MainDashboardUiState(
     val rememberedUuid: String = "",
     val serverUrl: String = "",
     val hasConfiguredUuid: Boolean = false,
+    val hasSyncedData: Boolean = false,
     val lastUpdated: Long = 0L,
     val lastSyncedAt: Long = 0L,
     /** When the game last fed the snapshot (observedAt), falling back to the server's updated_at. */
     val gameObservedAt: Long = 0L,
     /** False when the player turned off Include Bank in RuneLite: the snapshot has no bank or potion storage. */
     val bankShared: Boolean = true,
-    /** Base64 icons for the items the app itself shows (top bar, easter egg); null until RuneLite has sent them. */
-    val wishlistIcons: Map<Int, String?> = emptyMap(),
     val lastSyncStatus: String? = null,
     val bankItems: List<ItemUiModel> = emptyList(),
     val inventorySlots: List<InventorySlotUiModel> = (0 until 28).map { InventorySlotUiModel(it) },
@@ -307,6 +360,7 @@ data class MainDashboardUiState(
     val potionStorageItems: List<PotionStorageItemUiModel> = emptyList(),
     val farmingPayments: List<FarmingPaymentUiModel> = emptyList(),
     val quests: List<QuestUiModel> = emptyList(),
+    val topBarIcons: Map<Int, String?> = emptyMap(),
     val notificationsEnabled: Boolean = true,
     /** When the newest item price was measured (epoch ms), 0 if unknown */
     val pricesAsOfMs: Long = 0L,

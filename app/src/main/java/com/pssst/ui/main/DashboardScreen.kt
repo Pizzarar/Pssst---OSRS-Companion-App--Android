@@ -1,8 +1,5 @@
 package com.pssst.ui.main
 
-import com.pssst.util.TimeFormat
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.material3.AlertDialog
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -20,42 +17,33 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -68,19 +56,26 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import com.pssst.theme.OsrsBorderOutline
+import com.pssst.theme.OsrsButton
+import com.pssst.theme.OsrsButtonVariant
 import com.pssst.theme.OsrsDarkStone
+import androidx.compose.ui.draw.drawBehind
 import com.pssst.theme.OsrsGold
+import com.pssst.theme.OsrsHardShadow
+import com.pssst.theme.OsrsHeaderDivider
 import com.pssst.theme.OsrsHerbGreen
+import com.pssst.theme.OsrsOuterFrame
 import com.pssst.theme.OsrsPanelDark
 import com.pssst.theme.OsrsPanelLight
 import com.pssst.theme.OsrsRed
 import com.pssst.theme.OsrsSlotEmpty
-import com.pssst.theme.OsrsSlotRecessed
+import com.pssst.theme.OsrsSwitch
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.OsrsYellow
 import com.pssst.theme.osrsPanel
+import com.pssst.theme.osrsSlot
+import com.pssst.util.TimeFormat
 import com.pssst.worker.SyncScheduler
 import kotlinx.coroutines.launch
 
@@ -113,22 +108,11 @@ fun DashboardScreen(
     var editing by rememberSaveable { mutableStateOf(false) }
     val tabs = DashboardTab.entries
     val currentTab = tabs[selectedTabIndex]
+    val nowMs by rememberNowMs()
     // The pencil shows where there is a list to arrange (not on Payments, which has nothing to hide)
     val canEdit = currentTab == DashboardTab.OVERVIEW ||
         (currentTab == DashboardTab.TIMERS && timersSubTab != TimersSubTab.PAYMENTS)
     LaunchedEffect(selectedTabIndex, timersSubTab) { editing = false }
-    val workInfos by androidx.work.WorkManager.getInstance(context)
-        .getWorkInfosForUniqueWorkFlow(SyncScheduler.SYNC_NOW_WORK_NAME).collectAsState(initial = emptyList())
-    val listening = workInfos.any { it.state == androidx.work.WorkInfo.State.RUNNING }
-    val syncTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "sync")
-    val spin by syncTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-            androidx.compose.animation.core.tween(1200, easing = androidx.compose.animation.core.LinearEasing)
-        ),
-        label = "sync-spin"
-    )
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -164,9 +148,9 @@ fun DashboardScreen(
                             color = OsrsTextMuted
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
-                        HorizontalDivider(color = OsrsBorderOutline, thickness = 1.dp)
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
+                        OsrsHeaderDivider()
+                        Spacer(modifier = Modifier.height(14.dp))
 
                         // Connection Details Card
                         Box(
@@ -183,8 +167,13 @@ fun DashboardScreen(
                                     color = OsrsGold
                                 )
                                 if (state.uuid.isNotBlank()) {
+                                    val displayToken = if (state.uuid.length <= 16) {
+                                        state.uuid
+                                    } else {
+                                        "${state.uuid.take(6)}...${state.uuid.takeLast(6)}"
+                                    }
                                     Text(
-                                        text = "Sync Token: ${state.uuid.take(6)}...${state.uuid.takeLast(6)}",
+                                        text = "Sync Token: $displayToken",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = OsrsTextMuted
                                     )
@@ -206,9 +195,8 @@ fun DashboardScreen(
                                         color = if (isOk) OsrsHerbGreen else if (isQuiet) OsrsTextMuted else OsrsRed
                                     )
                                     if (state.lastSyncedAt > 0L) {
-                                        val checkedNow by rememberNowMs()
                                         Text(
-                                            text = "Last update received " + TimeFormat.ageLabel(checkedNow - state.lastSyncedAt),
+                                            text = "Last update received " + TimeFormat.ageLabel(nowMs - state.lastSyncedAt),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = OsrsTextMuted
                                         )
@@ -250,7 +238,7 @@ fun DashboardScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .osrsPanel()
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -267,7 +255,7 @@ fun DashboardScreen(
                                     color = OsrsTextMuted
                                 )
                             }
-                            Switch(
+                            OsrsSwitch(
                                 checked = state.notificationsEnabled,
                                 onCheckedChange = { enabled ->
                                     if (enabled) {
@@ -287,13 +275,7 @@ fun DashboardScreen(
                                     } else {
                                         onToggleNotifications(false)
                                     }
-                                },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color.Black,
-                                    checkedTrackColor = OsrsHerbGreen,
-                                    uncheckedThumbColor = OsrsTextMuted,
-                                    uncheckedTrackColor = OsrsSlotEmpty
-                                )
+                                }
                             )
                         }
 
@@ -309,17 +291,27 @@ fun DashboardScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         tabs.forEachIndexed { index, tab ->
                             val isSelected = selectedTabIndex == index
-                            Box(
-                                modifier = Modifier
+                            val navMod = if (isSelected) {
+                                Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(if (isSelected) OsrsSlotRecessed else Color.Transparent)
+                                    .padding(vertical = 2.dp)
+                                    .osrsSlot(hasItem = false, cornerRadius = 2.dp, highlightBorderColor = OsrsGold)
                                     .clickable {
                                         selectedTabIndex = index
                                         scope.launch { drawerState.close() }
                                     }
-                                    .padding(horizontal = 12.dp, vertical = 10.dp)
-                            ) {
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            } else {
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 2.dp)
+                                    .clickable {
+                                        selectedTabIndex = index
+                                        scope.launch { drawerState.close() }
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            }
+                            Box(modifier = navMod) {
                                 Text(
                                     text = tab.title,
                                     style = MaterialTheme.typography.bodyMedium,
@@ -332,35 +324,26 @@ fun DashboardScreen(
 
                     // Bottom Drawer Actions
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(
+                        OsrsButton(
+                            text = "Listen Now",
                             onClick = {
                                 SyncScheduler.syncNow(context)
                                 scope.launch { drawerState.close() }
                             },
+                            variant = OsrsButtonVariant.STONE,
+                            textColor = OsrsYellow,
                             modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "Sync Now",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = OsrsYellow
-                            )
-                        }
+                        )
 
-                        TextButton(
+                        OsrsButton(
+                            text = "Disconnect / Change Token",
                             onClick = {
                                 scope.launch { drawerState.close() }
                                 onDisconnect()
                             },
+                            variant = OsrsButtonVariant.DANGER,
                             modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "Disconnect / Change Token",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = OsrsRed
-                            )
-                        }
+                        )
                     }
                 }
             }
@@ -376,97 +359,133 @@ fun DashboardScreen(
                         .background(
                             Brush.verticalGradient(listOf(OsrsPanelLight, OsrsPanelDark))
                         )
+                        .statusBarsPadding()
                 ) {
-                    TopAppBar(
-                        title = {
-                            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                                Text(
-                                    text = "Pssst • ${currentTab.title}",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = OsrsGold
-                                )
-                                if (state.gameObservedAt > 0L) {
-                                    val nowMs by rememberNowMs()
-                                    Text(
-                                        text = "Game state from " + TimeFormat.ageLabel(nowMs - state.gameObservedAt),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = OsrsTextMuted,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                HamburgerVectorIcon(tint = OsrsGold)
-                            }
-                        },
-                        actions = {
-                            if (canEdit) {
-                                IconButton(onClick = { editing = !editing }) {
-                                    if (editing) CheckVectorIcon(tint = OsrsHerbGreen) else PencilVectorIcon(tint = OsrsGold)
-                                }
-                            }
-                            IconButton(onClick = { SyncScheduler.syncNow(context) }) {
-                                RefreshVectorIcon(tint = OsrsYellow, rotation = if (listening) spin else 0f)
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Color.Transparent
-                        )
-                    )
-                    val stripNow by rememberNowMs()
-                    ReadyStrip(
-                        state = state,
-                        nowMs = stripNow,
-                        onOpen = { tab, sub ->
-                            selectedTabIndex = tabs.indexOf(tab)
-                            if (sub != null) timersSubTab = sub
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 6.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = { scope.launch { drawerState.open() } },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            HamburgerVectorIcon(tint = OsrsGold, modifier = Modifier.size(22.dp))
                         }
-                    )
-                    HorizontalDivider(color = OsrsBorderOutline, thickness = 1.dp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = currentTab.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = OsrsGold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = if (state.gameObservedAt > 0L) {
+                                    "Synced " + TimeFormat.ageLabel(nowMs - state.gameObservedAt)
+                                } else {
+                                    "Offline snapshot"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 11.sp,
+                                color = OsrsTextMuted,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
+                        TopBarReadyRow(
+                            state = state,
+                            nowMs = nowMs,
+                            onNavigate = { targetTab, targetSubTab ->
+                                selectedTabIndex = tabs.indexOf(targetTab)
+                                if (targetSubTab != null) {
+                                    timersSubTab = targetSubTab
+                                }
+                            }
+                        )
+                        if (canEdit) {
+                            Spacer(modifier = Modifier.width(4.dp))
+                            IconButton(
+                                onClick = { editing = !editing },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                if (editing) {
+                                    CheckVectorIcon(tint = OsrsHerbGreen, modifier = Modifier.size(20.dp))
+                                } else {
+                                    PencilVectorIcon(tint = OsrsGold, modifier = Modifier.size(20.dp))
+                                }
+                            }
+                        }
+                    }
+                    OsrsHeaderDivider()
                 }
             },
             bottomBar = {
-                Column {
-                    HorizontalDivider(color = OsrsBorderOutline, thickness = 1.dp)
-                    NavigationBar(
-                        containerColor = OsrsPanelDark,
-                        contentColor = OsrsTextMuted
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Brush.verticalGradient(listOf(OsrsPanelDark, OsrsSlotEmpty)))
+                        .navigationBarsPadding()
+                ) {
+                    OsrsHeaderDivider()
+                    Row(
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         tabs.forEachIndexed { index, tab ->
                             val isSelected = selectedTabIndex == index
                             val tint = if (isSelected) OsrsGold else OsrsTextMuted
-                            NavigationBarItem(
-                                selected = isSelected,
-                                onClick = { selectedTabIndex = index },
-                                label = {
-                                    Text(
-                                        text = tab.title,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        color = tint,
-                                        fontSize = 11.sp
-                                    )
-                                },
-                                icon = {
-                                    when (tab) {
-                                        DashboardTab.OVERVIEW -> ShieldVectorIcon(tint = tint)
-                                        DashboardTab.STORAGE -> ChestVectorIcon(tint = tint)
-                                        DashboardTab.GE -> CoinsVectorIcon(tint = tint)
-                                        DashboardTab.PROGRESSION -> StarVectorIcon(tint = tint)
-                                        DashboardTab.TIMERS -> HourglassVectorIcon(tint = tint)
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .background(if (isSelected) OsrsSlotEmpty else Color.Transparent)
+                                    .clickable { selectedTabIndex = index }
+                                    .drawBehind {
+                                        if (index > 0) {
+                                            drawLine(
+                                                color = OsrsOuterFrame,
+                                                start = Offset(0f, 8.dp.toPx()),
+                                                end = Offset(0f, size.height - 8.dp.toPx()),
+                                                strokeWidth = 1.dp.toPx()
+                                            )
+                                        }
+                                        if (isSelected) {
+                                            val indH = 2.dp.toPx()
+                                            drawRect(
+                                                color = OsrsGold,
+                                                topLeft = Offset(0f, 0f),
+                                                size = Size(size.width, indH)
+                                            )
+                                        }
                                     }
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = OsrsGold,
-                                    selectedTextColor = OsrsGold,
-                                    indicatorColor = OsrsSlotRecessed,
-                                    unselectedIconColor = OsrsTextMuted,
-                                    unselectedTextColor = OsrsTextMuted
+                                    .padding(vertical = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                when (tab) {
+                                    DashboardTab.OVERVIEW -> ShieldVectorIcon(tint = tint, modifier = Modifier.size(19.dp))
+                                    DashboardTab.STORAGE -> ChestVectorIcon(tint = tint, modifier = Modifier.size(19.dp))
+                                    DashboardTab.GE -> CoinsVectorIcon(tint = tint, modifier = Modifier.size(19.dp))
+                                    DashboardTab.PROGRESSION -> StarVectorIcon(tint = tint, modifier = Modifier.size(19.dp))
+                                    DashboardTab.TIMERS -> HourglassVectorIcon(tint = tint, modifier = Modifier.size(19.dp))
+                                }
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = tab.title,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = tint,
+                                    fontSize = 10.sp,
+                                    maxLines = 1,
+                                    style = MaterialTheme.typography.labelSmall.copy(shadow = OsrsHardShadow)
                                 )
-                            )
+                            }
                         }
                     }
                 }

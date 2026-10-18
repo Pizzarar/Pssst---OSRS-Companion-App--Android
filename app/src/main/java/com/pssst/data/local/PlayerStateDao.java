@@ -11,10 +11,10 @@ public interface PlayerStateDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void upsert(PlayerStateEntity entity);
 
-    @Query("SELECT * FROM player_states WHERE uuid = :uuid LIMIT 1")
+    @Query("SELECT * FROM player_states WHERE uuid = :uuid COLLATE NOCASE LIMIT 1")
     PlayerStateEntity getStateByUuid(String uuid);
 
-    @Query("SELECT * FROM player_states WHERE uuid = :uuid LIMIT 1")
+    @Query("SELECT * FROM player_states WHERE uuid = :uuid COLLATE NOCASE LIMIT 1")
     kotlinx.coroutines.flow.Flow<PlayerStateEntity> getStateFlow(String uuid);
 
     @Query("SELECT * FROM player_states ORDER BY updated_at DESC LIMIT 1")
@@ -27,7 +27,7 @@ public interface PlayerStateDao {
     @Query("SELECT * FROM player_states")
     List<PlayerStateEntity> getAllStates();
 
-    @Query("DELETE FROM player_states WHERE uuid = :uuid")
+    @Query("DELETE FROM player_states WHERE uuid = :uuid COLLATE NOCASE")
     void deleteByUuid(String uuid);
 
     @Query("DELETE FROM player_states")

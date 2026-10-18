@@ -1,5 +1,6 @@
 package com.pssst.ui.main
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,42 +12,31 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.size
-import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import com.pssst.theme.OsrsBorderLight
-import com.pssst.theme.OsrsBorderOutline
-import com.pssst.theme.OsrsDarkStone
+import com.pssst.theme.OsrsFilterChip
 import com.pssst.theme.OsrsGold
 import com.pssst.theme.OsrsGreen
 import com.pssst.theme.OsrsHardShadow
-import com.pssst.theme.OsrsPanelDark
-import com.pssst.theme.OsrsSlotRecessed
+import com.pssst.theme.OsrsTextField
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.OsrsWhite
@@ -66,21 +56,11 @@ fun BankScreen(
             .padding(16.dp)
     ) {
         // Search Input
-        OutlinedTextField(
+        OsrsTextField(
             value = state.searchQuery,
             onValueChange = onSearchQueryChanged,
-            label = { Text("Search Bank by Name or ID", color = OsrsTextMuted) },
-            placeholder = { Text("e.g. Abyssal whip or 4151", color = OsrsTextMuted.copy(alpha = 0.5f)) },
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = OsrsTextPrimary,
-                unfocusedTextColor = OsrsTextPrimary,
-                focusedBorderColor = OsrsGold,
-                unfocusedBorderColor = OsrsBorderOutline,
-                focusedContainerColor = OsrsPanelDark,
-                unfocusedContainerColor = OsrsPanelDark,
-                cursorColor = OsrsGold
-            ),
+            label = "Search Bank by Name or ID",
+            placeholder = "e.g. Abyssal whip or 4151",
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -89,29 +69,16 @@ fun BankScreen(
         // Sort mode chips
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             BankSortMode.values().forEach { mode ->
                 val isSelected = state.bankSortMode == mode
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(if (isSelected) OsrsSlotRecessed else OsrsPanelDark)
-                        .border(
-                            width = 1.dp,
-                            color = if (isSelected) OsrsGold else OsrsBorderOutline,
-                            shape = RoundedCornerShape(4.dp)
-                        )
-                        .clickable { onBankSortModeChanged(mode) }
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = mode.label,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) OsrsGold else OsrsTextMuted
-                    )
-                }
+                OsrsFilterChip(
+                    text = mode.label,
+                    selected = isSelected,
+                    onClick = { onBankSortModeChanged(mode) },
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
 

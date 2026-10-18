@@ -1,13 +1,6 @@
 package com.pssst.ui.main
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,39 +14,34 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import com.pssst.util.TimeFormat
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
-import com.pssst.theme.OsrsBorderOutline
+import com.pssst.theme.JetBrainsMonoFontFamily
 import com.pssst.theme.OsrsGold
 import com.pssst.theme.OsrsHardShadow
+import com.pssst.theme.OsrsHeaderDivider
 import com.pssst.theme.OsrsHerbGreen
+import com.pssst.theme.OsrsProgressBar
 import com.pssst.theme.OsrsRed
+import com.pssst.theme.OsrsSegmentedTabs
 import com.pssst.theme.OsrsSlotEmpty
+import com.pssst.theme.OsrsStatusBadge
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.OsrsYellow
 import com.pssst.theme.osrsPanel
-import com.pssst.theme.osrsSlot
+import com.pssst.util.TimeFormat
 
 enum class TimersSubTab(val title: String) {
     DAILIES("Dailies"),
@@ -80,10 +68,10 @@ fun TimersScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Sub-Tab Navigation Bar (pinned cards moved to OverviewScreen for full un-squished height)
+        // Sub-Tab Navigation Bar
         TimersSubTabBar(
             selectedTab = selectedTab,
             onTabSelected = onSelectedTabChange,
@@ -113,7 +101,9 @@ fun TimersScreen(
                             items = state.dailyTasks,
                             key = { it.id },
                             label = { it.title },
-                            editing = editing
+                            editing = editing,
+                            spacing = 0.dp,
+                            showDividers = true
                         ) { task ->
                             DailyTaskCard(task)
                         }
@@ -138,7 +128,9 @@ fun TimersScreen(
                             items = state.birdHouses,
                             key = { it.varpId },
                             label = { it.spaceName },
-                            editing = editing
+                            editing = editing,
+                            spacing = 0.dp,
+                            showDividers = true
                         ) { house ->
                             BirdHouseCard(house, nowMs)
                         }
@@ -167,7 +159,9 @@ fun TimersScreen(
                             items = ordered,
                             key = { it.patchId },
                             label = { listOfNotNull(it.regionName, it.cropName).joinToString(" · ") },
-                            editing = editing
+                            editing = editing,
+                            spacing = 0.dp,
+                            showDividers = true
                         ) { patch ->
                             FarmingPatchCard(patch, nowMs)
                         }
@@ -176,19 +170,24 @@ fun TimersScreen(
 
                 TimersSubTab.PAYMENTS -> {
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.fillMaxSize()
                     ) {
                         item(key = "unverified_note") {
-                            // The amounts are bundled with the app, not read from the game, and have not been checked
-                            Text(
-                                text = "Payment amounts are unverified: they are not read from the game.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = OsrsTextMuted
-                            )
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    text = "Payment amounts are unverified: they are not read from the game.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = OsrsTextMuted,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
+                                )
+                                OsrsHeaderDivider()
+                            }
                         }
                         items(state.farmingPayments, key = { "${it.cropName}_${it.paymentItemId}" }) { payment ->
-                            FarmingPaymentCard(payment)
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                FarmingPaymentCard(payment)
+                                OsrsHeaderDivider()
+                            }
                         }
                     }
                 }
@@ -206,47 +205,21 @@ fun TimersSubTabBar(
     readyFarmingCount: Int,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .osrsPanel()
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        TimersSubTab.entries.forEach { tab ->
-            val isSelected = tab == selectedTab
+    val tabs = TimersSubTab.entries
+    OsrsSegmentedTabs(
+        tabs = tabs.map { tab ->
             val count = when (tab) {
                 TimersSubTab.DAILIES -> readyDailiesCount
                 TimersSubTab.BIRDHOUSES -> readyBirdhousesCount
                 TimersSubTab.FARMING -> readyFarmingCount
                 TimersSubTab.PAYMENTS -> 0
             }
-            val titleWithCount = if (count > 0) "${tab.title} ($count)" else tab.title
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .background(
-                        color = if (isSelected) OsrsSlotEmpty else Color.Transparent,
-                        shape = RoundedCornerShape(4.dp)
-                    )
-                    .clickable { onTabSelected(tab) }
-                    .padding(vertical = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = titleWithCount,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                    color = when {
-                        isSelected -> OsrsGold
-                        count > 0 -> OsrsHerbGreen
-                        else -> OsrsTextMuted
-                    }
-                )
-            }
-        }
-    }
+            tab.title to count
+        },
+        selectedIndex = tabs.indexOf(selectedTab),
+        onTabSelected = { onTabSelected(tabs[it]) },
+        modifier = modifier
+    )
 }
 
 @Composable
@@ -255,78 +228,67 @@ fun FarmingPaymentCard(payment: FarmingPaymentUiModel, modifier: Modifier = Modi
         if (payment.paymentItemId > 0) ItemIconCache.getOrCreate(payment.paymentItemId, payment.paymentIconBase64) else null
     }
 
-    Box(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .osrsPanel()
-            .padding(10.dp)
+            .padding(horizontal = 6.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+        // Unboxed Item Icon
+        Box(
+            modifier = Modifier.size(28.dp),
+            contentAlignment = Alignment.Center
         ) {
-            // Item Icon
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .osrsSlot(hasItem = true)
-                    .padding(3.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                if (bitmap != null) {
-                    Image(
-                        bitmap = bitmap,
-                        contentDescription = payment.paymentItemName,
-                        filterQuality = FilterQuality.None,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.size(32.dp)
-                    )
-                } else {
-                    Text(
-                        text = itemInitials(payment.paymentItemName),
-                        color = OsrsTextPrimary,
-                        fontSize = 9.sp,
-                        style = MaterialTheme.typography.bodySmall.copy(shadow = OsrsHardShadow)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Details
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "${payment.cropName} (Lvl ${payment.farmingLevel})",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = OsrsTextPrimary
+            if (bitmap != null) {
+                Image(
+                    bitmap = bitmap,
+                    contentDescription = payment.paymentItemName,
+                    filterQuality = FilterQuality.None,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(26.dp)
                 )
+            } else {
                 Text(
-                    text = "${payment.requiredQuantity} × ${payment.paymentItemName} • ${payment.patchCategory}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = OsrsTextMuted
+                    text = itemInitials(payment.paymentItemName),
+                    color = OsrsTextMuted,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodySmall.copy(shadow = OsrsHardShadow)
                 )
             }
+        }
 
-            // Owned count chip
-            val chipBg = if (payment.hasEnough) OsrsHerbGreen else OsrsSlotEmpty
-            val chipFg = if (payment.hasEnough) Color.Black else OsrsRed
-            val chipLabel = when {
-                payment.paymentsLeft == 1 -> "1 payment"
-                payment.hasEnough -> "${payment.paymentsLeft} payments"
-                else -> "0 payments · ${payment.ownedInBankAndInv}/${payment.requiredQuantity}"
-            }
+        Spacer(modifier = Modifier.width(12.dp))
 
-            SuggestionChip(
-                onClick = {},
-                label = { Text(chipLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                colors = SuggestionChipDefaults.suggestionChipColors(
-                    containerColor = chipBg,
-                    labelColor = chipFg
-                ),
-                border = if (payment.hasEnough) null else SuggestionChipDefaults.suggestionChipBorder(enabled = true, borderColor = OsrsBorderOutline)
+        // Details
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "${payment.cropName} (Lvl ${payment.farmingLevel})",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = OsrsTextPrimary
+            )
+            Text(
+                text = "${payment.requiredQuantity} × ${payment.paymentItemName} • ${payment.patchCategory}",
+                style = MaterialTheme.typography.bodySmall,
+                color = OsrsTextMuted
             )
         }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        val statusLabel = when {
+            payment.paymentsLeft == 1 -> "1 payment"
+            payment.hasEnough -> "${payment.paymentsLeft} payments"
+            else -> "${payment.ownedInBankAndInv}/${payment.requiredQuantity}"
+        }
+        Text(
+            text = statusLabel,
+            fontFamily = JetBrainsMonoFontFamily,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (payment.hasEnough) OsrsHerbGreen else OsrsRed
+        )
     }
 }
 
@@ -335,7 +297,7 @@ fun MiscellaniaCard(miscellania: MiscellaniaUiModel, modifier: Modifier = Modifi
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .osrsPanel()
+            .osrsPanel(showRivets = true)
             .padding(14.dp)
     ) {
         Column {
@@ -357,15 +319,13 @@ fun MiscellaniaCard(miscellania: MiscellaniaUiModel, modifier: Modifier = Modifi
                 )
             }
 
+            Spacer(modifier = Modifier.height(6.dp))
+            OsrsHeaderDivider()
             Spacer(modifier = Modifier.height(8.dp))
 
-            LinearProgressIndicator(
-                progress = { (miscellania.approvalPercent / 100f).coerceIn(0f, 1f) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp),
-                color = if (miscellania.approvalPercent >= 75) OsrsHerbGreen else OsrsRed,
-                trackColor = OsrsSlotEmpty
+            OsrsProgressBar(
+                progress = (miscellania.approvalPercent / 100f).coerceIn(0f, 1f),
+                color = if (miscellania.approvalPercent >= 75) OsrsHerbGreen else OsrsRed
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -394,7 +354,7 @@ fun SlayerTaskCard(slayer: SlayerUiModel, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .osrsPanel()
+            .osrsPanel(showRivets = true)
             .padding(14.dp)
     ) {
         Column {
@@ -418,6 +378,8 @@ fun SlayerTaskCard(slayer: SlayerUiModel, modifier: Modifier = Modifier) {
                 }
             }
 
+            Spacer(modifier = Modifier.height(6.dp))
+            OsrsHeaderDivider()
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(
@@ -432,23 +394,10 @@ fun SlayerTaskCard(slayer: SlayerUiModel, modifier: Modifier = Modifier) {
                     color = OsrsTextPrimary
                 )
 
-                SuggestionChip(
-                    onClick = {},
-                    label = {
-                        Text(
-                            text = if (slayer.hasTask) "${slayer.amount} remaining" else "No task",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        )
-                    },
-                    colors = SuggestionChipDefaults.suggestionChipColors(
-                        containerColor = OsrsSlotEmpty,
-                        labelColor = if (slayer.hasTask) OsrsYellow else OsrsTextMuted
-                    ),
-                    border = SuggestionChipDefaults.suggestionChipBorder(
-                        enabled = true,
-                        borderColor = OsrsBorderOutline
-                    )
+                OsrsStatusBadge(
+                    text = if (slayer.hasTask) "${slayer.amount} remaining" else "No task",
+                    containerColor = OsrsSlotEmpty,
+                    contentColor = if (slayer.hasTask) OsrsYellow else OsrsTextMuted
                 )
             }
 
@@ -465,142 +414,170 @@ fun SlayerTaskCard(slayer: SlayerUiModel, modifier: Modifier = Modifier) {
 
 @Composable
 fun DailyTaskCard(task: DailyTaskUiModel, modifier: Modifier = Modifier) {
-    Box(
+    val bitmap = remember(task.itemId, task.iconBase64) {
+        if (task.itemId > 0) ItemIconCache.getOrCreate(task.itemId, task.iconBase64) else null
+    }
+
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .osrsPanel()
-            .padding(12.dp)
+            .padding(horizontal = 6.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Unboxed Item Icon
+        Box(
+            modifier = Modifier.size(28.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (bitmap != null) {
+                Image(
+                    bitmap = bitmap,
+                    contentDescription = task.title,
+                    filterQuality = FilterQuality.None,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(26.dp)
+                )
+            } else {
+                Text(
+                    text = itemInitials(task.title),
+                    color = OsrsTextMuted,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodySmall.copy(shadow = OsrsHardShadow)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = task.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (task.isAvailable) OsrsGold else OsrsTextPrimary
+                )
+                if (task.category == ResetCategory.WEEKLY) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "[Weekly]",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = OsrsYellow
+                    )
+                }
+            }
+            Text(
+                text = "${task.subtitle} • ${task.statusText}",
+                style = MaterialTheme.typography.bodySmall,
+                color = OsrsTextMuted
+            )
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Text(
+            text = if (task.isAvailable) "READY" else "DONE",
+            fontFamily = JetBrainsMonoFontFamily,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (task.isAvailable) OsrsHerbGreen else OsrsTextMuted
+        )
+    }
+}
+
+@Composable
+fun FarmingPatchCard(patch: FarmingPatchUiModel, nowMs: Long, modifier: Modifier = Modifier) {
+    val bitmap = remember(patch.itemId, patch.iconBase64) {
+        if (patch.itemId > 0) ItemIconCache.getOrCreate(patch.itemId, patch.iconBase64) else null
+    }
+    val status = patch.status(nowMs)
+    val isGrown = patch.isGrown(nowMs)
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 6.dp, vertical = 10.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = task.title,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (task.isAvailable) OsrsGold else OsrsTextPrimary
+            // Unboxed Crop Icon
+            Box(
+                modifier = Modifier.size(28.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap,
+                        contentDescription = patch.cropName ?: patch.patchLabel,
+                        filterQuality = FilterQuality.None,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.size(26.dp)
                     )
-                    if (task.category == ResetCategory.WEEKLY) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "[Weekly]",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = OsrsYellow
-                        )
-                    }
+                } else {
+                    Text(
+                        text = itemInitials(patch.cropName ?: patch.patchLabel),
+                        color = OsrsTextMuted,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodySmall.copy(shadow = OsrsHardShadow)
+                    )
                 }
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = task.subtitle,
+                    text = patch.patchLabel,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isGrown) OsrsHerbGreen else OsrsTextPrimary
+                )
+                Text(
+                    text = "${patch.statusText(nowMs)} • Seen ${TimeFormat.formatDuration(nowMs - patch.observedAtMs)} ago",
                     style = MaterialTheme.typography.bodySmall,
                     color = OsrsTextMuted
                 )
-                Text(
-                    text = task.statusText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (task.isAvailable) OsrsHerbGreen else OsrsTextMuted
-                )
             }
 
-            if (task.isAvailable) {
-                SuggestionChip(
-                    onClick = {},
-                    label = { Text("READY", fontWeight = FontWeight.ExtraBold, fontSize = 11.sp) },
-                    colors = SuggestionChipDefaults.suggestionChipColors(
-                        containerColor = OsrsHerbGreen,
-                        labelColor = Color.Black
-                    ),
-                    border = null
-                )
-            } else {
-                SuggestionChip(
-                    onClick = {},
-                    label = { Text("DONE", fontWeight = FontWeight.Bold, fontSize = 11.sp) },
-                    colors = SuggestionChipDefaults.suggestionChipColors(
-                        containerColor = OsrsSlotEmpty,
-                        labelColor = OsrsTextMuted
-                    ),
-                    border = SuggestionChipDefaults.suggestionChipBorder(
-                        enabled = true,
-                        borderColor = OsrsBorderOutline
-                    )
-                )
-            }
-        }
-    }
-}
+            Spacer(modifier = Modifier.width(8.dp))
 
-@Composable
-fun FarmingPatchCard(patch: FarmingPatchUiModel, nowMs: Long, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .osrsPanel()
-            .padding(12.dp)
-    ) {
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = patch.patchLabel,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (patch.isGrown(nowMs)) OsrsHerbGreen else OsrsTextPrimary
-                    )
-                    Text(
-                        text = patch.statusText(nowMs),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = OsrsTextMuted
-                    )
-                }
-
-                if (patch.isGrown(nowMs)) {
-                    SuggestionChip(
-                        onClick = {},
-                        label = { Text("GROWN", fontWeight = FontWeight.ExtraBold, fontSize = 11.sp) },
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = OsrsHerbGreen,
-                            labelColor = Color.Black
-                        ),
-                        border = null
-                    )
-                }
+            val rightText = when {
+                isGrown -> "GROWN"
+                (status == FarmingStatus.GROWING || status == FarmingStatus.REGROWING) && patch.doneAtMs != null ->
+                    "~${TimeFormat.formatDuration(patch.doneAtMs - nowMs)}"
+                status == FarmingStatus.DISEASED -> "DISEASED"
+                status == FarmingStatus.DEAD -> "DEAD"
+                else -> "EMPTY"
             }
-
-            val status = patch.status(nowMs)
-            if (status == FarmingStatus.GROWING || status == FarmingStatus.REGROWING) {
-                Spacer(modifier = Modifier.height(8.dp))
-                LinearProgressIndicator(
-                    progress = { patch.progress(nowMs) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp),
-                    color = OsrsHerbGreen,
-                    trackColor = OsrsSlotEmpty
-                )
+            val rightColor = when {
+                isGrown -> OsrsHerbGreen
+                status == FarmingStatus.GROWING || status == FarmingStatus.REGROWING -> OsrsYellow
+                status == FarmingStatus.DISEASED || status == FarmingStatus.DEAD -> OsrsRed
+                else -> OsrsTextMuted
             }
-
-            // The finish time is an estimate (it ignores the per-player farm tick offset), hence the "~"
-            val timing = buildString {
-                val doneAt = patch.doneAtMs
-                if ((status == FarmingStatus.GROWING || status == FarmingStatus.REGROWING) && doneAt != null) {
-                    append("Done in ~${TimeFormat.formatDuration(doneAt - nowMs)} • ")
-                }
-                append("Seen ${TimeFormat.formatDuration(nowMs - patch.observedAtMs)} ago")
-            }
-            Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = timing,
-                style = MaterialTheme.typography.labelSmall,
-                color = OsrsTextMuted
+                text = rightText,
+                fontFamily = JetBrainsMonoFontFamily,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = rightColor
+            )
+        }
+
+        if (status == FarmingStatus.GROWING || status == FarmingStatus.REGROWING) {
+            Spacer(modifier = Modifier.height(6.dp))
+            OsrsProgressBar(
+                progress = patch.progress(nowMs),
+                color = OsrsHerbGreen,
+                thin = true,
+                modifier = Modifier.padding(start = 40.dp)
             )
         }
     }
@@ -608,51 +585,77 @@ fun FarmingPatchCard(patch: FarmingPatchUiModel, nowMs: Long, modifier: Modifier
 
 @Composable
 fun BirdHouseCard(house: BirdHouseUiModel, nowMs: Long, modifier: Modifier = Modifier) {
-    Box(
+    val bitmap = remember(house.itemId, house.iconBase64) {
+        if (house.itemId > 0) ItemIconCache.getOrCreate(house.itemId, house.iconBase64) else null
+    }
+
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .osrsPanel()
-            .padding(12.dp)
+            .padding(horizontal = 6.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        // Unboxed Birdhouse Icon
+        Box(
+            modifier = Modifier.size(28.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = house.spaceName,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (house.isReady(nowMs)) OsrsHerbGreen else OsrsTextPrimary
+            if (bitmap != null) {
+                Image(
+                    bitmap = bitmap,
+                    contentDescription = house.houseType ?: house.spaceName,
+                    filterQuality = FilterQuality.None,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(26.dp)
                 )
+            } else {
                 Text(
-                    text = listOfNotNull(house.houseType, house.statusText(nowMs)).joinToString(" \u2022 "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = OsrsTextMuted
+                    text = itemInitials(house.houseType ?: house.spaceName),
+                    color = OsrsTextMuted,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodySmall.copy(shadow = OsrsHardShadow)
                 )
             }
+        }
 
-            val (chipText, chipBg, chipTextCol) = when (house.status(nowMs)) {
-                BirdHouseStatus.READY -> Triple("READY", OsrsHerbGreen, Color.Black)
-                BirdHouseStatus.SEEDED -> Triple("ACTIVE", OsrsSlotEmpty, OsrsYellow)
-                BirdHouseStatus.BUILT -> Triple("BUILT", OsrsSlotEmpty, OsrsTextPrimary)
-                BirdHouseStatus.EMPTY -> Triple("EMPTY", OsrsSlotEmpty, OsrsTextMuted)
-                BirdHouseStatus.UNKNOWN -> Triple("?", OsrsSlotEmpty, OsrsTextMuted)
-            }
+        Spacer(modifier = Modifier.width(12.dp))
 
-            SuggestionChip(
-                onClick = {},
-                label = { Text(chipText, fontWeight = FontWeight.Bold, fontSize = 11.sp) },
-                colors = SuggestionChipDefaults.suggestionChipColors(
-                    containerColor = chipBg,
-                    labelColor = chipTextCol
-                ),
-                border = SuggestionChipDefaults.suggestionChipBorder(
-                    enabled = true,
-                    borderColor = OsrsBorderOutline
-                )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = house.spaceName,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = if (house.isReady(nowMs)) OsrsHerbGreen else OsrsTextPrimary
+            )
+            Text(
+                text = listOfNotNull(house.houseType, house.statusText(nowMs)).joinToString(" \u2022 "),
+                style = MaterialTheme.typography.bodySmall,
+                color = OsrsTextMuted
             )
         }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        val (statusText, statusColor) = when (house.status(nowMs)) {
+            BirdHouseStatus.READY -> "READY" to OsrsHerbGreen
+            BirdHouseStatus.SEEDED -> {
+                val readyAt = house.readyAtMs
+                val label = if (readyAt != null && readyAt > nowMs) "~${TimeFormat.formatDuration(readyAt - nowMs)}" else "ACTIVE"
+                label to OsrsYellow
+            }
+            BirdHouseStatus.BUILT -> "BUILT" to OsrsTextPrimary
+            BirdHouseStatus.EMPTY -> "EMPTY" to OsrsTextMuted
+            BirdHouseStatus.UNKNOWN -> "?" to OsrsTextMuted
+        }
+
+        Text(
+            text = statusText,
+            fontFamily = JetBrainsMonoFontFamily,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = statusColor
+        )
     }
 }

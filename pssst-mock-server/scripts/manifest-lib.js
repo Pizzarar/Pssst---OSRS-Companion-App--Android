@@ -66,3 +66,5 @@ function buildManifest({ names, mapping, latest, previousItems, previousVersion,
 }
 
 module.exports = { priceOf, buildManifest, MAX_SIDE_SKEW_SECONDS };
+
+

@@ -1,37 +1,31 @@
 package com.pssst.ui.main
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.pssst.theme.OsrsBorderOutline
 import com.pssst.theme.OsrsGold
+import com.pssst.theme.OsrsHeaderDivider
 import com.pssst.theme.OsrsHerbGreen
-import com.pssst.theme.OsrsPanelLight
 import com.pssst.theme.OsrsSlotEmpty
+import com.pssst.theme.OsrsStatusBadge
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.OsrsYellow
@@ -90,7 +84,6 @@ fun OverviewScreen(
         }
     ) { card ->
         when (card) {
-            // The address RuneLite needs (it changes if the router hands out a new one)
             OverviewCard.PHONE -> PhoneAddressCard(state, onHelp = { showAddressHelp = true })
             OverviewCard.WEALTH -> TotalWealthCard(state)
             OverviewCard.STATUS -> QuickActionsBanner(
@@ -112,7 +105,7 @@ fun TotalWealthCard(state: MainDashboardUiState, modifier: Modifier = Modifier) 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .osrsPanel()
+            .osrsPanel(showRivets = true)
             .padding(14.dp)
     ) {
         Column {
@@ -135,7 +128,9 @@ fun TotalWealthCard(state: MainDashboardUiState, modifier: Modifier = Modifier) 
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(6.dp))
+            OsrsHeaderDivider()
+            Spacer(modifier = Modifier.height(8.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -175,7 +170,7 @@ fun QuickActionsBanner(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .osrsPanel()
+            .osrsPanel(showRivets = true)
             .padding(12.dp)
     ) {
         Text(
@@ -184,47 +179,37 @@ fun QuickActionsBanner(
             fontWeight = FontWeight.Bold,
             color = OsrsGold
         )
+        Spacer(modifier = Modifier.height(6.dp))
+        OsrsHeaderDivider()
         Spacer(modifier = Modifier.height(8.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            SuggestionChip(
-                onClick = { onNavigateToTab(DashboardTab.TIMERS) },
-                label = { Text("Farming: $readyFarming", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                colors = SuggestionChipDefaults.suggestionChipColors(
-                    containerColor = if (readyFarming > 0) OsrsHerbGreen else OsrsSlotEmpty,
-                    labelColor = if (readyFarming > 0) Color.Black else OsrsTextMuted
-                ),
-                border = if (readyFarming > 0) null else SuggestionChipDefaults.suggestionChipBorder(enabled = true, borderColor = OsrsBorderOutline)
+            OsrsStatusBadge(
+                text = "Farming: $readyFarming",
+                containerColor = if (readyFarming > 0) OsrsHerbGreen else OsrsSlotEmpty,
+                contentColor = if (readyFarming > 0) Color.Black else OsrsTextMuted,
+                onClick = { onNavigateToTab(DashboardTab.TIMERS) }
             )
-            SuggestionChip(
-                onClick = { onNavigateToTab(DashboardTab.TIMERS) },
-                label = { Text("Birdhouses: $readyBirdhouses", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                colors = SuggestionChipDefaults.suggestionChipColors(
-                    containerColor = if (readyBirdhouses > 0) OsrsHerbGreen else OsrsSlotEmpty,
-                    labelColor = if (readyBirdhouses > 0) Color.Black else OsrsTextMuted
-                ),
-                border = if (readyBirdhouses > 0) null else SuggestionChipDefaults.suggestionChipBorder(enabled = true, borderColor = OsrsBorderOutline)
+            OsrsStatusBadge(
+                text = "Birdhouses: $readyBirdhouses",
+                containerColor = if (readyBirdhouses > 0) OsrsHerbGreen else OsrsSlotEmpty,
+                contentColor = if (readyBirdhouses > 0) Color.Black else OsrsTextMuted,
+                onClick = { onNavigateToTab(DashboardTab.TIMERS) }
             )
-            SuggestionChip(
-                onClick = { onNavigateToTab(DashboardTab.TIMERS) },
-                label = { Text("Dailies: $readyDailies", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                colors = SuggestionChipDefaults.suggestionChipColors(
-                    containerColor = if (readyDailies > 0) OsrsHerbGreen else OsrsSlotEmpty,
-                    labelColor = if (readyDailies > 0) Color.Black else OsrsTextMuted
-                ),
-                border = if (readyDailies > 0) null else SuggestionChipDefaults.suggestionChipBorder(enabled = true, borderColor = OsrsBorderOutline)
+            OsrsStatusBadge(
+                text = "Dailies: $readyDailies",
+                containerColor = if (readyDailies > 0) OsrsHerbGreen else OsrsSlotEmpty,
+                contentColor = if (readyDailies > 0) Color.Black else OsrsTextMuted,
+                onClick = { onNavigateToTab(DashboardTab.TIMERS) }
             )
             if (activeGe > 0) {
-                SuggestionChip(
-                    onClick = { onNavigateToTab(DashboardTab.GE) },
-                    label = { Text("GE: $completeGe/$activeGe", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                    colors = SuggestionChipDefaults.suggestionChipColors(
-                        containerColor = if (completeGe > 0) OsrsHerbGreen else OsrsSlotEmpty,
-                        labelColor = if (completeGe > 0) Color.Black else OsrsYellow
-                    ),
-                    border = if (completeGe > 0) null else SuggestionChipDefaults.suggestionChipBorder(enabled = true, borderColor = OsrsBorderOutline)
+                OsrsStatusBadge(
+                    text = "GE: $completeGe/$activeGe",
+                    containerColor = if (completeGe > 0) OsrsHerbGreen else OsrsSlotEmpty,
+                    contentColor = if (completeGe > 0) Color.Black else OsrsYellow,
+                    onClick = { onNavigateToTab(DashboardTab.GE) }
                 )
             }
         }

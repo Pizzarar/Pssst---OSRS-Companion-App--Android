@@ -34,6 +34,9 @@ class SnapshotIngest(
         val dao = database.playerStateDao()
         val previousEntity = dao.getStateByUuid(uuid)
 
+        // Icons are always saved even if the snapshot timestamp itself has not advanced
+        applyIcons(stateResponse.data?.icons)
+
         // Never replace what is saved with something the game observed earlier (a stale or wrong PC)
         val newObservedAt = stateResponse.data?.observedAt ?: 0L
         val savedObservedAt = observedAtOf(previousEntity)
@@ -44,8 +47,7 @@ class SnapshotIngest(
             return Outcome.OLDER
         }
 
-        // Icons and prices first, so the screens that re-read on the next change see them with the snapshot
-        applyIcons(stateResponse.data?.icons)
+        // Prices first, so the screens that re-read on the next change see them with the snapshot
         val data = stateResponse.data
         val updatedAtMs = stateResponse.updatedAt.let { if (it in 1 until 100_000_000_000L) it * 1000 else it }
         val prices = data?.prices.orEmpty().mapNotNull { (id, price) -> id.toIntOrNull()?.let { it to price } }.toMap()
@@ -103,6 +105,9 @@ class SnapshotIngest(
         val slayerTaskName = data?.slayer?.taskName?.takeIf { it.isNotBlank() } ?: "none"
         val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(now()))
         preferences.saveSyncFailures(0)
+        if (preferences.getRememberTokenPreference() && uuid.isNotBlank()) {
+            preferences.saveRememberedUuid(uuid.trim())
+        }
         preferences.saveLastSyncStatus("OK $timeStr inv=$invCount bank=$bankCount slayer=$slayerTaskName")
         Log.i(TAG, "Saved snapshot: inventory=$invCount bank=$bankCount slayer=$slayerTaskName")
         return Outcome.SAVED
@@ -120,16 +125,20 @@ class SnapshotIngest(
     /**
      * The item ids this snapshot (or the app itself) shows that have no icon yet, for the reply to RuneLite, which
      * draws them from its own client and sends them with the next update. At most [MAX_ICON_REQUESTS].
+     * Small/immediately visible sets are requested first so a large bank never starves Inventory, GE, or Timers.
      */
     fun missingIcons(stateResponse: StateResponse): List<Int> {
         val data = stateResponse.data
         val wanted = LinkedHashSet<Int>()
-        data?.bank.orEmpty().forEach { wanted += it.id }
         data?.inventory.orEmpty().forEach { wanted += it.manifestId }
-        data?.potionStorage.orEmpty().forEach { wanted += it.itemId }
         data?.geOffers.orEmpty().forEach { if (it.itemId > 0) wanted += it.itemId }
         wanted += com.pssst.util.FarmingPaymentCatalog.ALL_PAYMENT_ITEM_IDS
-        wanted += com.pssst.util.IconWishlist.IDS
+        wanted += com.pssst.util.DailyTasks.ALL_DAILY_ITEM_IDS
+        wanted += com.pssst.ui.main.BirdHouseUiModel.ALL_BIRDHOUSE_ITEM_IDS
+        data?.birdhouses.orEmpty().forEach { wanted += com.pssst.ui.main.BirdHouseUiModel.itemIdForType(it.houseType) }
+        data?.farming.orEmpty().forEach { wanted += if (it.itemId > 0) it.itemId else 6055 }
+        data?.potionStorage.orEmpty().forEach { wanted += it.itemId }
+        data?.bank.orEmpty().forEach { wanted += it.id }
         val have = HashSet<Int>()
         wanted.toList().chunked(500).forEach { have += database.itemManifestDao().idsWithIcon(it) }
         return wanted.filter { it > 0 && it !in have }.take(MAX_ICON_REQUESTS)

@@ -38,6 +38,10 @@ interface UserPreferencesRepository {
     suspend fun getSyncFailures(): Int = 0
     suspend fun saveSyncFailures(count: Int) {}
 
+    /** Whether the user checked 'Remember this Sync Token' during setup; promoted to rememberedUuid once verified. */
+    suspend fun getRememberTokenPreference(): Boolean = true
+    suspend fun saveRememberTokenPreference(remember: Boolean) {}
+
 }
 
 class DataStoreUserPreferencesRepository(
@@ -48,6 +52,7 @@ class DataStoreUserPreferencesRepository(
 
     private val uuidKey = stringPreferencesKey("user_uuid")
     private val rememberedUuidKey = stringPreferencesKey("remembered_uuid")
+    private val rememberTokenPrefKey = booleanPreferencesKey("remember_token_pref")
     private val serverUrlKey = stringPreferencesKey("server_url")
     private val lastSyncStatusKey = stringPreferencesKey("last_sync_status")
     private val notificationsEnabledKey = booleanPreferencesKey("notifications_enabled")
@@ -151,6 +156,16 @@ class DataStoreUserPreferencesRepository(
     override suspend fun saveNotificationsEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[notificationsEnabledKey] = enabled
+        }
+    }
+
+    override suspend fun getRememberTokenPreference(): Boolean {
+        return dataStore.data.map { it[rememberTokenPrefKey] ?: true }.first()
+    }
+
+    override suspend fun saveRememberTokenPreference(remember: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[rememberTokenPrefKey] = remember
         }
     }
 }

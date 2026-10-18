@@ -29,6 +29,7 @@ object DailyTasks {
     private data class DiaryDaily(
         val id: String,
         val title: String,
+        val itemId: Int,
         val gateVarbit: String,
         val gateText: String,
         val claimedVarbit: String,
@@ -37,15 +38,21 @@ object DailyTasks {
 
     // Each reward unlocks with one diary tier; it is available when that tier is done and today's claim flag is 0
     private val DIARY_DAILIES = listOf(
-        DiaryDaily("zaff_staves", "Zaff's Battlestaves", "4479", "Varrock Diary (Easy)", "4539", "Claimed today"),
-        DiaryDaily("ardougne_essence", "Pure essence (Ardougne)", "4459", "Ardougne Diary (Medium)", "4547", "Claimed today"),
-        DiaryDaily("lundail_runes", "Lundail's runes (Wilderness)", "4466", "Wilderness Diary (Easy)", "4540", "Collected today"),
-        DiaryDaily("seers_flax", "Flax (Seers' Village)", "4475", "Kandarin Diary (Easy)", "4559", "Exchanged today"),
-        DiaryDaily("rantz_arrows", "Ogre arrows (Rantz)", "4471", "Western Diary (Easy)", "4563", "Collected today"),
-        DiaryDaily("kourend_dynamite", "Dynamite (Kourend)", "7926", "Kourend Diary (Medium)", "7939", "Claimed today")
+        DiaryDaily("zaff_staves", "Zaff's Battlestaves", 1391, "4479", "Varrock Diary (Easy)", "4539", "Claimed today"),
+        DiaryDaily("ardougne_essence", "Pure essence (Ardougne)", 7936, "4459", "Ardougne Diary (Medium)", "4547", "Claimed today"),
+        DiaryDaily("lundail_runes", "Lundail's runes (Wilderness)", 556, "4466", "Wilderness Diary (Easy)", "4540", "Collected today"),
+        DiaryDaily("seers_flax", "Flax (Seers' Village)", 1779, "4475", "Kandarin Diary (Easy)", "4559", "Exchanged today"),
+        DiaryDaily("rantz_arrows", "Ogre arrows (Rantz)", 2866, "4471", "Western Diary (Easy)", "4563", "Collected today"),
+        DiaryDaily("kourend_dynamite", "Dynamite (Kourend)", 13573, "7926", "Kourend Diary (Medium)", "7939", "Claimed today")
     )
 
-    fun evaluate(varbits: Map<String, Int>, varps: Map<String, Int>): List<DailyTaskUiModel> {
+    val ALL_DAILY_ITEM_IDS = listOf(11738, 1391, 7936, 556, 1779, 2866, 13573, 1783, 4255, 2552)
+
+    fun evaluate(
+        varbits: Map<String, Int>,
+        varps: Map<String, Int>,
+        iconLookup: (Int) -> String? = { null }
+    ): List<DailyTaskUiModel> {
         fun v(id: String) = varbits[id] ?: 0
         val tasks = mutableListOf<DailyTaskUiModel>()
 
@@ -55,7 +62,14 @@ object DailyTasks {
         val points = varps["1060"] ?: 0
         tasks += when {
             ironman != NOT_IRONMAN -> DailyTaskUiModel(
-                "nmz_herb_boxes", "NMZ herb boxes", "Not available to ironmen", "Not available", false, ResetCategory.DAILY
+                id = "nmz_herb_boxes",
+                title = "NMZ herb boxes",
+                subtitle = "Not available to ironmen",
+                statusText = "Not available",
+                isAvailable = false,
+                category = ResetCategory.DAILY,
+                itemId = 11738,
+                iconBase64 = iconLookup(11738)
             )
             else -> DailyTaskUiModel(
                 id = "nmz_herb_boxes",
@@ -64,7 +78,9 @@ object DailyTasks {
                 statusText = if (purchased >= HERB_BOX_MAX) "All $HERB_BOX_MAX claimed today"
                 else "$purchased/$HERB_BOX_MAX claimed today • ${formatQuantity(points)} points",
                 isAvailable = purchased < HERB_BOX_MAX,
-                category = ResetCategory.DAILY
+                category = ResetCategory.DAILY,
+                itemId = 11738,
+                iconBase64 = iconLookup(11738)
             )
         }
 
@@ -81,7 +97,9 @@ object DailyTasks {
                     else -> "Available"
                 },
                 isAvailable = unlocked && !claimed,
-                category = ResetCategory.DAILY
+                category = ResetCategory.DAILY,
+                itemId = daily.itemId,
+                iconBase64 = iconLookup(daily.itemId)
             )
         }
 
@@ -98,7 +116,9 @@ object DailyTasks {
                 else -> "Available"
             },
             isAvailable = sandUnlocked && !sandClaimed,
-            category = ResetCategory.DAILY
+            category = ResetCategory.DAILY,
+            itemId = 1783,
+            iconBase64 = iconLookup(1783)
         )
 
         // Morytanian bonemeal: 13 for the Medium diary, 13 more for Hard, 13 more for Elite (Elite counts only with Hard)
@@ -119,7 +139,9 @@ object DailyTasks {
                 else -> "$boneCollected/$boneMax collected today"
             },
             isAvailable = boneUnlocked && boneCollected < boneMax,
-            category = ResetCategory.DAILY
+            category = ResetCategory.DAILY,
+            itemId = 4255,
+            iconBase64 = iconLookup(4255)
         )
 
         // Tears of Guthix: RuneLite has no rule for these two values, so they are shown as they are, not interpreted
@@ -129,7 +151,9 @@ object DailyTasks {
             subtitle = "Raw values (meaning unverified)",
             statusText = "Countdown: ${v("5099")} • Quest points check: ${v("456")}",
             isAvailable = false,
-            category = ResetCategory.WEEKLY
+            category = ResetCategory.WEEKLY,
+            itemId = 2552,
+            iconBase64 = iconLookup(2552)
         )
 
         return tasks.sortedWith(

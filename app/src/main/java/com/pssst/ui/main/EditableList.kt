@@ -42,13 +42,15 @@ import androidx.compose.ui.zIndex
 import com.pssst.data.local.ListLayouts
 import com.pssst.theme.OsrsBorderOutline
 import com.pssst.theme.OsrsGold
+import com.pssst.theme.OsrsHeaderDivider
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.osrsPanel
 import com.pssst.util.ListLayout
 import kotlin.math.roundToInt
 
-private val EDIT_ROW_HEIGHT = 52.dp
+private val EDIT_ROW_HEIGHT = 50.dp
+private val EDIT_ROW_GAP = 6.dp
 
 /**
  * A list the player can arrange. Edit list turns it into a compact checklist: the checkbox shows or hides a row, and
@@ -63,6 +65,7 @@ fun <T> EditableList(
     modifier: Modifier = Modifier,
     editing: Boolean,
     spacing: Dp = 8.dp,
+    showDividers: Boolean = false,
     header: (LazyListScope.() -> Unit)? = null,
     itemContent: @Composable (T) -> Unit
 ) {
@@ -72,7 +75,7 @@ fun <T> EditableList(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(spacing)
+        verticalArrangement = Arrangement.spacedBy(if (editing) 0.dp else spacing)
     ) {
         header?.invoke(this)
         if (editing) {
@@ -86,7 +89,14 @@ fun <T> EditableList(
                 )
             }
         } else {
-            items(arranged.visible, key = { "v_" + key(it) }) { entry -> itemContent(entry) }
+            items(arranged.visible, key = { "v_" + key(it) }) { entry ->
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    itemContent(entry)
+                    if (showDividers) {
+                        OsrsHeaderDivider()
+                    }
+                }
+            }
             if (arranged.visible.isEmpty() && arranged.hidden.isNotEmpty()) {
                 item(key = "__all_hidden") {
                     Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
@@ -99,7 +109,7 @@ fun <T> EditableList(
                         text = "${arranged.hidden.size} hidden · tap the pencil to change",
                         style = MaterialTheme.typography.labelSmall,
                         color = OsrsTextMuted,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)
                     )
                 }
             }
@@ -107,7 +117,7 @@ fun <T> EditableList(
     }
 }
 
-/** Compact rows: drag handle, checkbox, name. Dragging reorders live and saves when the finger lifts. */
+/** Movable raised boxes: drag handle, checkbox, name. Dragging reorders live and saves when the finger lifts. */
 @Composable
 private fun ReorderChecklist(
     onReset: () -> Unit,
@@ -121,13 +131,23 @@ private fun ReorderChecklist(
     var order by remember(keys) { mutableStateOf(keys) }
     var dragging by remember { mutableStateOf<String?>(null) }
     var dragOffset by remember { mutableFloatStateOf(0f) }
-    val rowPx = with(LocalDensity.current) { EDIT_ROW_HEIGHT.toPx() }
+    val rowPx = with(LocalDensity.current) { (EDIT_ROW_HEIGHT + EDIT_ROW_GAP).toPx() }
 
-    Column(modifier = Modifier.fillMaxWidth().osrsPanel().padding(vertical = 4.dp)) {
-        Row(modifier = Modifier.fillMaxWidth().padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Tick to show, drag ≡ to move", style = MaterialTheme.typography.labelSmall, color = OsrsTextMuted,
-                modifier = Modifier.weight(1f))
-            TextButton(onClick = onReset) { Text("Reset", color = OsrsTextMuted) }
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(EDIT_ROW_GAP)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Tick to show, drag ≡ boxes to reorder",
+                style = MaterialTheme.typography.labelSmall,
+                color = OsrsTextMuted,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(onClick = onReset) { Text("Reset", color = OsrsGold) }
         }
         order.forEach { k ->
             key(k) {
@@ -139,13 +159,14 @@ private fun ReorderChecklist(
                         .zIndex(if (isDragged) 1f else 0f)
                         .graphicsLayer {
                             translationY = if (isDragged) dragOffset else 0f
-                            shadowElevation = if (isDragged) 8f else 0f
-                        },
+                            shadowElevation = if (isDragged) 10f else 0f
+                        }
+                        .osrsPanel(showRivets = false),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(46.dp)
                             .pointerInput(k) {
                                 detectDragGestures(
                                     onDragStart = { dragging = k; dragOffset = 0f },
@@ -179,6 +200,7 @@ private fun ReorderChecklist(
                     Text(
                         text = labels[k].orEmpty(),
                         style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
                         color = if (k in hidden) OsrsTextMuted else OsrsTextPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,

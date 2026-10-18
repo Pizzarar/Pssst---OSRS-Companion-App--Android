@@ -229,14 +229,33 @@ class MainViewModelFlowTest {
 
     @Test
     fun uiState_clearingUuidResetsConfiguration() = runTest(testDispatcher) {
+        dao.upsert(
+            PlayerStateEntity(testUuid, 1729100000L, "{}", "{}", "{}", "[]", """[{"id":4151,"quantity":1}]""", System.currentTimeMillis())
+        )
         fakePrefs.emitUuid(testUuid)
-        val configuredState = viewModel.uiState.first { it.hasConfiguredUuid }
+        val configuredState = viewModel.uiState.first { it.hasConfiguredUuid && it.bankItems.isNotEmpty() }
         assertTrue(configuredState.hasConfiguredUuid)
+        assertTrue(configuredState.hasSyncedData)
+        assertEquals(1, configuredState.bankItems.size)
 
         fakePrefs.emitUuid(null)
         val resetState = viewModel.uiState.first { !it.hasConfiguredUuid }
         assertFalse(resetState.hasConfiguredUuid)
+        assertFalse(resetState.hasSyncedData)
         assertEquals("", resetState.uuid)
+        assertTrue("Clearing UUID must not leak cached bank items", resetState.bankItems.isEmpty())
+    }
+
+    @Test
+    fun uiState_differentUuidDoesNotLeakCachedPlayerState() = runTest(testDispatcher) {
+        dao.upsert(
+            PlayerStateEntity(testUuid, 1729100000L, "{}", "{}", "{}", "[]", """[{"id":4151,"quantity":1}]""", System.currentTimeMillis())
+        )
+        fakePrefs.emitUuid("unpaired-other-token-9999")
+        val state = viewModel.uiState.first { it.uuid == "unpaired-other-token-9999" }
+        assertTrue(state.hasConfiguredUuid)
+        assertFalse("Unpaired token must not report hasSyncedData = true", state.hasSyncedData)
+        assertTrue("Unpaired token must not display another token's bank items", state.bankItems.isEmpty())
     }
 
     @Test

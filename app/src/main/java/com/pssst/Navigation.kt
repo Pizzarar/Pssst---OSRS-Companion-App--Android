@@ -29,11 +29,17 @@ fun MainNavigation(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val appContext = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
-    val initialKey = if (uiState.hasConfiguredUuid) DashboardNavKey else SetupNavKey
+    val isVerifiedConnection = uiState.hasConfiguredUuid && uiState.hasSyncedData
+    val initialKey = if (isVerifiedConnection) DashboardNavKey else SetupNavKey
     val backStack = rememberNavBackStack(initialKey)
 
-    LaunchedEffect(uiState.hasConfiguredUuid) {
-        if (!uiState.hasConfiguredUuid && !backStack.contains(SetupNavKey)) {
+    LaunchedEffect(isVerifiedConnection) {
+        if (isVerifiedConnection) {
+            if (!backStack.contains(DashboardNavKey)) {
+                backStack.clear()
+                backStack.add(DashboardNavKey)
+            }
+        } else if (!backStack.contains(SetupNavKey)) {
             backStack.clear()
             backStack.add(SetupNavKey)
         }
@@ -47,8 +53,10 @@ fun MainNavigation(
                 SetupScreen(
                     viewModel = viewModel,
                     onSetupComplete = {
-                        backStack.clear()
-                        backStack.add(DashboardNavKey)
+                        if (uiState.hasConfiguredUuid && uiState.hasSyncedData) {
+                            backStack.clear()
+                            backStack.add(DashboardNavKey)
+                        }
                     }
                 )
             }

@@ -86,20 +86,21 @@ class MainViewModel(
         playerStateDao.getLatestStateFlow(),
         filtersFlow
     ) { prefs, entityList, filters ->
-        val hasUuid = !prefs.uuid.isNullOrBlank()
-        val currentServerUrl = prefs.serverUrl ?: ""
         val activeUuid = prefs.uuid?.trim().orEmpty()
-        val entity = if (activeUuid.isNotEmpty()) {
-            entityList.find { it.uuid.equals(activeUuid, ignoreCase = true) } ?: entityList.firstOrNull()
+        val hasUuid = activeUuid.isNotEmpty()
+        val currentServerUrl = prefs.serverUrl ?: ""
+        val entity = if (hasUuid) {
+            entityList.find { it.uuid.equals(activeUuid, ignoreCase = true) }
         } else {
-            entityList.firstOrNull()
+            null
         }
         if (entity == null) {
             MainDashboardUiState(
-                uuid = prefs.uuid ?: "",
+                uuid = activeUuid,
                 rememberedUuid = prefs.rememberedUuid ?: "",
                 serverUrl = currentServerUrl,
                 hasConfiguredUuid = hasUuid,
+                hasSyncedData = false,
                 lastSyncStatus = prefs.lastSyncStatus,
                 notificationsEnabled = prefs.notificationsEnabled,
                 searchQuery = filters.searchQuery,
@@ -110,7 +111,7 @@ class MainViewModel(
             )
         } else {
             parseEntityToUiState(
-                prefs.uuid ?: entity.uuid,
+                activeUuid,
                 prefs.rememberedUuid ?: "",
                 currentServerUrl,
                 prefs.lastSyncStatus,
@@ -147,11 +148,17 @@ class MainViewModel(
 
     fun saveSetup(serverUrl: String, uuid: String, rememberUuid: Boolean = true) {
         viewModelScope.launch {
-            preferencesRepository.saveSetup(serverUrl.trim(), uuid.trim())
-            if (rememberUuid) {
-                preferencesRepository.saveRememberedUuid(uuid.trim())
-            } else {
+            val cleanUuid = uuid.trim()
+            preferencesRepository.saveLastSyncStatus(null)
+            preferencesRepository.saveSetup(serverUrl.trim(), cleanUuid)
+            preferencesRepository.saveRememberTokenPreference(rememberUuid)
+            val alreadyVerified = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching { playerStateDao.getStateByUuid(cleanUuid) != null }.getOrDefault(false)
+            }
+            if (!rememberUuid) {
                 preferencesRepository.clearRememberedUuid()
+            } else if (alreadyVerified) {
+                preferencesRepository.saveRememberedUuid(cleanUuid)
             }
         }
     }
@@ -171,6 +178,7 @@ class MainViewModel(
     fun clearUuid() {
         viewModelScope.launch {
             preferencesRepository.clearUuid()
+            preferencesRepository.saveLastSyncStatus(null)
         }
     }
 
@@ -238,6 +246,18 @@ class MainViewModel(
             emptyMap()
         }
 
+        // Everything the plugin sends as structured sections lives in the raw payload; parse it once
+        val payload: StateDataDto? = try {
+            gson.fromJson(entity.rawJson, StateResponse::class.java)?.data
+        } catch (e: Exception) {
+            null
+        }
+
+        val farmingItemIds = payload?.farming.orEmpty().map { if (it.itemId > 0) it.itemId else 6055 }
+        val birdhouseItemIds = payload?.birdhouses.orEmpty().map { BirdHouseUiModel.itemIdForType(it.houseType) }
+
+        val topBarIconIds = listOf(257, 21512, 11738, 995)
+
         // Query manifest names and icons from Room on Dispatchers.IO
         val allIds = (
             bankEntries.map { it.id } +
@@ -245,7 +265,12 @@ class MainViewModel(
             geOfferEntries.map { it.itemId } +
             potionEntries.map { it.itemId } +
             FarmingPaymentCatalog.ALL_PAYMENT_ITEM_IDS +
-            com.pssst.util.IconWishlist.IDS
+            DailyTasks.ALL_DAILY_ITEM_IDS +
+            BirdHouseUiModel.ALL_BIRDHOUSE_ITEM_IDS +
+            SkillUiModel.SKILL_ITEM_IDS.values +
+            topBarIconIds +
+            farmingItemIds +
+            birdhouseItemIds
         ).distinct().filter { it > 0 }
 
         val dao = itemManifestDao
@@ -338,11 +363,14 @@ class MainViewModel(
             val xp = entry?.xp ?: 0L
             val lvl = entry?.level ?: OsrsXpTable.levelForXp(xp)
             val boosted = entry?.boostedLevel ?: lvl
+            val skillItemId = SkillUiModel.SKILL_ITEM_IDS[skillName] ?: 0
             SkillUiModel(
                 name = skillName,
                 level = lvl,
                 boostedLevel = boosted,
-                xp = xp
+                xp = xp,
+                itemId = skillItemId,
+                iconBase64 = manifestMap[skillItemId]?.iconBase64
             )
         }
 
@@ -408,13 +436,6 @@ class MainViewModel(
         val cofferAmount = (varbits["74"] ?: 0).toLong()
         val miscellania = MiscellaniaUiModel(approvalPercent, cofferAmount)
 
-        // Everything the plugin sends as structured sections lives in the raw payload; parse it once
-        val payload: StateDataDto? = try {
-            gson.fromJson(entity.rawJson, StateResponse::class.java)?.data
-        } catch (e: Exception) {
-            null
-        }
-
         // Slayer: the plugin resolves the task and area names from the game's tables
         val slayerEntry: SlayerEntryDto? = try {
             gson.fromJson(entity.slayerJson, SlayerEntryDto::class.java)
@@ -435,7 +456,10 @@ class MainViewModel(
         // Farming patches come straight from the plugin's per-region observations (stored in the raw payload)
         val farmingPatches: List<FarmingPatchUiModel> = try {
             payload?.farming.orEmpty()
-                .map(FarmingPatchUiModel::from)
+                .map { dto ->
+                    val resolvedId = if (dto.itemId > 0) dto.itemId else 6055
+                    FarmingPatchUiModel.from(dto, manifestMap[resolvedId]?.iconBase64)
+                }
                 .sortedWith(compareBy({ it.regionName }, { it.patchLabel }))
         } catch (e: Exception) {
             emptyList()
@@ -444,24 +468,31 @@ class MainViewModel(
         // Birdhouses come from the plugin's Fossil Island observations (stored in the raw payload)
         val birdHouses: List<BirdHouseUiModel> = try {
             payload?.birdhouses.orEmpty()
-                .map(BirdHouseUiModel::from)
+                .map { dto ->
+                    val resolvedId = BirdHouseUiModel.itemIdForType(dto.houseType)
+                    BirdHouseUiModel.from(dto, manifestMap[resolvedId]?.iconBase64)
+                }
         } catch (e: Exception) {
             emptyList()
         }
 
         // Dailies follow RuneLite's Daily Tasks plugin (see DailyTasks); nothing in them is guessed
-        val dailyTasks = DailyTasks.evaluate(varbits, varps)
+        val dailyTasks = DailyTasks.evaluate(varbits, varps) { itemId ->
+            manifestMap[itemId]?.iconBase64
+        }
+
+        val topBarIcons = topBarIconIds.associateWith { manifestMap[it]?.iconBase64 }
 
         return MainDashboardUiState(
             uuid = uuid,
             rememberedUuid = rememberedUuid,
             serverUrl = serverUrl,
             hasConfiguredUuid = uuid.isNotBlank(),
+            hasSyncedData = true,
             lastUpdated = entity.updatedAt,
             lastSyncedAt = entity.lastSyncedAt,
             gameObservedAt = payload?.observedAt?.takeIf { it > 0 } ?: entity.updatedAt,
             bankShared = payload == null || payload.bank != null,
-            wishlistIcons = com.pssst.util.IconWishlist.IDS.associateWith { manifestMap[it]?.iconBase64 },
             lastSyncStatus = lastSyncStatus,
             bankItems = bankItems,
             inventorySlots = inventorySlots,
@@ -475,6 +506,7 @@ class MainViewModel(
             potionStorageItems = potionStorageItems,
             farmingPayments = farmingPayments,
             quests = quests,
+            topBarIcons = topBarIcons,
             notificationsEnabled = notificationsEnabled,
             pricesAsOfMs = pricesAsOfMs,
             isLoading = false,

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,8 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -30,13 +27,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pssst.theme.OsrsBorderOutline
 import com.pssst.theme.OsrsGold
 import com.pssst.theme.OsrsHardShadow
-import com.pssst.theme.OsrsPanelDark
+import com.pssst.theme.OsrsTextField
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
-import com.pssst.theme.OsrsYellow
 import com.pssst.theme.osrsPanel
 import com.pssst.theme.osrsSlot
 
@@ -52,21 +47,11 @@ fun PotionStorageScreen(
             .padding(16.dp)
     ) {
         // Search Input
-        OutlinedTextField(
+        OsrsTextField(
             value = state.potionSearchQuery,
             onValueChange = onPotionSearchQueryChanged,
-            label = { Text("Search Potions", color = OsrsTextMuted) },
-            placeholder = { Text("e.g. Prayer potion or Super restore", color = OsrsTextMuted.copy(alpha = 0.5f)) },
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = OsrsTextPrimary,
-                unfocusedTextColor = OsrsTextPrimary,
-                focusedBorderColor = OsrsGold,
-                unfocusedBorderColor = OsrsBorderOutline,
-                focusedContainerColor = OsrsPanelDark,
-                unfocusedContainerColor = OsrsPanelDark,
-                cursorColor = OsrsGold
-            ),
+            label = "Search Potions",
+            placeholder = "e.g. Prayer potion or Super restore",
             modifier = Modifier.fillMaxWidth()
         )
 

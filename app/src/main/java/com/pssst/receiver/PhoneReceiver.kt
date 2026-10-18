@@ -32,6 +32,8 @@ class PhoneReceiver(
     private val onSnapshot: suspend (StateResponse) -> List<Int>,
     /** The phone's own address the plugin reached it on (to spot a changed address later). */
     private val onDeliveredTo: (String) -> Unit = {},
+    /** Called when a peer presents a Bearer token that does not match [token]. */
+    private val onRejected: suspend () -> Unit = {},
     private val now: () -> Long = System::currentTimeMillis
 ) {
     private val gson = Gson()
@@ -89,7 +91,12 @@ class PhoneReceiver(
         if (requestLine.size < 2) return respond(out, 400, "Bad request")
 
         val expected = token()?.trim().orEmpty()
-        if (expected.isEmpty() || !isAuthorized(lines, expected)) return respond(out, 401, "Unauthorized")
+        if (expected.isEmpty() || !isAuthorized(lines, expected)) {
+            if (expected.isNotEmpty() && header(lines, "authorization") != null) {
+                onRejected()
+            }
+            return respond(out, 401, "Unauthorized")
+        }
         if (requestLine[0] != "POST") return respond(out, 405, "Method not allowed")
         if (requestLine[1].substringBefore('?') != "/sync") return respond(out, 404, "Not found")
 
@@ -113,8 +120,8 @@ class PhoneReceiver(
     private fun isAuthorized(lines: List<String>, expected: String): Boolean {
         val value = header(lines, "authorization") ?: return false
         if (!value.regionMatches(0, "Bearer ", 0, 7, ignoreCase = true)) return false
-        val presented = value.substring(7).trim().toByteArray(Charsets.UTF_8)
-        return MessageDigest.isEqual(expected.toByteArray(Charsets.UTF_8), presented)
+        val presented = value.substring(7).trim().lowercase(Locale.ROOT).toByteArray(Charsets.UTF_8)
+        return MessageDigest.isEqual(expected.lowercase(Locale.ROOT).toByteArray(Charsets.UTF_8), presented)
     }
 
     private fun header(lines: List<String>, name: String): String? =
