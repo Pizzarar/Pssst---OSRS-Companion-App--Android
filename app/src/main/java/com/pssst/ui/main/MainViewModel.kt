@@ -458,6 +458,7 @@ class MainViewModel(
             lastUpdated = entity.updatedAt,
             lastSyncedAt = entity.lastSyncedAt,
             gameObservedAt = payload?.observedAt?.takeIf { it > 0 } ?: entity.updatedAt,
+            bankShared = payload == null || payload.bank != null,
             lastSyncStatus = lastSyncStatus,
             bankItems = bankItems,
             inventorySlots = inventorySlots,

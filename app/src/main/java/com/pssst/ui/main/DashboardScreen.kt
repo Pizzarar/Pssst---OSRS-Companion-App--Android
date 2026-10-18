@@ -46,6 +46,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -176,6 +177,15 @@ fun DashboardScreen(
                                         color = OsrsTextMuted
                                     )
                                 }
+                                if (state.serverUrl.isBlank()) {
+                                    val phoneAddresses = remember { com.pssst.util.PhoneAddresses.current(context) }
+                                    Text(
+                                        text = if (phoneAddresses.isEmpty()) "Phone address: connect to Wi-Fi to see it"
+                                        else "Phone address for RuneLite: " + phoneAddresses.joinToString(" or ") { it.host },
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = OsrsTextMuted
+                                    )
+                                }
                                 state.lastSyncStatus?.let { status ->
                                     val isOk = status.startsWith("OK") || status.startsWith("Connected")
                                     val isQuiet = status.startsWith(com.pssst.worker.SyncWorker.STATUS_UNREACHABLE)
@@ -188,7 +198,7 @@ fun DashboardScreen(
                                     if (state.lastSyncedAt > 0L) {
                                         val checkedNow by rememberNowMs()
                                         Text(
-                                            text = "Checked " + TimeFormat.ageLabel(checkedNow - state.lastSyncedAt),
+                                            text = "Last update received " + TimeFormat.ageLabel(checkedNow - state.lastSyncedAt),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = OsrsTextMuted
                                         )

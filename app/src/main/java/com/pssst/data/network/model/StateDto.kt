@@ -16,7 +16,8 @@ data class StateDataDto(
     /** When the bank and potion storage were last read from the open bank (they are carried over between sessions). */
     @SerializedName("bankObservedAt") val bankObservedAt: Long = 0L,
     @SerializedName("inventory") val inventory: List<ItemEntryDto> = emptyList(),
-    @SerializedName("bank") val bank: List<ItemEntryDto> = emptyList(),
+    /** Null when the player turned off Include Bank in RuneLite (the plugin then leaves the bank out). */
+    @SerializedName("bank") val bank: List<ItemEntryDto>? = null,
     @SerializedName("varbits") val varbits: Map<String, Int> = emptyMap(),
     @SerializedName("varps") val varps: Map<String, Int> = emptyMap(),
     /** GE price (gp) of each held or offered item, by the id that has the price; from the plugin's ItemManager. */
@@ -24,7 +25,7 @@ data class StateDataDto(
     @SerializedName("slayer") val slayer: SlayerEntryDto? = null,
     @SerializedName("ge_offers", alternate = ["geOffers"]) val geOffers: List<GeOfferDto> = emptyList(),
     @SerializedName("skills") val skills: List<SkillEntryDto> = emptyList(),
-    @SerializedName("potion_storage", alternate = ["potionStorage"]) val potionStorage: List<PotionEntryDto> = emptyList(),
+    @SerializedName("potion_storage", alternate = ["potionStorage"]) val potionStorage: List<PotionEntryDto>? = null,
     @SerializedName("quests") val quests: Map<String, String> = emptyMap(),
     @SerializedName("farming") val farming: List<FarmingEntryDto> = emptyList(),
     @SerializedName("birdhouses") val birdhouses: List<BirdhouseEntryDto> = emptyList()

@@ -33,6 +33,18 @@ enum class StorageSubTab(val title: String) {
     POTIONS("Potion Storage")
 }
 
+/** Shown instead of the bank when the plugin's Include Bank setting is off. */
+@Composable
+private fun BankSharingOff() {
+    Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+        Text(
+            text = "Bank sharing is off. Turn on Include Bank in RuneLite → Pssst Companion → Phone to see your bank and potion storage here.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = OsrsTextMuted
+        )
+    }
+}
+
 @Composable
 fun StorageScreen(
     state: MainDashboardUiState,
@@ -86,7 +98,7 @@ fun StorageScreen(
         // Sub-Tab Content
         Box(modifier = Modifier.fillMaxSize()) {
             when (selectedTab) {
-                StorageSubTab.BANK -> BankScreen(
+                StorageSubTab.BANK -> if (!state.bankShared) BankSharingOff() else BankScreen(
                     state = state,
                     onSearchQueryChanged = onSearchQueryChanged,
                     onBankSortModeChanged = onBankSortModeChanged
@@ -94,7 +106,7 @@ fun StorageScreen(
                 StorageSubTab.INVENTORY -> InventoryScreen(
                     state = state
                 )
-                StorageSubTab.POTIONS -> PotionStorageScreen(
+                StorageSubTab.POTIONS -> if (!state.bankShared) BankSharingOff() else PotionStorageScreen(
                     state = state,
                     onPotionSearchQueryChanged = onPotionSearchQueryChanged
                 )

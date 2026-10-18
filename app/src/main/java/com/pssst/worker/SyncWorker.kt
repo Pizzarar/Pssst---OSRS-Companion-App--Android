@@ -15,7 +15,10 @@ import com.pssst.data.network.DynamicStateApiService
 import com.pssst.data.network.StateApiService
 import com.pssst.notification.NotificationHelper
 import com.pssst.util.StateDiffAnalyzer
+import com.pssst.data.SnapshotIngest
+import com.pssst.receiver.ReceiverHost
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import com.pssst.data.network.model.StateResponse
 import java.net.ConnectException
@@ -47,11 +50,12 @@ class SyncWorker(
             return@withContext Result.failure()
         }
 
-        // Self-hosted by design: there is no central Pssst server to fall back to, so no URL means no request
+        // Phone mode (no server URL): the RuneLite plugin sends to this phone, so this run is a short listening window.
+        // There is no central Pssst server to fall back to, so no URL never means a request.
         val configuredUrl = preferencesRepository.getServerUrl()
         if (configuredUrl.isNullOrBlank()) {
-            Log.w(TAG, "SyncWorker skipped: no server URL is configured")
-            preferencesRepository.saveLastSyncStatus("No server configured")
+            Log.i(TAG, "Phone mode: listening for RuneLite for ${listenWindowMs / 1000} s")
+            listenWindow()
             return@withContext Result.success()
         }
         val fullUrl = DynamicStateApiService.buildStateUrl(configuredUrl)
@@ -94,80 +98,7 @@ class SyncWorker(
                 return@withContext Result.failure()
             }
 
-            val dao = database.playerStateDao()
-            val previousEntity = dao.getStateByUuid(uuid)
-
-            // Never replace what is saved with something the game observed earlier (a stale or wrong PC)
-            val newObservedAt = stateResponse.data?.observedAt ?: 0L
-            val savedObservedAt = observedAtOf(previousEntity)
-            if (newObservedAt > 0 && savedObservedAt > newObservedAt) {
-                Log.w(TAG, "Ignoring a snapshot the game observed before the one already saved")
-                preferencesRepository.saveSyncFailures(0)
-                preferencesRepository.saveLastSyncStatus(STATUS_OLDER)
-                return@withContext Result.success()
-            }
-
-            val notificationsEnabled = preferencesRepository.getNotificationsEnabled()
-
-            // Detect completed patches or timers and trigger notifications if enabled
-            if (notificationsEnabled) {
-                val alerts = StateDiffAnalyzer.findCompletedRunsOrPatches(previousEntity, stateResponse)
-                alerts.forEachIndexed { index, alert ->
-                    NotificationHelper.showNotification(
-                        context = appContext,
-                        notificationId = NOTIFICATION_BASE_ID + index,
-                        title = alert.title,
-                        message = alert.message
-                    )
-                }
-            }
-
-            // Keep timed reminders (growing farming patches, birdhouses) in step with the latest observations
-            SyncScheduler.syncReminders(
-                appContext,
-                stateResponse.data?.farming.orEmpty(),
-                stateResponse.data?.birdhouses.orEmpty(),
-                notificationsEnabled
-            )
-
-            // Insert/update in Room database
-            val rawJson = gson.toJson(stateResponse)
-            val data = stateResponse.data
-            // Sources disagree on units: Cloudflare worker sends seconds, plugin WS + mock send ms
-            val updatedAtMs = stateResponse.updatedAt.let { if (it in 1 until 100_000_000_000L) it * 1000 else it }
-            val entity = PlayerStateEntity(
-                uuid,
-                updatedAtMs,
-                rawJson,
-                gson.toJson(data?.varbits ?: emptyMap<String, Int>()),
-                data?.slayer?.let { gson.toJson(it) } ?: "{}",
-                gson.toJson(data?.inventory ?: emptyList<Any>()),
-                gson.toJson(data?.bank ?: emptyList<Any>()),
-                System.currentTimeMillis(),
-                gson.toJson(data?.geOffers ?: emptyList<Any>()),
-                gson.toJson(data?.skills ?: emptyList<Any>()),
-                gson.toJson(data?.potionStorage ?: emptyList<Any>()),
-                gson.toJson(data?.quests ?: emptyMap<String, String>())
-            )
-
-            dao.upsert(entity)
-
-            // Prices come with the snapshot, from the player's own RuneLite client; nobody else is asked
-            val prices = data?.prices.orEmpty().mapNotNull { (id, price) -> id.toIntOrNull()?.let { it to price } }.toMap()
-            if (prices.isNotEmpty()) {
-                // Stamped with when the game saw them: a snapshot the PC saved earlier is served with a fresh updated_at
-                val pricesAsOf = if (newObservedAt > 0) newObservedAt else if (updatedAtMs > 0) updatedAtMs else System.currentTimeMillis()
-                database.itemManifestDao().applyPrices(prices, pricesAsOf)
-            }
-
-            val invCount = data?.inventory?.size ?: 0
-            val bankCount = data?.bank?.size ?: 0
-            val slayerTaskName = data?.slayer?.taskName?.takeIf { it.isNotBlank() } ?: "none"
-            val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
-            preferencesRepository.saveSyncFailures(0)
-            preferencesRepository.saveLastSyncStatus("OK $timeStr inv=$invCount bank=$bankCount slayer=$slayerTaskName")
-            Log.i(TAG, "Synced: inventory=$invCount bank=$bankCount varbits=${data?.varbits?.size ?: 0} slayer=$slayerTaskName")
-            Log.i(TAG, "Successfully synced player state")
+            SnapshotIngest(appContext, database, preferencesRepository).ingest(uuid, stateResponse)
             Result.success()
         } catch (e: Exception) {
             if (isUnreachable(e)) {
@@ -189,8 +120,14 @@ class SyncWorker(
     private fun retryOrGiveUp(): Result =
         if (runAttemptCount >= MAX_ATTEMPTS - 1) Result.success() else Result.retry()
 
-    private fun observedAtOf(entity: PlayerStateEntity?): Long =
-        runCatching { gson.fromJson(entity?.rawJson, StateResponse::class.java)?.data?.observedAt }.getOrNull() ?: 0L
+    private suspend fun listenWindow() {
+        ReceiverHost.acquire()
+        try {
+            delay(listenWindowMs)
+        } finally {
+            ReceiverHost.release()
+        }
+    }
 
     /**
      * Counts a failed sync. One or two in a row (flaky Wi-Fi, a server restart) change nothing the user sees; the
@@ -232,6 +169,10 @@ class SyncWorker(
             }
             return false
         }
+
+        /** How long a background run listens for RuneLite in phone mode. The plugin retries every 30 s, so 75 s always catches one. */
+        @VisibleForTesting
+        var listenWindowMs: Long = 75_000L
 
         @VisibleForTesting
         var defaultApiService: StateApiService? = null

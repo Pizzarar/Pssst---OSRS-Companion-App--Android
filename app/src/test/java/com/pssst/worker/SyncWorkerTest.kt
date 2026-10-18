@@ -64,6 +64,7 @@ class SyncWorkerTest {
         SyncWorker.defaultApiService = null
         SyncWorker.defaultDatabase = null
         SyncWorker.defaultPreferences = null
+        SyncWorker.listenWindowMs = 75_000L
     }
 
     @Test
@@ -234,7 +235,8 @@ class SyncWorkerTest {
     }
 
     @Test
-    fun syncWorker_withNoServerConfiguredMakesNoRequestAndSaysSo() = runBlocking {
+    fun syncWorker_withNoServerConfiguredListensInsteadOfRequesting() = runBlocking {
+        SyncWorker.listenWindowMs = 0
         val prefs = TestSyncUserPreferencesRepository(testUuid, serverUrl = null)
         SyncWorker.defaultApiService = StateApiService.create(prefs, OkHttpClient.Builder().build())
         SyncWorker.defaultDatabase = database
@@ -246,8 +248,8 @@ class SyncWorkerTest {
             .doWork()
 
         assertEquals(ListenableWorker.Result.success(), result)
-        assertEquals("no central server to fall back to", 0, mockWebServer.requestCount)
-        assertEquals("No server configured", prefs.lastStatus)
+        assertEquals("no central server to fall back to: phone mode only listens", 0, mockWebServer.requestCount)
+        assertEquals("a listening window changes nothing the user sees", null, prefs.lastStatus)
     }
 
     @Test

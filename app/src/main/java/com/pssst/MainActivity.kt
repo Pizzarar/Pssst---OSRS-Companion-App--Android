@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import com.pssst.data.local.AppDatabase
 import com.pssst.data.local.AssetDatabaseSeeder
 import com.pssst.data.local.DataStoreUserPreferencesRepository
+import com.pssst.receiver.ReceiverHost
 import com.pssst.theme.PssstTheme
 import com.pssst.worker.SyncScheduler
 import kotlinx.coroutines.Dispatchers
@@ -31,6 +32,17 @@ class MainActivity : ComponentActivity() {
     setContent {
       PssstTheme { Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { MainNavigation() } }
     }
+  }
+
+  override fun onStart() {
+    super.onStart()
+    // While the app is on screen, RuneLite can send to it directly (phone mode)
+    ReceiverHost.acquire()
+  }
+
+  override fun onStop() {
+    ReceiverHost.release()
+    super.onStop()
   }
 
   override fun onResume() {
