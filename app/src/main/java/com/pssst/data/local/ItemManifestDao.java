@@ -25,7 +25,15 @@ public abstract class ItemManifestDao {
     @Query("SELECT * FROM item_manifest WHERE id IN (:ids)")
     public abstract List<ItemManifestEntity> getItemsByIds(List<Integer> ids);
 
-    @Query("SELECT * FROM item_manifest WHERE name LIKE '%' || :query || '%' LIMIT :limit")
+    /** Picker search: strictly tradeable GE items (excluding untradeable/noted items with ge_price = 0 and Coins). */
+    @Query("SELECT * FROM item_manifest "
+        + "WHERE ge_price > 0 AND id != 995 AND name LIKE '%' || :query || '%' COLLATE NOCASE "
+        + "ORDER BY CASE "
+        + "  WHEN LOWER(name) = LOWER(:query) THEN 0 "
+        + "  WHEN LOWER(name) LIKE LOWER(:query) || '%' THEN 1 "
+        + "  ELSE 2 "
+        + "END, ge_price DESC, name ASC "
+        + "LIMIT :limit")
     public abstract List<ItemManifestEntity> searchItemsByName(String query, int limit);
 
     @Query("SELECT * FROM item_manifest")

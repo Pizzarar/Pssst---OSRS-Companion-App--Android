@@ -366,24 +366,24 @@ fun DashboardScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 6.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
+                            .padding(start = 6.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(
                             onClick = { scope.launch { drawerState.open() } },
-                            modifier = Modifier.size(44.dp)
+                            modifier = Modifier.size(40.dp)
                         ) {
-                            HamburgerVectorIcon(tint = OsrsGold, modifier = Modifier.size(26.dp))
+                            HamburgerVectorIcon(tint = OsrsGold, modifier = Modifier.size(25.dp))
                         }
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Column(
                             modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                            verticalArrangement = Arrangement.spacedBy(1.dp)
                         ) {
                             Text(
                                 text = currentTab.title,
                                 style = MaterialTheme.typography.titleMedium,
-                                fontSize = 22.sp,
+                                fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = OsrsGold,
                                 maxLines = 1,
@@ -396,13 +396,13 @@ fun DashboardScreen(
                                     "Offline snapshot"
                                 },
                                 style = MaterialTheme.typography.labelSmall,
-                                fontSize = 12.5.sp,
+                                fontSize = 11.5.sp,
                                 color = OsrsTextMuted,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         TopBarReadyRow(
                             state = state,
                             nowMs = nowMs,
@@ -414,15 +414,15 @@ fun DashboardScreen(
                             }
                         )
                         if (canEdit) {
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                             IconButton(
                                 onClick = { editing = !editing },
-                                modifier = Modifier.size(40.dp)
+                                modifier = Modifier.size(38.dp)
                             ) {
                                 if (editing) {
-                                    CheckVectorIcon(tint = OsrsHerbGreen, modifier = Modifier.size(24.dp))
+                                    CheckVectorIcon(tint = OsrsHerbGreen, modifier = Modifier.size(22.dp))
                                 } else {
-                                    PencilVectorIcon(tint = OsrsGold, modifier = Modifier.size(24.dp))
+                                    PencilVectorIcon(tint = OsrsGold, modifier = Modifier.size(22.dp))
                                 }
                             }
                         }

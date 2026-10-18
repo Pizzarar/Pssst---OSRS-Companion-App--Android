@@ -168,4 +168,25 @@ class AssetDatabaseSeederTest {
         assertEquals(4000L, dao.latestPriceTimestamp())
         assertEquals(null, dao.getItemById(99999))
     }
+
+    @Test
+    fun searchItemsByName_excludesUntradeableAndNotedItemsAndOrdersExactFirst() = runTest {
+        dao.insertAll(
+            listOf(
+                ItemManifestEntity(4151, "Abyssal whip", null, 1_500_000L),
+                ItemManifestEntity(4152, "Abyssal whip", null, 0L), // noted duplicate
+                ItemManifestEntity(12773, "Volcanic abyssal whip", null, 0L), // untradeable variant
+                ItemManifestEntity(12006, "Abyssal tentacle", null, 0L), // untradeable composite
+                ItemManifestEntity(26484, "Abyssal whip ornament kit", null, 50_000L),
+                ItemManifestEntity(995, "Coins", null, 1L)
+            )
+        )
+
+        val whipResults = dao.searchItemsByName("Abyssal whip", 10)
+        // Only tradeable items with ge_price > 0 are returned; exact match comes first
+        assertEquals(listOf(4151, 26484), whipResults.map { it.id })
+
+        val coinResults = dao.searchItemsByName("Coins", 10)
+        assertTrue("Coins (995) should not appear in item picker searches", coinResults.isEmpty())
+    }
 }

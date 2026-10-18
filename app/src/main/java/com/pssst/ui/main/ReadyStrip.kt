@@ -6,8 +6,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -77,7 +79,7 @@ fun TopBarReadyRow(
 
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         chips.forEach { chip ->
@@ -86,14 +88,18 @@ fun TopBarReadyRow(
             val bitmap = remember(chip.itemId, iconBase64) {
                 ItemIconCache.getOrCreate(chip.itemId, iconBase64)
             }
-            Box(
+            Row(
                 modifier = Modifier
-                    .size(38.dp)
+                    .width(48.dp)
+                    .height(40.dp)
                     .osrsSlot(
                         hasItem = true,
                         highlightBorderColor = if (isReady) OsrsHerbGreen else null
                     )
                     .clickable { onNavigate(chip.tab, chip.subTab) }
+                    .padding(horizontal = 5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 if (bitmap != null) {
                     Image(
@@ -102,22 +108,16 @@ fun TopBarReadyRow(
                         filterQuality = FilterQuality.None,
                         contentScale = ContentScale.Fit,
                         alpha = if (isReady) 1f else 0.55f,
-                        modifier = Modifier
-                            .size(26.dp)
-                            .align(Alignment.BottomEnd)
-                            .padding(end = 2.dp, bottom = 2.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                 }
                 Text(
                     text = "${chip.count}",
                     color = if (isReady) OsrsHerbGreen else OsrsTextMuted,
-                    fontSize = 12.sp,
+                    fontSize = 13.sp,
                     fontFamily = JetBrainsMonoFontFamily,
                     fontWeight = FontWeight.Bold,
-                    style = Typography.labelSmall.copy(shadow = OsrsHardShadow),
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(start = 3.dp, top = 1.dp)
+                    style = Typography.labelSmall.copy(shadow = OsrsHardShadow)
                 )
             }
         }

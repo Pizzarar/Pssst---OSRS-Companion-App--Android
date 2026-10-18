@@ -193,14 +193,16 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Top: 44dp Icon Slot + Two-Line Name + Badge/Slot Row
+                // Top: Fixed-height header so 1-line and 2-line names align across columns
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Top
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(46.dp)
                             .osrsSlot(hasItem = true)
                             .padding(3.dp),
                         contentAlignment = Alignment.Center
@@ -226,22 +228,25 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
                     Spacer(modifier = Modifier.width(8.dp))
 
                     Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        verticalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
                             text = offer.itemName,
                             style = MaterialTheme.typography.bodyMedium,
-                            fontSize = 14.sp,
-                            lineHeight = 16.sp,
+                            fontSize = 13.5.sp,
+                            lineHeight = 15.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = OsrsTextPrimary,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
                         Row(
+                            modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             val (chipText, chipBg, chipFg) = when (offer.state) {
                                 GeOfferState.BOUGHT -> Triple("BOUGHT", OsrsHerbGreen, Color.Black)

@@ -657,6 +657,23 @@ class MainViewModelFlowTest {
         assertEquals("", unknown.name)
         assertEquals(0L, unknown.stackValue)
     }
+
+    @Test
+    fun goalSearch_excludesUntradeableAndNotedItems() = runTest(testDispatcher) {
+        testScheduler.advanceUntilIdle()
+        database.itemManifestDao().insertAll(
+            listOf(
+                ItemManifestEntity(20997, "Twisted bow", null, 1_344_000_000L),
+                ItemManifestEntity(20998, "Twisted bow", null, 0L), // noted
+                ItemManifestEntity(28540, "Corrupted twisted bow", null, 0L), // untradeable
+                ItemManifestEntity(861, "Magic shortbow", null, 900L)
+            )
+        )
+
+        viewModel.onGoalSearchQueryChanged("bow")
+        val results = viewModel.goalSearchResultsFlow.first { it.isNotEmpty() }
+        assertEquals(listOf(20997, 861), results.map { it.id })
+    }
 }
 
 private class FakeUserPreferencesRepository : UserPreferencesRepository {
