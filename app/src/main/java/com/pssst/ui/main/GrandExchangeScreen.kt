@@ -1,8 +1,7 @@
 package com.pssst.ui.main
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +38,11 @@ import com.pssst.theme.OsrsStatusBadge
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.OsrsYellow
+import com.pssst.theme.art.BulletGlyph
+import com.pssst.theme.art.FrameWeight
+import com.pssst.theme.art.GoldLeafText
+import com.pssst.theme.art.Ornaments.drawWatermarkScale
+import com.pssst.theme.art.ledgerWellSlot
 import com.pssst.theme.osrsPanel
 import com.pssst.theme.osrsSlot
 
@@ -66,7 +69,7 @@ fun GrandExchangeScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .osrsPanel(showRivets = true)
+                .osrsPanel(weight = FrameWeight.HEAVY)
                 .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
             Row(
@@ -75,13 +78,14 @@ fun GrandExchangeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text(
-                        text = "Grand Exchange Offers",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = OsrsGold
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        BulletGlyph(size = 7.dp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        GoldLeafText(
+                            text = "Grand Exchange Offers",
+                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp)
+                        )
+                    }
                     Text(
                         text = "$activeCount / 8 Slots Active • $completeCount Complete",
                         style = MaterialTheme.typography.bodySmall,
@@ -136,14 +140,17 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
     val bitmap = remember(offer.itemId, offer.iconBase64) {
         if (offer.itemId > 0) ItemIconCache.getOrCreate(offer.itemId, offer.iconBase64) else null
     }
-    val emptyCoinsBitmap = remember(offer.isEmpty) {
-        if (offer.isEmpty) ItemIconCache.getOrCreate(995, null) else null
-    }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .osrsPanel()
+            .then(
+                if (offer.isEmpty) {
+                    Modifier.ledgerWellSlot(empty = true)
+                } else {
+                    Modifier.osrsPanel(weight = FrameWeight.MEDIUM)
+                }
+            )
             .padding(10.dp)
     ) {
         if (offer.isEmpty) {
@@ -165,17 +172,10 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        if (emptyCoinsBitmap != null) {
-                            Image(
-                                bitmap = emptyCoinsBitmap,
-                                contentDescription = null,
-                                filterQuality = FilterQuality.None,
-                                contentScale = ContentScale.Fit,
-                                alpha = 0.25f,
-                                modifier = Modifier.size(28.dp)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
+                        Canvas(modifier = Modifier.size(34.dp)) {
+                            drawWatermarkScale(radius = size.minDimension * 0.42f)
                         }
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Empty",
                             style = MaterialTheme.typography.bodyMedium,
@@ -275,13 +275,7 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
-                        .background(
-                            androidx.compose.ui.graphics.Brush.verticalGradient(
-                                listOf(OsrsSlotEmpty, com.pssst.theme.OsrsBorderDark.copy(alpha = 0.5f))
-                            )
-                        )
-                        .border(1.dp, com.pssst.theme.OsrsOuterFrame, androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+                        .ledgerWellSlot(empty = true)
                         .padding(horizontal = 8.dp, vertical = 5.dp),
                     verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
