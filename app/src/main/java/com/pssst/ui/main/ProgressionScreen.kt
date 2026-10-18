@@ -4,7 +4,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -15,10 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +26,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +44,13 @@ import com.pssst.theme.OsrsTextField
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.OsrsYellow
+import com.pssst.theme.art.ArtIcons
+import com.pssst.theme.art.BulletGlyph
+import com.pssst.theme.art.EmptyStateKind
+import com.pssst.theme.art.FrameWeight
+import com.pssst.theme.art.GoldLeafText
+import com.pssst.theme.art.Ornaments.drawCornerFlourishes
+import com.pssst.theme.art.OsrsEmptyState
 import com.pssst.theme.osrsPanel
 import com.pssst.theme.osrsSlot
 
@@ -139,10 +144,24 @@ fun SkillCard(skill: SkillUiModel, modifier: Modifier = Modifier) {
     val bitmap = remember(skill.itemId, skill.iconBase64) {
         if (skill.itemId > 0) ItemIconCache.getOrCreate(skill.itemId, skill.iconBase64) else null
     }
+    val isMaxed = skill.level >= 99
 
     Box(
         modifier = modifier
-            .osrsPanel(showRivets = false)
+            .osrsPanel(weight = FrameWeight.LIGHT)
+            .drawWithCache {
+                val armPx = 6.dp.toPx()
+                val insetPx = 3.dp.toPx()
+                onDrawBehind {
+                    if (isMaxed) {
+                        drawCornerFlourishes(
+                            armLength = armPx,
+                            inset = insetPx,
+                            color = OsrsGold.copy(alpha = 0.65f)
+                        )
+                    }
+                }
+            }
             .padding(horizontal = 7.dp, vertical = 5.dp)
     ) {
         Column(
@@ -181,7 +200,7 @@ fun SkillCard(skill: SkillUiModel, modifier: Modifier = Modifier) {
                         fontFamily = JetBrainsMonoFontFamily,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = if (skill.level >= 99) OsrsHerbGreen else OsrsYellow
+                        color = if (isMaxed) OsrsHerbGreen else OsrsYellow
                     )
                     Text(
                         text = formatXp(skill.xp),
@@ -212,12 +231,12 @@ fun SkillCard(skill: SkillUiModel, modifier: Modifier = Modifier) {
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = if (skill.level >= 99) "MAX" else "${(skill.progress * 100).toInt()}%",
+                    text = if (isMaxed) "MAX" else "${(skill.progress * 100).toInt()}%",
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = JetBrainsMonoFontFamily,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (skill.level >= 99) OsrsHerbGreen else OsrsTextMuted,
+                    color = if (isMaxed) OsrsHerbGreen else OsrsTextMuted,
                     maxLines = 1
                 )
             }
@@ -225,7 +244,7 @@ fun SkillCard(skill: SkillUiModel, modifier: Modifier = Modifier) {
             // Row 3: 3dp hairline bar
             OsrsProgressBar(
                 progress = skill.progress,
-                color = if (skill.level >= 99) OsrsHerbGreen else OsrsGold,
+                color = if (isMaxed) OsrsHerbGreen else OsrsGold,
                 height = 3.dp
             )
         }
@@ -242,7 +261,7 @@ fun TotalSkillCard(
     val isMaxed = totalLevel >= maxTotalLevel
     Box(
         modifier = modifier
-            .osrsPanel(showRivets = false)
+            .osrsPanel(weight = FrameWeight.HEAVY)
             .padding(horizontal = 7.dp, vertical = 5.dp)
     ) {
         Column(
@@ -261,9 +280,11 @@ fun TotalSkillCard(
                         .osrsSlot(hasItem = true, cornerRadius = 2.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    StarVectorIcon(
+                    Icon(
+                        imageVector = ArtIcons.ProgressStar,
+                        contentDescription = null,
                         tint = OsrsGold,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
                 Column(
@@ -295,14 +316,9 @@ fun TotalSkillCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
+                GoldLeafText(
                     text = "Total Level",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontSize = 12.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = OsrsGold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.5.sp),
                     modifier = Modifier.weight(1f, fill = false)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
@@ -377,10 +393,9 @@ fun QuestsSubScreen(
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "No quest data synced yet.\nIt appears after you log in with Pssst Companion running.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = OsrsTextMuted
+                OsrsEmptyState(
+                    kind = EmptyStateKind.QUEST_SCROLL,
+                    message = "No quest data synced yet.\nIt appears after you log in with Pssst Companion running."
                 )
             }
         } else {
@@ -407,7 +422,7 @@ fun QuestCard(quest: QuestUiModel, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .osrsPanel()
+            .osrsPanel(weight = FrameWeight.LIGHT)
             .padding(10.dp)
     ) {
         Row(
@@ -415,12 +430,21 @@ fun QuestCard(quest: QuestUiModel, modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = quest.name,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = statusColor
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                BulletGlyph(size = 6.dp, color = statusColor)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = quest.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = statusColor
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
 
             Text(
                 text = statusText,
