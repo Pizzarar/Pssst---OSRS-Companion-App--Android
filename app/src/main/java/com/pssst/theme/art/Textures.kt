@@ -1,12 +1,6 @@
 package com.pssst.theme.art
 
-import android.graphics.Bitmap
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.ImageShader
-import androidx.compose.ui.graphics.ShaderBrush
-import androidx.compose.ui.graphics.TileMode
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import com.pssst.theme.OsrsDarkStone
 import com.pssst.theme.OsrsIronBody
@@ -28,7 +22,6 @@ import com.pssst.theme.OsrsParchmentWarm
 import com.pssst.theme.OsrsSlotEmpty
 import com.pssst.theme.OsrsStoneMid
 import com.pssst.theme.OsrsStonePoreDark
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.min
 
 /**
@@ -430,61 +423,6 @@ object Textures {
                 canvas.set(x1, py, c)
             }
         }
-    }
-
-    // Temporary bridge brushes for files updated in Units 3, 4, and 6; removed once those units complete.
-    private val brushCache = ConcurrentHashMap<Int, ShaderBrush>()
-
-    internal fun stoneBrush(seed: Int = 101, darkGround: Boolean = false): ShaderBrush {
-        val key = (seed * 31) xor (if (darkGround) 0x11A1 else 0x22B2)
-        return brushCache.getOrPut(key) {
-            val c = PixelCanvas(64, 64).also {
-                if (darkGround) drawStoneGround(it, seed) else drawPanelStone(it, seed)
-            }
-            createRepeatedBrush(c.px, c.w, c.h)
-        }
-    }
-
-    internal fun oakBrush(seed: Int = 202): ShaderBrush {
-        val key = (seed * 31) xor 0x33C3
-        return brushCache.getOrPut(key) {
-            val c = PixelCanvas(128, 64).also { drawOakBeam(it, seed, showPlankSeams = true) }
-            createRepeatedBrush(c.px, c.w, c.h)
-        }
-    }
-
-    internal fun parchmentBrush(seed: Int = 303): ShaderBrush {
-        val key = (seed * 31) xor 0x44D4
-        return brushCache.getOrPut(key) {
-            val c = PixelCanvas(64, 64).also { drawParchment(it, seed, showStainVignette = false) }
-            createRepeatedBrush(c.px, c.w, c.h)
-        }
-    }
-
-    internal fun leatherBrush(seed: Int = 404): ShaderBrush {
-        val key = (seed * 31) xor 0x55E5
-        return brushCache.getOrPut(key) {
-            val c = PixelCanvas(64, 64).also { drawLeather(it, seed, stitched = false) }
-            createRepeatedBrush(c.px, c.w, c.h)
-        }
-    }
-
-    internal fun ironBrush(seed: Int = 505): ShaderBrush {
-        val key = (seed * 31) xor 0x66F6
-        return brushCache.getOrPut(key) {
-            val c = PixelCanvas(64, 64).also { drawHammeredIron(it, seed, withBevel = false) }
-            createRepeatedBrush(c.px, c.w, c.h)
-        }
-    }
-
-    private fun createRepeatedBrush(pixels: IntArray, width: Int, height: Int): ShaderBrush {
-        val bitmap: ImageBitmap = Bitmap.createBitmap(
-            pixels,
-            width,
-            height,
-            Bitmap.Config.ARGB_8888
-        ).asImageBitmap()
-        return ShaderBrush(ImageShader(bitmap, TileMode.Repeated, TileMode.Repeated))
     }
 }
 

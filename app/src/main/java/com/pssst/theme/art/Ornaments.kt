@@ -232,43 +232,6 @@ object Ornaments {
         canvas.rivet(1, rivetY, size = 3)
         canvas.rivet((w - 4).coerceAtLeast(1), rivetY, size = 3)
     }
-
-    // Temporary DrawScope shims for Theme.kt (Unit 4) and Tables.kt (Unit 6); removed once migrated.
-    internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawDomedRivet(
-        center: Offset,
-        radius: Float,
-        bodyColor: Color = OsrsIronBody,
-        highlightColor: Color = OsrsRivetLight,
-        shadowColor: Color = OsrsRivetDark
-    ) {
-        val r = radius.roundToInt().coerceAtLeast(1).toFloat()
-        drawRect(color = OsrsOuterFrame, topLeft = Offset(center.x - r, center.y - r), size = Size(r * 2, r * 2))
-        drawRect(color = bodyColor, topLeft = Offset(center.x - r + 1f, center.y - r + 1f), size = Size((r * 2 - 2f).coerceAtLeast(1f), (r * 2 - 2f).coerceAtLeast(1f)))
-        drawRect(color = highlightColor, topLeft = Offset(center.x - r + 1f, center.y - r + 1f), size = Size(1f, 1f))
-        drawRect(color = shadowColor, topLeft = Offset(center.x, center.y), size = Size(1f, 1f))
-    }
-
-    internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFacetedDiamond(
-        center: Offset,
-        halfSize: Float,
-        fill: Color = OsrsBrassMid,
-        highlight: Color = OsrsGoldHighlight,
-        shadow: Color = OsrsBorderDark
-    ) {
-        val s = halfSize.roundToInt().coerceAtLeast(1).toFloat()
-        drawRect(color = fill, topLeft = Offset(center.x - s, center.y - s), size = Size(s * 2, s * 2))
-        drawRect(color = highlight, topLeft = Offset(center.x - s, center.y - s), size = Size(s, s))
-        drawRect(color = shadow, topLeft = Offset(center.x, center.y), size = Size(s, s))
-    }
-
-    internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawWatermarkScale(
-        center: Offset = Offset(size.width * 0.5f, size.height * 0.5f),
-        radius: Float = minOf(size.width, size.height) * 0.28f,
-        color: Color = OsrsBorderLight
-    ) {
-        val r = radius.roundToInt().coerceAtLeast(2).toFloat()
-        drawRect(color = color, topLeft = Offset(center.x - r, center.y), size = Size(r * 2, 2f))
-    }
 }
 
 /**

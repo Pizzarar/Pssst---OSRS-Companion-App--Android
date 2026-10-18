@@ -34,7 +34,6 @@ val OsrsTextPrimary = Color(0xFFFFE0A0)    // Primary warm text
 val OsrsStonePoreDark = Color(0xFF14110D)  // Deep stone pit / mortar line shadow
 val OsrsStoneMid = Color(0xFF1E1A15)       // Intermediate stone ground block tone between OsrsDarkStone and OsrsSlotEmpty
 val OsrsPanelMid = Color(0xFF27211A)       // Intermediate panel stone mottling tone between OsrsSlotEmpty and OsrsPanelDark
-val OsrsStoneFlecks = Color(0xFF473E31)    // Warm mineral fleck highlight in carved stone
 
 // Art Packet Derived Shades — Aged Dark Oak
 val OsrsOakBase = Color(0xFF241B13)        // Heartwood plank base fill for top bar & table headers
@@ -46,10 +45,9 @@ val OsrsOakGrainLight = Color(0xFF36281C)  // Planed oak ridge highlight
 val OsrsParchmentDark = Color(0xFF332B20)  // Darkened vellum ground (keeps >9:1 contrast with OsrsTextPrimary)
 val OsrsParchmentWarm = Color(0xFF3F3527)  // Aged paper highlight stop & linen fiber ridge
 val OsrsParchmentStain = Color(0xFF261F16) // Edge foxing & water-stain vignette stop
-val OsrsLedgerRowAlt = Color(0xFF312A20)   // Alternating odd row wash in Timers tables (>5.1:1 with OsrsTextMuted)
 
 // Art Packet Derived Shades — Worn Binding Leather
-val OsrsLeatherBase = Color(0xFF281C15)    // Oxblood-brown leather cover fill (drawer, pack tray, bookmark tabs)
+val OsrsLeatherBase = Color(0xFF281C15)    // Oxblood-brown leather cover fill (drawer, pack tray)
 val OsrsLeatherCrease = Color(0xFF18100C)  // Pebble-grain crease shadow
 val OsrsLeatherHighlight = Color(0xFF3A291F) // Worn leather crown highlight
 val OsrsLeatherStitch = Color(0xFF7A6548)  // Waxed linen saddle-stitch thread dash
@@ -67,9 +65,3 @@ val OsrsWoodLight = Color(0xFF9A6B3A)      // Top-left pixel highlight on wooden
 val OsrsWoodBase = Color(0xFF6B4826)       // Mid-tone wood fill on natural sprites and empty-state scenes
 val OsrsWoodDark = Color(0xFF3F2A16)       // Bottom-right pixel shadow on wooden sprite hardware
 val OsrsRedDark = Color(0xFF8E2626)        // Bottom-right pixel shadow on warning badges and danger plaques
-
-// Art Packet Derived Shades — Crimson Sealing Wax
-val OsrsWaxCrimson = Color(0xFF7A1C1C)     // Melted crimson wax seal body
-val OsrsWaxHighlight = Color(0xFFB83232)   // Wax seal raised rim ridge
-val OsrsWaxShadow = Color(0xFF3D0B0B)      // Stamped wax recess & outer shadow
-

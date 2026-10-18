@@ -290,7 +290,7 @@ fun Modifier.bookmarkTab(
 }
 
 /**
- * Raised gold pixel plaque with dark engraved numeral/label (replaces WaxSealMedallion).
+ * Raised gold pixel plaque with dark engraved numeral or short label ("1", "2", "IP").
  */
 @Composable
 fun NumberPlaque(
@@ -315,14 +315,4 @@ fun NumberPlaque(
             maxLines = 1
         )
     }
-}
-
-// Temporary bridge for ArtPacketPreviews.kt until Unit 9 updates previews; delegates to NumberPlaque.
-@Composable
-internal fun WaxSealMedallion(
-    label: String,
-    modifier: Modifier = Modifier,
-    size: Dp = 24.dp
-) {
-    NumberPlaque(label = label, modifier = modifier, size = size)
 }

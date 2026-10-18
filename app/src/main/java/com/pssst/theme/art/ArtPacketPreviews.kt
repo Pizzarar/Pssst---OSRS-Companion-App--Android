@@ -23,7 +23,6 @@ import com.pssst.theme.OsrsRed
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.PssstTheme
-import com.pssst.theme.art.Ornaments.drawWatermarkScale
 
 @Preview(name = "1. Procedural Textures", showBackground = true, backgroundColor = 0xFF191612, widthDp = 380)
 @Composable
@@ -130,9 +129,9 @@ fun PreviewPlaquesAndSeals() {
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                WaxSealMedallion(label = "1")
-                WaxSealMedallion(label = "2")
-                WaxSealMedallion(label = "3")
+                NumberPlaque(label = "1")
+                NumberPlaque(label = "2")
+                NumberPlaque(label = "3")
                 IronGripHandle()
                 BulletGlyph()
             }
@@ -223,9 +222,7 @@ fun PreviewOrnamentsAndIcons() {
                     .ledgerWellSlot(empty = true),
                 contentAlignment = Alignment.Center
             ) {
-                Canvas(modifier = Modifier.matchParentSize()) {
-                    drawWatermarkScale()
-                }
+                WatermarkScale()
                 Text("Slot 1 — Empty", color = OsrsTextMuted, style = MaterialTheme.typography.labelSmall)
             }
         }
