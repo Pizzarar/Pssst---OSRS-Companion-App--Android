@@ -27,6 +27,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.cancel
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -58,7 +60,9 @@ class MainViewModelFlowTest {
 
     @After
     fun tearDown() {
-        database.close()
+        // Stop the view model's Room flows first. Closing the database while a flow is still opening it deadlocks
+        // (Room's close lock vs. its invalidation tracker), which hung the suite now and then.
+        viewModel.viewModelScope.cancel()
         Dispatchers.resetMain()
     }
 

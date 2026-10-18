@@ -106,13 +106,13 @@ fun TimersScreen(
                             )
                         }
                     } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(state.dailyTasks, key = { it.id }) { task ->
-                                DailyTaskCard(task)
-                            }
+                        EditableList(
+                            listId = "dailies",
+                            items = state.dailyTasks,
+                            key = { it.id },
+                            label = { it.title }
+                        ) { task ->
+                            DailyTaskCard(task)
                         }
                     }
                 }
@@ -130,13 +130,13 @@ fun TimersScreen(
                             )
                         }
                     } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(state.birdHouses, key = { it.varpId }) { house ->
-                                BirdHouseCard(house, nowMs)
-                            }
+                        EditableList(
+                            listId = "birdhouses",
+                            items = state.birdHouses,
+                            key = { it.varpId },
+                            label = { it.spaceName }
+                        ) { house ->
+                            BirdHouseCard(house, nowMs)
                         }
                     }
                 }
@@ -154,16 +154,17 @@ fun TimersScreen(
                             )
                         }
                     } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            val ordered = state.farmingPatches.sortedWith(
-                                compareBy({ !it.isGrown(nowMs) }, { it.doneAtMs ?: Long.MAX_VALUE })
-                            )
-                            items(ordered, key = { it.patchId }) { patch ->
-                                FarmingPatchCard(patch, nowMs)
-                            }
+                        // Default order: grown first, then soonest. Once rearranged, the player's order wins.
+                        val ordered = state.farmingPatches.sortedWith(
+                            compareBy({ !it.isGrown(nowMs) }, { it.doneAtMs ?: Long.MAX_VALUE })
+                        )
+                        EditableList(
+                            listId = "farming",
+                            items = ordered,
+                            key = { it.patchId },
+                            label = { listOfNotNull(it.regionName, it.cropName).joinToString(" · ") }
+                        ) { patch ->
+                            FarmingPatchCard(patch, nowMs)
                         }
                     }
                 }

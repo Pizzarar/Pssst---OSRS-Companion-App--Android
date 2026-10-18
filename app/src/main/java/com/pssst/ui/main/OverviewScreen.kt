@@ -33,6 +33,15 @@ import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.OsrsYellow
 import com.pssst.theme.osrsPanel
 
+/** The Overview tab's cards, in their default order. */
+enum class OverviewCard(val title: String) {
+    PHONE("Phone address"),
+    WEALTH("Total account wealth"),
+    STATUS("Ready now"),
+    SLAYER("Slayer task"),
+    MISCELLANIA("Kingdom of Miscellania")
+}
+
 @Composable
 fun OverviewScreen(
     state: MainDashboardUiState,
@@ -46,25 +55,20 @@ fun OverviewScreen(
     val activeGeCount = state.geOffers.count { !it.isEmpty }
     val completeGeCount = state.geOffers.count { it.isComplete }
 
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // 0. Phone mode: the address RuneLite needs, always in view (it changes if the router hands out a new one)
-        item {
-            PhoneAddressCard(state)
-        }
-
-        // 1. Total Net Wealth Card
-        item {
-            TotalWealthCard(state)
-        }
-
-        // 2. Active Run Status Chips
-        item {
-            QuickActionsBanner(
+    // The player can reorder and hide these cards (Edit list)
+    EditableList(
+        listId = "overview",
+        items = OverviewCard.entries.toList(),
+        key = { it.name },
+        label = { it.title },
+        modifier = modifier.padding(16.dp),
+        spacing = 12.dp
+    ) { card ->
+        when (card) {
+            // The address RuneLite needs (it changes if the router hands out a new one)
+            OverviewCard.PHONE -> PhoneAddressCard(state)
+            OverviewCard.WEALTH -> TotalWealthCard(state)
+            OverviewCard.STATUS -> QuickActionsBanner(
                 readyDailies = readyDailiesCount,
                 readyBirdhouses = readyBirdhousesCount,
                 readyFarming = readyFarmingCount,
@@ -72,16 +76,8 @@ fun OverviewScreen(
                 completeGe = completeGeCount,
                 onNavigateToTab = onNavigateToTab
             )
-        }
-
-        // 3. Slayer Task Card (moved out of Timers to free up vertical space)
-        item {
-            SlayerTaskCard(state.slayer)
-        }
-
-        // 4. Kingdom of Miscellania Card (moved out of Timers)
-        item {
-            MiscellaniaCard(state.miscellania)
+            OverviewCard.SLAYER -> SlayerTaskCard(state.slayer)
+            OverviewCard.MISCELLANIA -> MiscellaniaCard(state.miscellania)
         }
     }
 }
