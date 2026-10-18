@@ -40,13 +40,13 @@ fun computeArtPx(density: Float): Int = max(2, density.roundToInt())
 
 val LocalArtPx = compositionLocalOf { 3 }
 
-private data class PixelCacheKey(
+internal data class PixelCacheKey(
     val key: Any,
     val artWidth: Int,
     val artHeight: Int
 )
 
-private val pixelBitmapCache = object : LruCache<PixelCacheKey, ImageBitmap>(16 * 1024 * 1024) {
+internal val pixelBitmapCache = object : LruCache<PixelCacheKey, ImageBitmap>(16 * 1024 * 1024) {
     override fun sizeOf(key: PixelCacheKey, value: ImageBitmap): Int {
         return (value.width * value.height * 4).coerceAtLeast(4)
     }

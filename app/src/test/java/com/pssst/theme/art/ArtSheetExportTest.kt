@@ -153,6 +153,38 @@ class ArtSheetExportTest {
         assertTrue("Expected sprites.png to be written", outFile.exists() && outFile.length() > 0)
     }
 
+    @Test
+    fun exportScenesSheetPng() {
+        val outDir = File("build/art-sheet")
+        outDir.mkdirs()
+
+        val kinds = EmptyStateKind.values().toList()
+        val cellW = 40
+        val cellH = 32
+        val gap = 6
+        val cols = 4
+        val rows = (kinds.size + cols - 1) / cols
+        val sheetArtW = cols * cellW + (cols + 1) * gap
+        val sheetArtH = rows * cellH + (rows + 1) * gap
+        val sheet = PixelCanvas(sheetArtW, sheetArtH)
+        Textures.drawStoneGround(sheet, seed = 101)
+
+        kinds.forEachIndexed { idx, kind ->
+            val col = idx % cols
+            val row = idx / cols
+            val ox = gap + col * (cellW + gap)
+            val oy = gap + row * (cellH + gap)
+            val sub = PixelCanvas(EmptyStates.SCENE_WIDTH, EmptyStates.SCENE_HEIGHT).also {
+                EmptyStates.drawScene(it, kind)
+            }
+            copySubCanvas(sheet, ox + 4, oy + 4, sub)
+        }
+
+        val outFile = File(outDir, "scenes.png")
+        writeScaledPng(sheet, scale = 4, file = outFile)
+        assertTrue("Expected scenes.png to be written", outFile.exists() && outFile.length() > 0)
+    }
+
     companion object {
         fun copySubCanvas(dest: PixelCanvas, ox: Int, oy: Int, src: PixelCanvas) {
             for (y in 0 until src.h) {
