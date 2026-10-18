@@ -385,18 +385,20 @@ fun OsrsStatusBadge(
 }
 
 /**
- * Square pixel filter chip: selected chip is recessed with gold text and a 3x3 pixel diamond;
- * unselected chip is raised dark stone with muted text.
+ * Square pixel filter chip: selected chip is recessed with gold text and a 3x3 pixel diamond
+ * (or custom [leading] icon when provided); unselected chip is raised dark stone with muted text.
  */
 @Composable
 fun OsrsFilterChip(
     text: String,
     selected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    leading: (@Composable () -> Unit)? = null
 ) {
+    val hasLeading = leading != null
     val chipMod = modifier
-        .pixelArt(key = Pair("OsrsFilterChip", selected)) {
+        .pixelArt(key = Triple("OsrsFilterChip", selected, hasLeading)) {
             val outline = OsrsOuterFrame.toArgb()
             if (selected) {
                 clear(OsrsSlotEmpty.toArgb())
@@ -410,7 +412,7 @@ fun OsrsFilterChip(
                     dark = OsrsBorderDark.toArgb(),
                     raised = false
                 )
-                if (w >= 16 && h >= 7) {
+                if (!hasLeading && w >= 16 && h >= 7) {
                     Ornaments.drawPixelDiamond(
                         canvas = this,
                         cx = 4,
@@ -436,18 +438,41 @@ fun OsrsFilterChip(
             }
         }
         .clickable(onClick = onClick)
-        .padding(start = if (selected) 11.dp else 8.dp, end = 8.dp, top = 4.dp, bottom = 4.dp)
+        .padding(
+            start = if (selected && !hasLeading) 11.dp else 7.dp,
+            end = 8.dp,
+            top = 4.dp,
+            bottom = 4.dp
+        )
 
     Box(modifier = chipMod, contentAlignment = Alignment.Center) {
-        Text(
-            text = text,
-            fontSize = 11.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = if (selected) OsrsGold else OsrsTextMuted,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.labelSmall.copy(shadow = OsrsHardShadow)
-        )
+        if (leading != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                leading()
+                Text(
+                    text = text,
+                    fontSize = 11.sp,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (selected) OsrsGold else OsrsTextMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.labelSmall.copy(shadow = OsrsHardShadow)
+                )
+            }
+        } else {
+            Text(
+                text = text,
+                fontSize = 11.sp,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                color = if (selected) OsrsGold else OsrsTextMuted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.labelSmall.copy(shadow = OsrsHardShadow)
+            )
+        }
     }
 }
 

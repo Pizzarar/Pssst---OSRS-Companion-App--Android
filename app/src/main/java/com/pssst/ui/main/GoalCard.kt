@@ -1,8 +1,6 @@
 package com.pssst.ui.main
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,10 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -254,7 +248,7 @@ fun GoalCard(
                         } else {
                             ItemIcon(
                                 id = 995,
-                                base64 = null,
+                                base64 = state.topBarIcons[995],
                                 name = "Coins",
                                 size = 36.dp
                             )
@@ -397,247 +391,321 @@ fun GoalSettingsDialog(
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(4.dp))
-                .background(OsrsDarkStone)
-                .osrsPanel(showRivets = true)
-                .padding(16.dp)
+        GoalSettingsDialogContent(
+            state = state,
+            currentConfig = currentConfig,
+            selectedSource = selectedSource,
+            onSelectSource = { selectedSource = it },
+            selectedPriceMode = selectedPriceMode,
+            onSelectPriceMode = { selectedPriceMode = it },
+            goalModeTab = goalModeTab,
+            onSelectGoalModeTab = { goalModeTab = it },
+            selectedItem = selectedItem,
+            onSelectItem = { selectedItem = it },
+            itemSearchText = itemSearchText,
+            onItemSearchTextChange = {
+                itemSearchText = it
+                onSearchQueryChanged(it)
+            },
+            customGpText = customGpText,
+            onCustomGpTextChange = { customGpText = it },
+            onDismiss = onDismiss,
+            onSave = onSave
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun GoalSettingsDialogContent(
+    state: MainDashboardUiState,
+    currentConfig: GoalConfig = state.goalConfig,
+    selectedSource: Int = currentConfig.source,
+    onSelectSource: (Int) -> Unit = {},
+    selectedPriceMode: GoalPriceMode = currentConfig.priceMode ?: GoalPriceMode.GE,
+    onSelectPriceMode: (GoalPriceMode) -> Unit = {},
+    goalModeTab: Int = if (currentConfig.targetGp != null && currentConfig.targetGp > 0L) 1 else 0,
+    onSelectGoalModeTab: (Int) -> Unit = {},
+    selectedItem: ItemUiModel? = state.goalTargetItem,
+    onSelectItem: (ItemUiModel?) -> Unit = {},
+    itemSearchText: String = "",
+    onItemSearchTextChange: (String) -> Unit = {},
+    customGpText: String = currentConfig.targetGp?.let { formatGp(it) } ?: "",
+    onCustomGpTextChange: (String) -> Unit = {},
+    onDismiss: () -> Unit = {},
+    onSave: (GoalConfig) -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .osrsPanel(showRivets = true, weight = FrameWeight.HEAVY)
+            .padding(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Column(
+            // Dialog Title
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Dialog Title
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Goal Tracker Settings",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = OsrsGold
-                    )
-                    Text(
-                        text = "✕",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = OsrsTextMuted,
-                        modifier = Modifier
-                            .clickable { onDismiss() }
-                            .padding(4.dp)
-                    )
-                }
-
-                OsrsHeaderDivider()
-
-                // Section 1: Count value from
-                Text(
-                    text = "Count bank value from:",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = OsrsTextPrimary
+                GoldLeafText(
+                    text = "Goal Tracker Settings",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
+                Text(
+                    text = "✕",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = OsrsTextMuted,
+                    modifier = Modifier
+                        .clickable { onDismiss() }
+                        .padding(4.dp)
+                )
+            }
 
-                val availableTabs = remember(state.bankItems) {
-                    val tabsWithItems = state.bankItems.mapNotNull { it.tab }.distinct().sorted()
-                    val result = mutableListOf(GoalMath.WHOLE_BANK, 0)
-                    if (tabsWithItems.isNotEmpty()) {
-                        result.addAll(tabsWithItems.filter { it > 0 })
-                    } else {
-                        result.addAll(1..9)
-                    }
-                    result.distinct()
+            OsrsHeaderDivider()
+
+            // Section 1: Count value from
+            Text(
+                text = "Count bank value from:",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                color = OsrsTextPrimary
+            )
+
+            val availableTabs = remember(state.bankItems) {
+                val tabsWithItems = state.bankItems.mapNotNull { it.tab }.distinct().sorted()
+                val result = mutableListOf(GoalMath.WHOLE_BANK, 0)
+                if (tabsWithItems.isNotEmpty()) {
+                    result.addAll(tabsWithItems.filter { it > 0 })
+                } else {
+                    result.addAll(1..9)
                 }
+                result.distinct()
+            }
 
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    availableTabs.forEach { tab ->
-                        val isSelected = selectedSource == tab
-                        val label = GoalMath.tabLabel(state.bankItems, tab)
-                        OsrsFilterChip(
-                            text = label,
-                            selected = isSelected,
-                            onClick = { selectedSource = tab }
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                availableTabs.forEach { tab ->
+                    val isSelected = selectedSource == tab
+                    val label = GoalMath.tabLabel(state.bankItems, tab)
+                    val firstTabItem = remember(state.bankItems, tab) {
+                        if (tab >= 0) state.bankItems.firstOrNull { (it.tab ?: 0) == tab } else null
+                    }
+                    OsrsFilterChip(
+                        text = label,
+                        selected = isSelected,
+                        onClick = { onSelectSource(tab) },
+                        leading = when {
+                            tab == GoalMath.WHOLE_BANK -> {
+                                {
+                                    PixelIcon(
+                                        sprite = ArtIcons.StorageChest,
+                                        tones = if (isSelected) SpriteTones.GOLD else SpriteTones.STONE,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                            firstTabItem != null -> {
+                                {
+                                    ItemIcon(
+                                        id = firstTabItem.id,
+                                        base64 = firstTabItem.iconBase64,
+                                        name = firstTabItem.name,
+                                        size = 18.dp
+                                    )
+                                }
+                            }
+                            else -> null
+                        }
+                    )
+                }
+            }
+
+            OsrsHeaderDivider()
+
+            // Section 2: Goal Target (Search Item vs Custom GP)
+            Text(
+                text = "Target goal:",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                color = OsrsTextPrimary
+            )
+
+            OsrsSegmentedTabs(
+                tabs = listOf("Search Item" to 0, "Custom GP" to 0),
+                selectedIndex = goalModeTab,
+                onTabSelected = onSelectGoalModeTab
+            )
+
+            if (goalModeTab == 0) {
+                // Item search
+                if (selectedItem != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .osrsSlot(hasItem = true)
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .osrsSlot(hasItem = selectedItem.iconBase64 != null),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            ItemIcon(
+                                id = selectedItem.id,
+                                base64 = selectedItem.iconBase64,
+                                name = selectedItem.name,
+                                size = 32.dp
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = selectedItem.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = OsrsTextPrimary
+                            )
+                            val price = if (selectedPriceMode == GoalPriceMode.GE) selectedItem.gePrice else selectedItem.haPrice
+                            Text(
+                                text = "${selectedPriceMode.name}: ${formatGp(price)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontFamily = JetBrainsMonoFontFamily,
+                                color = OsrsGold
+                            )
+                        }
+                        Text(
+                            text = "Clear",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = OsrsRed,
+                            modifier = Modifier
+                                .clickable { onSelectItem(null) }
+                                .padding(4.dp)
                         )
                     }
                 }
 
-                OsrsHeaderDivider()
-
-                // Section 2: Goal Target (Search Item vs Custom GP)
-                Text(
-                    text = "Target goal:",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = OsrsTextPrimary
+                OsrsTextField(
+                    value = itemSearchText,
+                    onValueChange = onItemSearchTextChange,
+                    label = "",
+                    placeholder = "Search item name (e.g. Twisted bow)...",
+                    modifier = Modifier.fillMaxWidth()
                 )
 
-                OsrsSegmentedTabs(
-                    tabs = listOf("Search Item" to 0, "Custom GP" to 0),
-                    selectedIndex = goalModeTab,
-                    onTabSelected = { goalModeTab = it }
-                )
-
-                if (goalModeTab == 0) {
-                    // Item search
-                    if (selectedItem != null) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(OsrsSlotRecessed)
-                                .border(1.dp, OsrsOuterFrame, RoundedCornerShape(2.dp))
-                                .padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            ItemIcon(
-                                id = selectedItem!!.id,
-                                base64 = selectedItem!!.iconBase64,
-                                name = selectedItem!!.name,
-                                size = 32.dp
-                            )
-                            Column(modifier = Modifier.weight(1f)) {
+                // Search results dropdown list
+                if (state.goalItemSearchResults.isNotEmpty() && itemSearchText.trim().length >= 2) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 148.dp)
+                            .osrsSlot(hasItem = true)
+                            .padding(vertical = 2.dp)
+                    ) {
+                        items(state.goalItemSearchResults) { item ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onSelectItem(item)
+                                        onItemSearchTextChange("")
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .osrsSlot(hasItem = item.iconBase64 != null),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    ItemIcon(id = item.id, base64 = item.iconBase64, name = item.name, size = 26.dp)
+                                }
                                 Text(
-                                    text = selectedItem!!.name,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = OsrsTextPrimary
+                                    text = item.name,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = OsrsTextPrimary,
+                                    modifier = Modifier.weight(1f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
-                                val price = if (selectedPriceMode == GoalPriceMode.GE) selectedItem!!.gePrice else selectedItem!!.haPrice
                                 Text(
-                                    text = "${selectedPriceMode.name}: ${formatGp(price)}",
+                                    text = formatGp(item.gePrice),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontFamily = JetBrainsMonoFontFamily,
                                     color = OsrsGold
                                 )
                             }
-                            Text(
-                                text = "Clear",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = OsrsRed,
-                                modifier = Modifier
-                                    .clickable { selectedItem = null }
-                                    .padding(4.dp)
-                            )
                         }
                     }
-
+                }
+            } else {
+                // Custom GP input
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     OsrsTextField(
-                        value = itemSearchText,
-                        onValueChange = {
-                            itemSearchText = it
-                            onSearchQueryChanged(it)
-                        },
+                        value = customGpText,
+                        onValueChange = onCustomGpTextChange,
                         label = "",
-                        placeholder = "Search item name (e.g. Twisted bow)...",
+                        placeholder = "e.g. 150m, 1.2b, 500k",
                         modifier = Modifier.fillMaxWidth()
                     )
-
-                    // Search results dropdown list
-                    if (state.goalItemSearchResults.isNotEmpty() && itemSearchText.trim().length >= 2) {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 140.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(OsrsSlotRecessed)
-                                .border(1.dp, OsrsBorderDark, RoundedCornerShape(2.dp))
-                        ) {
-                            items(state.goalItemSearchResults) { item ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            selectedItem = item
-                                            itemSearchText = ""
-                                            onSearchQueryChanged("")
-                                        }
-                                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    ItemIcon(id = item.id, base64 = item.iconBase64, name = item.name, size = 26.dp)
-                                    Text(
-                                        text = item.name,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = OsrsTextPrimary,
-                                        modifier = Modifier.weight(1f),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        text = formatGp(item.gePrice),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontFamily = JetBrainsMonoFontFamily,
-                                        color = OsrsGold
-                                    )
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    // Custom GP input
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        OsrsTextField(
-                            value = customGpText,
-                            onValueChange = { customGpText = it },
-                            label = "",
-                            placeholder = "e.g. 150m, 1.2b, 500k",
-                            modifier = Modifier.fillMaxWidth()
+                    val parsed = GoalMath.parseGp(customGpText)
+                    if (parsed != null) {
+                        Text(
+                            text = "Target: ${formatGp(parsed)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = JetBrainsMonoFontFamily,
+                            color = OsrsGold
                         )
-                        val parsed = GoalMath.parseGp(customGpText)
-                        if (parsed != null) {
-                            Text(
-                                text = "Target: ${formatGp(parsed)}",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontFamily = JetBrainsMonoFontFamily,
-                                color = OsrsGold
-                            )
-                        } else if (customGpText.isNotBlank()) {
-                            Text(
-                                text = "Invalid GP expression",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = OsrsRed
-                            )
-                        }
+                    } else if (customGpText.isNotBlank()) {
+                        Text(
+                            text = "Invalid GP expression",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = OsrsRed
+                        )
                     }
                 }
+            }
 
-                OsrsHeaderDivider()
+            OsrsHeaderDivider()
 
-                // Section 3: Pricing Mode
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Valuation mode:",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = OsrsTextPrimary
+            // Section 3: Pricing Mode
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Valuation mode:",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = OsrsTextPrimary
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OsrsFilterChip(
+                        text = "Grand Exchange",
+                        selected = selectedPriceMode == GoalPriceMode.GE,
+                        onClick = { onSelectPriceMode(GoalPriceMode.GE) }
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        OsrsFilterChip(
-                            text = "Grand Exchange",
-                            selected = selectedPriceMode == GoalPriceMode.GE,
-                            onClick = { selectedPriceMode = GoalPriceMode.GE }
-                        )
-                        OsrsFilterChip(
-                            text = "High Alchemy",
-                            selected = selectedPriceMode == GoalPriceMode.HA,
-                            onClick = { selectedPriceMode = GoalPriceMode.HA }
-                        )
-                    }
+                    OsrsFilterChip(
+                        text = "High Alchemy",
+                        selected = selectedPriceMode == GoalPriceMode.HA,
+                        onClick = { onSelectPriceMode(GoalPriceMode.HA) }
+                    )
                 }
+            }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
@@ -691,5 +759,4 @@ fun GoalSettingsDialog(
                 }
             }
         }
-    }
 }
