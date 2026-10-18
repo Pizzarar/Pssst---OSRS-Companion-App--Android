@@ -30,4 +30,25 @@ class PixelItemImageTest {
         val size = computeItemSpriteDrawSize(srcWidth = 36, srcHeight = 32, boxWidthPx = 18, boxHeightPx = 18)
         assertEquals(IntSize(18, 16), size)
     }
+
+    @Test
+    fun `combatLevel computes standard OSRS combat level`() {
+        // Fresh level 3 account (10 HP, 1 in everything else)
+        val fresh = listOf(
+            com.pssst.ui.main.SkillUiModel(name = "Hitpoints", level = 10, xp = 1154L)
+        )
+        assertEquals(3, com.pssst.ui.main.combatLevel(fresh))
+
+        // Maxed combat (99 all) -> 126
+        val maxed = listOf(
+            com.pssst.ui.main.SkillUiModel(name = "Attack", level = 99),
+            com.pssst.ui.main.SkillUiModel(name = "Strength", level = 99),
+            com.pssst.ui.main.SkillUiModel(name = "Defence", level = 99),
+            com.pssst.ui.main.SkillUiModel(name = "Hitpoints", level = 99),
+            com.pssst.ui.main.SkillUiModel(name = "Prayer", level = 99),
+            com.pssst.ui.main.SkillUiModel(name = "Ranged", level = 99),
+            com.pssst.ui.main.SkillUiModel(name = "Magic", level = 99)
+        )
+        assertEquals(126, com.pssst.ui.main.combatLevel(maxed))
+    }
 }
