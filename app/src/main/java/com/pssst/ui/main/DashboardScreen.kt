@@ -24,14 +24,13 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,12 +43,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,20 +56,28 @@ import androidx.core.content.ContextCompat
 import com.pssst.theme.OsrsButton
 import com.pssst.theme.OsrsButtonVariant
 import com.pssst.theme.OsrsDarkStone
-import androidx.compose.ui.draw.drawBehind
 import com.pssst.theme.OsrsGold
 import com.pssst.theme.OsrsHardShadow
 import com.pssst.theme.OsrsHeaderDivider
 import com.pssst.theme.OsrsHerbGreen
 import com.pssst.theme.OsrsOuterFrame
 import com.pssst.theme.OsrsPanelDark
-import com.pssst.theme.OsrsPanelLight
 import com.pssst.theme.OsrsRed
 import com.pssst.theme.OsrsSlotEmpty
 import com.pssst.theme.OsrsSwitch
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.OsrsYellow
+import com.pssst.theme.art.ArtIcons
+import com.pssst.theme.art.BulletGlyph
+import com.pssst.theme.art.FrameWeight
+import com.pssst.theme.art.GoldLeafText
+import com.pssst.theme.art.SectionHeaderPlaque
+import com.pssst.theme.art.TitlePlaque
+import com.pssst.theme.art.leatherBoundPanel
+import com.pssst.theme.art.oakBeamFrame
+import com.pssst.theme.art.stoneGround
+import com.pssst.theme.art.stoneSillFrame
 import com.pssst.theme.osrsPanel
 import com.pssst.theme.osrsSlot
 import com.pssst.util.TimeFormat
@@ -133,40 +138,32 @@ fun DashboardScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxHeight()
+                        .leatherBoundPanel()
                         .padding(16.dp),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column {
-                        // Drawer Title
-                        Text(
-                            text = "Pssst Companion",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = OsrsGold
-                        )
-                        Text(
-                            text = "OSRS Offline-First Tracker",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = OsrsTextMuted
+                        TitlePlaque(
+                            title = "Pssst Companion",
+                            subtitle = "OSRS Offline-First Tracker"
                         )
 
                         Spacer(modifier = Modifier.height(14.dp))
-                        OsrsHeaderDivider()
+                        OsrsHeaderDivider(withCenterFlourish = true)
                         Spacer(modifier = Modifier.height(14.dp))
 
                         // Connection Details Card
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .osrsPanel()
+                                .osrsPanel(weight = FrameWeight.MEDIUM)
                                 .padding(12.dp)
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text(
+                                GoldLeafText(
                                     text = "Connection Status",
                                     style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = OsrsGold
+                                    fontWeight = FontWeight.Bold
                                 )
                                 if (state.uuid.isNotBlank()) {
                                     val displayToken = if (state.uuid.length <= 16) {
@@ -213,7 +210,7 @@ fun DashboardScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .osrsPanel()
+                                .osrsPanel(weight = FrameWeight.LIGHT)
                                 .padding(horizontal = 12.dp, vertical = 10.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
@@ -239,7 +236,7 @@ fun DashboardScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .osrsPanel()
+                                .osrsPanel(weight = FrameWeight.LIGHT)
                                 .padding(horizontal = 12.dp, vertical = 10.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
@@ -284,12 +281,7 @@ fun DashboardScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // Navigation Jump Links
-                        Text(
-                            text = "Jump to Section",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = OsrsGold
-                        )
+                        SectionHeaderPlaque(title = "Jump to Section")
                         Spacer(modifier = Modifier.height(8.dp))
                         tabs.forEachIndexed { index, tab ->
                             val isSelected = selectedTabIndex == index
@@ -313,7 +305,15 @@ fun DashboardScreen(
                                     }
                                     .padding(horizontal = 12.dp, vertical = 8.dp)
                             }
-                            Box(modifier = navMod) {
+                            Row(
+                                modifier = navMod,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                BulletGlyph(
+                                    size = 6.dp,
+                                    color = if (isSelected) OsrsGold else OsrsTextMuted.copy(alpha = 0.6f)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = tab.title,
                                     style = MaterialTheme.typography.bodyMedium,
@@ -358,9 +358,7 @@ fun DashboardScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(listOf(OsrsPanelLight, OsrsPanelDark))
-                        )
+                        .oakBeamFrame()
                         .statusBarsPadding()
                 ) {
                     Row(
@@ -380,27 +378,29 @@ fun DashboardScreen(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(1.dp)
                         ) {
-                            Text(
+                            GoldLeafText(
                                 text = currentTab.title,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = OsrsGold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                style = MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp),
+                                fontWeight = FontWeight.ExtraBold
                             )
-                            Text(
-                                text = if (state.gameObservedAt > 0L) {
-                                    "Synced " + TimeFormat.ageLabel(nowMs - state.gameObservedAt)
-                                } else {
-                                    "Offline snapshot"
-                                },
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 11.5.sp,
-                                color = OsrsTextMuted,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                BulletGlyph(size = 5.dp, color = OsrsGold)
+                                Text(
+                                    text = if (state.gameObservedAt > 0L) {
+                                        "Synced " + TimeFormat.ageLabel(nowMs - state.gameObservedAt)
+                                    } else {
+                                        "Offline snapshot"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = 11.5.sp,
+                                    color = OsrsTextMuted,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         TopBarReadyRow(
@@ -427,17 +427,15 @@ fun DashboardScreen(
                             }
                         }
                     }
-                    OsrsHeaderDivider()
                 }
             },
             bottomBar = {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Brush.verticalGradient(listOf(OsrsPanelDark, OsrsSlotEmpty)))
+                        .stoneSillFrame()
                         .navigationBarsPadding()
                 ) {
-                    OsrsHeaderDivider()
                     Row(
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -497,7 +495,7 @@ fun DashboardScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .background(OsrsDarkStone)
+                    .stoneGround()
             ) {
                 when (currentTab) {
                     DashboardTab.OVERVIEW -> OverviewScreen(
@@ -536,104 +534,61 @@ fun DashboardScreen(
 
 @Composable
 fun HamburgerVectorIcon(tint: Color, modifier: Modifier = Modifier.size(24.dp)) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        val barH = h * 0.12f
-        val stroke = barH
-        drawLine(tint, Offset(w * 0.15f, h * 0.25f), Offset(w * 0.85f, h * 0.25f), strokeWidth = stroke)
-        drawLine(tint, Offset(w * 0.15f, h * 0.50f), Offset(w * 0.85f, h * 0.50f), strokeWidth = stroke)
-        drawLine(tint, Offset(w * 0.15f, h * 0.75f), Offset(w * 0.85f, h * 0.75f), strokeWidth = stroke)
-    }
+    Icon(
+        imageVector = ArtIcons.DrawerLedgerMenu,
+        contentDescription = null,
+        tint = tint,
+        modifier = modifier
+    )
 }
 
 @Composable
 fun ShieldVectorIcon(tint: Color, modifier: Modifier = Modifier.size(24.dp)) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        val path = Path().apply {
-            moveTo(w * 0.5f, h * 0.15f)
-            lineTo(w * 0.85f, h * 0.25f)
-            lineTo(w * 0.80f, h * 0.65f)
-            lineTo(w * 0.5f, h * 0.88f)
-            lineTo(w * 0.20f, h * 0.65f)
-            lineTo(w * 0.15f, h * 0.25f)
-            close()
-        }
-        drawPath(path, color = tint, style = Stroke(width = w * 0.08f))
-    }
+    Icon(
+        imageVector = ArtIcons.OverviewShield,
+        contentDescription = null,
+        tint = tint,
+        modifier = modifier
+    )
 }
 
 @Composable
 fun ChestVectorIcon(tint: Color, modifier: Modifier = Modifier.size(24.dp)) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        drawRect(tint, Offset(w * 0.18f, h * 0.35f), Size(w * 0.64f, h * 0.50f), style = Stroke(width = w * 0.08f))
-        drawLine(tint, Offset(w * 0.18f, h * 0.52f), Offset(w * 0.82f, h * 0.52f), strokeWidth = w * 0.08f)
-        drawRect(tint, Offset(w * 0.44f, h * 0.48f), Size(w * 0.12f, h * 0.12f))
-    }
+    Icon(
+        imageVector = ArtIcons.StorageChest,
+        contentDescription = null,
+        tint = tint,
+        modifier = modifier
+    )
 }
 
 @Composable
 fun CoinsVectorIcon(tint: Color, modifier: Modifier = Modifier.size(24.dp)) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        drawCircle(tint, radius = w * 0.28f, center = Offset(w * 0.45f, h * 0.55f), style = Stroke(width = w * 0.08f))
-        drawCircle(tint, radius = w * 0.28f, center = Offset(w * 0.58f, h * 0.40f), style = Stroke(width = w * 0.08f))
-    }
+    Icon(
+        imageVector = ArtIcons.ExchangeCoins,
+        contentDescription = null,
+        tint = tint,
+        modifier = modifier
+    )
 }
 
 @Composable
 fun StarVectorIcon(tint: Color, modifier: Modifier = Modifier.size(24.dp)) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        val path = Path().apply {
-            moveTo(w * 0.5f, h * 0.12f)
-            lineTo(w * 0.62f, h * 0.38f)
-            lineTo(w * 0.90f, h * 0.38f)
-            lineTo(w * 0.67f, h * 0.55f)
-            lineTo(w * 0.76f, h * 0.82f)
-            lineTo(w * 0.5f, h * 0.66f)
-            lineTo(w * 0.24f, h * 0.82f)
-            lineTo(w * 0.33f, h * 0.55f)
-            lineTo(w * 0.10f, h * 0.38f)
-            lineTo(w * 0.38f, h * 0.38f)
-            close()
-        }
-        drawPath(path, color = tint, style = Stroke(width = w * 0.08f))
-    }
+    Icon(
+        imageVector = ArtIcons.ProgressStar,
+        contentDescription = null,
+        tint = tint,
+        modifier = modifier
+    )
 }
 
 @Composable
 fun HourglassVectorIcon(tint: Color, modifier: Modifier = Modifier.size(24.dp)) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        val stroke = w * 0.08f
-        drawRect(tint, Offset(w * 0.15f, h * 0.12f), Size(w * 0.7f, h * 0.08f))
-        drawRect(tint, Offset(w * 0.15f, h * 0.80f), Size(w * 0.7f, h * 0.08f))
-
-        val glassPath = Path().apply {
-            moveTo(w * 0.22f, h * 0.2f)
-            lineTo(w * 0.78f, h * 0.2f)
-            lineTo(w * 0.5f, h * 0.5f)
-            lineTo(w * 0.78f, h * 0.8f)
-            lineTo(w * 0.22f, h * 0.8f)
-            lineTo(w * 0.5f, h * 0.5f)
-            close()
-        }
-        drawPath(glassPath, color = tint, style = Stroke(width = stroke))
-
-        val sandPath = Path().apply {
-            moveTo(w * 0.3f, h * 0.78f)
-            lineTo(w * 0.7f, h * 0.78f)
-            lineTo(w * 0.5f, h * 0.62f)
-            close()
-        }
-        drawPath(sandPath, color = tint)
-    }
+    Icon(
+        imageVector = ArtIcons.TimersHourglass,
+        contentDescription = null,
+        tint = tint,
+        modifier = modifier
+    )
 }
+
