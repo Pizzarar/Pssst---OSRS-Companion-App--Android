@@ -101,7 +101,11 @@ class MainViewModel(
             } else {
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                     runCatching {
-                        itemManifestDao.searchItemsByName(clean, 10).map { entity ->
+                        val entities = itemManifestDao.searchItemsByName(clean, 10)
+                        com.pssst.util.IconWishlist.recordPickerIds(
+                            entities.filter { it.iconBase64.isNullOrBlank() }.map { it.id }
+                        )
+                        entities.map { entity ->
                             ItemUiModel(
                                 id = entity.id,
                                 quantity = 1,
@@ -179,6 +183,9 @@ class MainViewModel(
     }
 
     fun saveGoalConfig(config: GoalConfig) {
+        config.targetItemId?.takeIf { it > 0 }?.let {
+            com.pssst.util.IconWishlist.recordPickerIds(listOf(it))
+        }
         if (application != null) {
             GoalPrefs.update(application) { config }
         } else if (goalConfigFlow is MutableStateFlow<GoalConfig>) {

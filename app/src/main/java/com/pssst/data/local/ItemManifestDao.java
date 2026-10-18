@@ -69,8 +69,18 @@ public abstract class ItemManifestDao {
 
     // --- Icons sent by the player's RuneLite -----------------------------------------------------------------
 
+    @Query("SELECT COUNT(*) FROM item_manifest WHERE icon_base64 IS NOT NULL AND icon_base64 != ''")
+    public abstract int countIcons();
+
     @Query("SELECT id FROM item_manifest WHERE id IN (:ids) AND icon_base64 IS NOT NULL AND icon_base64 != ''")
     public abstract List<Integer> idsWithIcon(List<Integer> ids);
+
+    /** High-value tradeable items missing an icon, ordered most expensive first for bounded picker backfill. */
+    @Query("SELECT id FROM item_manifest "
+        + "WHERE ge_price >= :minPrice AND id != 995 AND (icon_base64 IS NULL OR icon_base64 = '') "
+        + "ORDER BY ge_price DESC, id ASC "
+        + "LIMIT :limit")
+    public abstract List<Integer> highValueTradeableIdsWithoutIcon(long minPrice, int limit);
 
     @Query("UPDATE item_manifest SET icon_base64 = :icon WHERE id = :id AND (icon_base64 IS NULL OR icon_base64 = '')")
     protected abstract void setIconIfMissing(int id, String icon);

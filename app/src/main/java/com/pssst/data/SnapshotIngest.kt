@@ -125,13 +125,22 @@ class SnapshotIngest(
     /**
      * The item ids this snapshot (or the app itself) shows that have no icon yet, for the reply to RuneLite, which
      * draws them from its own client and sends them with the next update. At most [MAX_ICON_REQUESTS].
-     * Small/immediately visible sets are requested first so a large bank never starves Inventory, GE, or Timers.
+     * Small/immediately visible sets (goal target, active picker search results, skill icons, inventory, GE, timers)
+     * are requested first so a large bank never starves them; any remaining capacity is used for bounded high-value
+     * tradeable backfill that stops once enough icons are downloaded or all candidates have been attempted.
      */
     fun missingIcons(stateResponse: StateResponse): List<Int> {
         val data = stateResponse.data
         val wanted = LinkedHashSet<Int>()
+        runCatching { com.pssst.data.local.GoalPrefs.flow(context).value.targetItemId }
+            .getOrNull()
+            ?.takeIf { it > 0 }
+            ?.let { wanted += it }
+        wanted += com.pssst.util.IconWishlist.snapshotPickerIds()
         data?.inventory.orEmpty().forEach { wanted += it.manifestId }
         data?.geOffers.orEmpty().forEach { if (it.itemId > 0) wanted += it.itemId }
+        wanted += com.pssst.ui.main.SkillUiModel.SKILL_ITEM_IDS.values
+        wanted += listOf(257, 21512, 11738, 995)
         wanted += com.pssst.util.FarmingPaymentCatalog.ALL_PAYMENT_ITEM_IDS
         wanted += com.pssst.util.DailyTasks.ALL_DAILY_ITEM_IDS
         wanted += com.pssst.ui.main.BirdHouseUiModel.ALL_BIRDHOUSE_ITEM_IDS
@@ -139,9 +148,23 @@ class SnapshotIngest(
         data?.farming.orEmpty().forEach { wanted += if (it.itemId > 0) it.itemId else 6055 }
         data?.potionStorage.orEmpty().forEach { wanted += it.itemId }
         data?.bank.orEmpty().forEach { wanted += it.id }
+
+        val dao = database.itemManifestDao()
         val have = HashSet<Int>()
-        wanted.toList().chunked(500).forEach { have += database.itemManifestDao().idsWithIcon(it) }
-        return wanted.filter { it > 0 && it !in have }.take(MAX_ICON_REQUESTS)
+        wanted.toList().chunked(500).forEach { have += dao.idsWithIcon(it) }
+        com.pssst.util.IconWishlist.pruneResolved(have)
+
+        val primaryMissing = wanted.filter { it > 0 && it !in have }.take(MAX_ICON_REQUESTS)
+        val remainingSlots = MAX_ICON_REQUESTS - primaryMissing.size
+        if (remainingSlots <= 0) {
+            return primaryMissing
+        }
+        val backfill = com.pssst.util.IconWishlist.selectBackfillIds(
+            dao = dao,
+            neededSlots = remainingSlots,
+            alreadyWanted = primaryMissing.toSet()
+        )
+        return primaryMissing + backfill
     }
 
     private fun observedAtOf(entity: PlayerStateEntity?): Long =

@@ -40,7 +40,9 @@ class IconFlowTest {
 
     @Before
     fun setUp() {
+        com.pssst.util.IconWishlist.clearForTest()
         context = ApplicationProvider.getApplicationContext()
+        com.pssst.data.local.GoalPrefs.update(context) { com.pssst.data.local.GoalConfig() }
         WorkManagerTestInitHelper.initializeTestWorkManager(context)
         database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).allowMainThreadQueries().build()
         ingest = SnapshotIngest(context, database, TestPreferences(uuid), now = { 1_800_000_000_000L })
@@ -48,6 +50,7 @@ class IconFlowTest {
 
     @After
     fun tearDown() {
+        com.pssst.util.IconWishlist.clearForTest()
         database.close()
     }
 
@@ -111,6 +114,50 @@ class IconFlowTest {
         assertTrue("the app's own birdhouse/daily icons are asked for too", missing.contains(21512))
         assertTrue("inventory and GE icons are requested before bank icons", missing.indexOf(4152) < missing.indexOf(5952))
         assertTrue(missing.size <= SnapshotIngest.MAX_ICON_REQUESTS)
+    }
+
+    @Test
+    fun pickerWishlistAndGoalTargetHaveHighestPriorityAndBackfillStopsTryingOnceAttempted() = runBlocking {
+        // Seed all built-in app icons so primaryMissing only has what we explicitly test
+        val builtInIds = (
+            com.pssst.ui.main.SkillUiModel.SKILL_ITEM_IDS.values +
+                listOf(257, 21512, 11738, 995) +
+                com.pssst.util.FarmingPaymentCatalog.ALL_PAYMENT_ITEM_IDS +
+                com.pssst.util.DailyTasks.ALL_DAILY_ITEM_IDS +
+                com.pssst.ui.main.BirdHouseUiModel.ALL_BIRDHOUSE_ITEM_IDS
+            ).distinct()
+        database.itemManifestDao().insertAll(
+            builtInIds.map { ItemManifestEntity(it, "BuiltIn $it", "ICON", 100L) } +
+                listOf(
+                    ItemManifestEntity(20997, "Twisted bow", null, 1_600_000_000L),
+                    ItemManifestEntity(27277, "Tumeken's shadow", null, 1_200_000_000L),
+                    ItemManifestEntity(22325, "Scythe of vitur", null, 1_500_000_000L),
+                    ItemManifestEntity(19553, "Amulet of torture", null, 18_000_000L),
+                    ItemManifestEntity(1001, "Cheap bronze item", null, 500L)
+                )
+        )
+
+        // Goal target = 20997, picker search result = 27277
+        com.pssst.data.local.GoalPrefs.update(context) {
+            com.pssst.data.local.GoalConfig(targetItemId = 20997)
+        }
+        com.pssst.util.IconWishlist.recordPickerIds(listOf(27277))
+
+        val firstPass = ingest.missingIcons(snapshot("""{"observedAt":1}"""))
+        // Goal target (20997) and picker search (27277) come first, followed by high-value backfill (22325, 19553)
+        assertEquals(listOf(20997, 27277, 22325, 19553), firstPass)
+        assertFalse("items below 100K GP are not backfilled", firstPass.contains(1001))
+
+        // Suppose RuneLite delivers 20997 and 27277, but does not return 22325 or 19553:
+        // On the next sync, backfill must NOT endlessly re-request 22325 or 19553.
+        database.itemManifestDao().applyIcons(
+            listOf(
+                ItemManifestEntity(20997, "Twisted bow", "TBOW_PNG", 0L),
+                ItemManifestEntity(27277, "Tumeken's shadow", "SHADOW_PNG", 0L)
+            )
+        )
+        val secondPass = ingest.missingIcons(snapshot("""{"observedAt":2}"""))
+        assertTrue("backfill stops trying once all qualifying items have been attempted", secondPass.isEmpty())
     }
 
     @Test
