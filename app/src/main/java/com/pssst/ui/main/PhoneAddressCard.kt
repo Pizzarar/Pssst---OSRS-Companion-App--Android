@@ -14,9 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pssst.theme.OsrsGold
@@ -30,7 +28,7 @@ import com.pssst.util.PhoneAddresses
 @Composable
 fun PhoneAddressCard(state: MainDashboardUiState, modifier: Modifier = Modifier, onHelp: () -> Unit = {}) {
     val context = LocalContext.current
-    val clipboard = LocalClipboardManager.current
+    val copyText = rememberCopyText()
     var addresses by remember { mutableStateOf(PhoneAddresses.forDisplay(context)) }
     val waiting = state.lastSyncedAt <= 0L
 
@@ -69,7 +67,7 @@ fun PhoneAddressCard(state: MainDashboardUiState, modifier: Modifier = Modifier,
                     Text(address.host, style = MaterialTheme.typography.titleLarge, color = OsrsGold, fontWeight = FontWeight.Bold)
                     Text(address.label, style = MaterialTheme.typography.labelSmall, color = OsrsTextMuted)
                 }
-                TextButton(onClick = { clipboard.setText(AnnotatedString(address.host)) }) {
+                TextButton(onClick = { copyText(address.host) }) {
                     Text("Copy", color = OsrsGold)
                 }
             }

@@ -47,7 +47,7 @@ android {
     sourceSets {
       // Lets MigrationTestHelper find the exported schemas under Robolectric, which reads the app's merged assets.
       // Debug builds only, so release APKs do not carry them.
-      getByName("debug").assets.srcDir("$projectDir/schemas")
+      getByName("debug").assets.directories.add("$projectDir/schemas")
     }
 
     testOptions {

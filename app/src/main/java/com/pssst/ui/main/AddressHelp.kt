@@ -17,9 +17,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pssst.theme.OsrsGold
@@ -32,7 +30,7 @@ import com.pssst.theme.osrsPanel
 /** Shown on the Overview when RuneLite was sending to an address this phone no longer has. */
 @Composable
 fun AddressChangedBanner(newAddress: String, onHelp: () -> Unit, modifier: Modifier = Modifier) {
-    val clipboard = LocalClipboardManager.current
+    val copyText = rememberCopyText()
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -58,7 +56,7 @@ fun AddressChangedBanner(newAddress: String, onHelp: () -> Unit, modifier: Modif
                 color = OsrsGold,
                 modifier = Modifier.weight(1f)
             )
-            TextButton(onClick = { clipboard.setText(AnnotatedString(newAddress)) }) { Text("Copy", color = OsrsGold) }
+            TextButton(onClick = { copyText(newAddress) }) { Text("Copy", color = OsrsGold) }
         }
         Text(
             text = "If RuneLite uses a name for your phone instead, you can ignore this.",

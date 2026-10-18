@@ -30,9 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -44,6 +42,7 @@ import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.osrsPanel
 import com.pssst.ui.main.MainViewModel
+import com.pssst.ui.main.rememberCopyText
 import com.pssst.util.PhoneAddresses
 import com.pssst.worker.SyncScheduler
 
@@ -63,7 +62,7 @@ fun SetupScreen(
     var rememberMe by remember { mutableStateOf(viewModel.uiState.value.rememberedUuid.isNotBlank() || initialUuid.isNotBlank()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
-    val clipboard = LocalClipboardManager.current
+    val copyText = rememberCopyText()
     var phoneAddresses by remember { mutableStateOf(PhoneAddresses.forDisplay(context)) }
 
     val fieldColors = OutlinedTextFieldDefaults.colors(
@@ -185,7 +184,7 @@ fun SetupScreen(
                                 Text(address.host, style = MaterialTheme.typography.titleMedium, color = OsrsGold, fontWeight = FontWeight.Bold)
                                 Text(address.label, style = MaterialTheme.typography.labelSmall, color = OsrsTextMuted)
                             }
-                            TextButton(onClick = { clipboard.setText(AnnotatedString(address.host)) }) {
+                            TextButton(onClick = { copyText(address.host) }) {
                                 Text("Copy", color = OsrsGold)
                             }
                         }
