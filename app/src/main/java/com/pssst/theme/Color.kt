@@ -31,11 +31,14 @@ val OsrsTextMuted = Color(0xFFB8A88A)      // Muted subtext / parchment
 val OsrsTextPrimary = Color(0xFFFFE0A0)    // Primary warm text
 
 // Art Packet Derived Shades — Carved Stone
-val OsrsStonePoreDark = Color(0xFF14110D)  // Deep stone pit / pore speckle shadow
+val OsrsStonePoreDark = Color(0xFF14110D)  // Deep stone pit / mortar line shadow
+val OsrsStoneMid = Color(0xFF1E1A15)       // Intermediate stone ground block tone between OsrsDarkStone and OsrsSlotEmpty
+val OsrsPanelMid = Color(0xFF27211A)       // Intermediate panel stone mottling tone between OsrsSlotEmpty and OsrsPanelDark
 val OsrsStoneFlecks = Color(0xFF473E31)    // Warm mineral fleck highlight in carved stone
 
 // Art Packet Derived Shades — Aged Dark Oak
 val OsrsOakBase = Color(0xFF241B13)        // Heartwood plank base fill for top bar & table headers
+val OsrsOakMid = Color(0xFF2D2218)         // Intermediate oak plank grain tone between OsrsOakBase and OsrsOakGrainLight
 val OsrsOakGrainDark = Color(0xFF16100B)   // Wood growth-ring trough & plank seam shadow
 val OsrsOakGrainLight = Color(0xFF36281C)  // Planed oak ridge highlight
 
@@ -56,6 +59,14 @@ val OsrsIronBody = Color(0xFF23201D)       // Forged wrought-iron strap, bracket
 val OsrsIronEdgeLight = Color(0xFF524B42)  // Hammered iron bevel glint
 val OsrsIronEdgeDark = Color(0xFF0E0C0A)   // Forged iron shadow & deep groove
 val OsrsBrassMid = Color(0xFFB8863B)       // Aged brass bezel & plaque trim
+
+// Art Packet Derived Shades — Natural Sprite & Badge Ramps
+val OsrsHerbLight = Color(0xFF7CC47F)      // Top-left pixel highlight on natural herb and tree sprites
+val OsrsHerbDark = Color(0xFF2E6B31)       // Bottom-right pixel shadow on natural herb and tree sprites
+val OsrsWoodLight = Color(0xFF9A6B3A)      // Top-left pixel highlight on wooden sprite hardware (chests, birdhouses, stakes)
+val OsrsWoodBase = Color(0xFF6B4826)       // Mid-tone wood fill on natural sprites and empty-state scenes
+val OsrsWoodDark = Color(0xFF3F2A16)       // Bottom-right pixel shadow on wooden sprite hardware
+val OsrsRedDark = Color(0xFF8E2626)        // Bottom-right pixel shadow on warning badges and danger plaques
 
 // Art Packet Derived Shades — Crimson Sealing Wax
 val OsrsWaxCrimson = Color(0xFF7A1C1C)     // Melted crimson wax seal body
