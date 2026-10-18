@@ -5,6 +5,7 @@ import android.app.Application
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -15,6 +16,8 @@ import androidx.navigation3.ui.NavDisplay
 import com.pssst.ui.main.DashboardScreen
 import com.pssst.ui.main.MainViewModel
 import com.pssst.ui.setup.SetupScreen
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Composable
 fun MainNavigation(
@@ -25,6 +28,7 @@ fun MainNavigation(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val appContext = LocalContext.current.applicationContext
+    val scope = rememberCoroutineScope()
     val initialKey = if (uiState.hasConfiguredUuid) DashboardNavKey else SetupNavKey
     val backStack = rememberNavBackStack(initialKey)
 
@@ -56,7 +60,11 @@ fun MainNavigation(
                     onPotionSearchQueryChanged = { viewModel.onPotionSearchQueryChanged(it) },
                     onQuestSearchQueryChanged = { viewModel.onQuestSearchQueryChanged(it) },
                     onQuestFilterChanged = { viewModel.onQuestFilterChanged(it) },
-                    onToggleNotifications = { viewModel.setNotificationsEnabled(it) },
+                    onToggleNotifications = { enabled ->
+                        viewModel.setNotificationsEnabled(enabled)
+                        // Queue (or cancel) the reminders from the saved snapshot right now, with or without a network
+                        scope.launch(Dispatchers.IO) { SyncScheduler.replanFromCache(appContext, enabled) }
+                    },
                     onDisconnect = {
                         SyncScheduler.cancelAll(appContext)
                         viewModel.clearUuid()

@@ -336,6 +336,111 @@ class SyncWorkerTest {
     }
 
 
+    // --- LAN-first: away from the PC, and when the game last saw the data -----------------------------------------
+
+    private fun syncOnceAttempt(prefs: TestSyncUserPreferencesRepository, attempt: Int): ListenableWorker.Result = runBlocking {
+        SyncWorker.defaultApiService = StateApiService.create(prefs, OkHttpClient.Builder().build())
+        SyncWorker.defaultDatabase = database
+        SyncWorker.defaultPreferences = prefs
+        TestListenableWorkerBuilder<SyncWorker>(context).setRunAttemptCount(attempt).build().doWork()
+    }
+
+    @Test
+    fun syncWorker_aPcThatIsNotThereEndsQuietlyWithNoRetryAndNoFailureCount() {
+        // Nothing listens on port 1: the connection is refused, exactly like a phone away from home
+        val prefs = TestSyncUserPreferencesRepository(testUuid, "http://127.0.0.1:1")
+        prefs.lastStatus = "OK 10:00:00 inv=3 bank=100 slayer=none"
+
+        assertEquals(ListenableWorker.Result.success(), syncOnce(prefs))
+
+        assertEquals("away from home is not a failure", 0, prefs.failures)
+        assertEquals(SyncWorker.STATUS_UNREACHABLE, prefs.lastStatus)
+    }
+
+    @Test
+    fun syncWorker_repeatedUnreachableRunsNeverTurnIntoAnError() {
+        val prefs = TestSyncUserPreferencesRepository(testUuid, "http://127.0.0.1:1")
+        repeat(SyncWorker.FAILURES_BEFORE_UNREACHABLE + 2) {
+            assertEquals(ListenableWorker.Result.success(), syncOnce(prefs))
+        }
+        assertEquals(0, prefs.failures)
+        assertEquals(SyncWorker.STATUS_UNREACHABLE, prefs.lastStatus)
+    }
+
+    @Test
+    fun syncWorker_stopsRetryingAfterAFewAttempts() {
+        val prefs = serverPrefs()
+        mockWebServer.enqueue(MockResponse().setResponseCode(503))
+        assertEquals(ListenableWorker.Result.retry(), syncOnceAttempt(prefs, 0))
+        mockWebServer.enqueue(MockResponse().setResponseCode(503))
+        assertEquals(ListenableWorker.Result.retry(), syncOnceAttempt(prefs, 1))
+        mockWebServer.enqueue(MockResponse().setResponseCode(503))
+        assertEquals("the third attempt ends the chain; the next trigger tries again",
+            ListenableWorker.Result.success(), syncOnceAttempt(prefs, SyncWorker.MAX_ATTEMPTS - 1))
+    }
+
+    @Test
+    fun syncWorker_unreachableMeansRefusedTimedOutOrNoRouteNotADropMidTransfer() {
+        assertTrue(SyncWorker.isUnreachable(java.net.ConnectException("refused")))
+        assertTrue(SyncWorker.isUnreachable(java.net.SocketTimeoutException("connect timed out")))
+        assertTrue(SyncWorker.isUnreachable(java.net.UnknownHostException("pssst.example")))
+        assertTrue(SyncWorker.isUnreachable(java.net.NoRouteToHostException("no route")))
+        assertTrue(SyncWorker.isUnreachable(java.net.SocketException("Network is unreachable")))
+        assertTrue(SyncWorker.isUnreachable(java.io.IOException("wrapped", java.net.ConnectException("refused"))))
+        assertFalse(SyncWorker.isUnreachable(java.net.SocketException("Connection reset")))
+        assertFalse(SyncWorker.isUnreachable(java.io.IOException("unexpected end of stream")))
+        assertFalse(SyncWorker.isUnreachable(IllegalStateException("bug")))
+    }
+
+    @Test
+    fun syncWorker_neverReplacesSavedDataWithAnOlderObservation() {
+        val saved = PlayerStateEntity(
+            testUuid, 5_000L, """{"data":{"observedAt":2000,"inventory":[{"id":1,"quantity":1}]},"updated_at":5}""",
+            "{}", "{}", "[]", "[]", 0L
+        )
+        database.playerStateDao().upsert(saved)
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200).setBody("""{"data": {"observedAt": 1000, "inventory": []}, "updated_at": 9}""")
+        )
+        val prefs = serverPrefs()
+
+        assertEquals(ListenableWorker.Result.success(), syncOnce(prefs))
+
+        assertEquals(SyncWorker.STATUS_OLDER, prefs.lastStatus)
+        assertTrue("the saved row is untouched", database.playerStateDao().getStateByUuid(testUuid)!!.rawJson.contains(""""observedAt":2000"""))
+    }
+
+    @Test
+    fun syncWorker_acceptsNewerOrUnstampedDataOverStampedData() {
+        val saved = PlayerStateEntity(
+            testUuid, 5_000L, """{"data":{"observedAt":2000},"updated_at":5}""", "{}", "{}", "[]", "[]", 0L
+        )
+        database.playerStateDao().upsert(saved)
+        mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody("""{"data": {"observedAt": 3000}, "updated_at": 9}"""))
+        assertEquals(ListenableWorker.Result.success(), syncOnce(serverPrefs()))
+        assertTrue(database.playerStateDao().getStateByUuid(testUuid)!!.rawJson.contains(""""observedAt":3000"""))
+
+        mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody("""{"data": {"inventory": []}, "updated_at": 10}"""))
+        val prefs = serverPrefs()
+        assertEquals(ListenableWorker.Result.success(), syncOnce(prefs))
+        assertTrue("an older plugin without observedAt is still accepted", prefs.lastStatus!!.startsWith("OK"))
+    }
+
+    @Test
+    fun syncWorker_stampsPricesWithWhenTheGameSawThemNotWhenTheyWereServed() {
+        database.itemManifestDao().insertAll(listOf(ItemManifestEntity(4151, "Abyssal whip", null, 500L, 1000L)))
+        val observedAtMs = 1_750_000_000_000L
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                """{"data": {"observedAt": $observedAtMs, "prices": {"4151": 1500000}}, "updated_at": ${observedAtMs + 86_400_000L}}"""
+            )
+        )
+
+        assertEquals(ListenableWorker.Result.success(), syncOnce(serverPrefs()))
+
+        assertEquals(observedAtMs, database.itemManifestDao().getItemById(4151).priceUpdatedAt)
+    }
+
     @Test
     fun syncWorker_appliesThePricesTheRuneLitePluginSent() {
         val updatedAtSeconds = 1_800_000_000L

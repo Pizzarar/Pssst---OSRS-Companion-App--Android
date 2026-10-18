@@ -8,6 +8,13 @@ data class StateResponse(
 )
 
 data class StateDataDto(
+    /**
+     * Epoch ms of the last moment the game itself fed this snapshot (not when the PC served it, and not when this
+     * phone fetched it). Absent (0) from plugins that predate it; then [StateResponse.updatedAt] is the best guess.
+     */
+    @SerializedName("observedAt") val observedAt: Long = 0L,
+    /** When the bank and potion storage were last read from the open bank (they are carried over between sessions). */
+    @SerializedName("bankObservedAt") val bankObservedAt: Long = 0L,
     @SerializedName("inventory") val inventory: List<ItemEntryDto> = emptyList(),
     @SerializedName("bank") val bank: List<ItemEntryDto> = emptyList(),
     @SerializedName("varbits") val varbits: Map<String, Int> = emptyMap(),

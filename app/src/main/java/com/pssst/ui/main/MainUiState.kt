@@ -282,6 +282,8 @@ data class MainDashboardUiState(
     val hasConfiguredUuid: Boolean = false,
     val lastUpdated: Long = 0L,
     val lastSyncedAt: Long = 0L,
+    /** When the game last fed the snapshot (observedAt), falling back to the server's updated_at. */
+    val gameObservedAt: Long = 0L,
     val lastSyncStatus: String? = null,
     val bankItems: List<ItemUiModel> = emptyList(),
     val inventorySlots: List<InventorySlotUiModel> = (0 until 28).map { InventorySlotUiModel(it) },

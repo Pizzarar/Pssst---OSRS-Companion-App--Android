@@ -10,7 +10,13 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import android.util.Log
+import com.google.gson.Gson
+import com.pssst.data.local.AppDatabase
+import com.pssst.data.local.DataStoreUserPreferencesRepository
+import com.pssst.data.local.PlayerStateEntity
 import com.pssst.data.network.model.BirdhouseEntryDto
+import com.pssst.data.network.model.StateResponse
+import kotlinx.coroutines.runBlocking
 import com.pssst.data.network.model.FarmingEntryDto
 import com.pssst.util.ReminderPlanner
 import com.pssst.util.QueuedReminder
@@ -45,7 +51,10 @@ object SyncScheduler {
     }
 
     fun syncNow(context: Context) {
+        // Waits for a network instead of failing, so opening the app offline still syncs when the phone gets back on
+        // Wi-Fi. If the PC is simply not there, the worker ends quietly (see SyncWorker.isUnreachable).
         val oneTimeWorkRequest = OneTimeWorkRequestBuilder<SyncWorker>()
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .addTag(SyncWorker.TAG)
             .build()
 
@@ -80,6 +89,28 @@ object SyncScheduler {
 
     fun cancelSync(context: Context) {
         WorkManager.getInstance(context).cancelUniqueWork(SYNC_WORK_NAME)
+    }
+
+    /**
+     * Queues the reminders from the snapshot already saved on the phone, with no network involved. Timers and
+     * notifications are computed from the last observation plus elapsed time, so they must not depend on a sync
+     * having just succeeded (turning notifications on while away from the PC would otherwise queue nothing).
+     */
+    fun replanFromCache(context: Context, notificationsEnabled: Boolean) {
+        try {
+            val appContext = context.applicationContext
+            val uuid = runBlocking { DataStoreUserPreferencesRepository(appContext).getUuid() }
+            if (uuid.isNullOrBlank()) return
+            val entity = AppDatabase.getDatabase(appContext).playerStateDao().getStateByUuid(uuid) ?: return
+            replanFromEntity(appContext, entity, notificationsEnabled)
+        } catch (e: Exception) {
+            Log.w("SyncScheduler", "Could not replan reminders from the saved snapshot", e)
+        }
+    }
+
+    internal fun replanFromEntity(context: Context, entity: PlayerStateEntity, notificationsEnabled: Boolean) {
+        val data = Gson().fromJson(entity.rawJson, StateResponse::class.java)?.data ?: return
+        syncReminders(context, data.farming, data.birdhouses, notificationsEnabled)
     }
 
     /**

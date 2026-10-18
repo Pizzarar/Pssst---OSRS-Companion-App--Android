@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import com.pssst.data.local.AppDatabase
 import com.pssst.data.local.AssetDatabaseSeeder
+import com.pssst.data.local.DataStoreUserPreferencesRepository
 import com.pssst.theme.PssstTheme
 import com.pssst.worker.SyncScheduler
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +36,11 @@ class MainActivity : ComponentActivity() {
   override fun onResume() {
     super.onResume()
     SyncScheduler.syncNow(this)
+    // Reminders come from the saved snapshot, so they are in place even if this sync cannot reach the PC
+    lifecycleScope.launch(Dispatchers.IO) {
+      val enabled = DataStoreUserPreferencesRepository(applicationContext).getNotificationsEnabled()
+      SyncScheduler.replanFromCache(applicationContext, enabled)
+    }
   }
 }
 

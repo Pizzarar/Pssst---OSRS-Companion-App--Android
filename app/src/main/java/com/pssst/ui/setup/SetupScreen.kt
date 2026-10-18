@@ -233,7 +233,7 @@ fun SetupScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Find your Sync Token in RuneLite → Configuration → Pssst Companion → Master Sync.\nFor the server, use your PC's address on the same Wi-Fi, or its Tailscale (or other VPN) address.",
+            text = "In RuneLite, open the Pssst panel in the side bar. It shows the address and the Sync Token to enter here.\nYour phone needs to be on the same Wi-Fi as your PC (or on Tailscale) to get fresh data. Your last data and timers stay on the phone when you are away.",
             style = MaterialTheme.typography.bodySmall,
             color = OsrsTextMuted,
             textAlign = TextAlign.Center

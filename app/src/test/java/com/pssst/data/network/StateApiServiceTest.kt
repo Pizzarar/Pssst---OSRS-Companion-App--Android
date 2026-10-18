@@ -1,6 +1,8 @@
 package com.pssst.data.network
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class StateApiServiceTest {
@@ -63,5 +65,15 @@ class StateApiServiceTest {
             "https://example.com/state",
             DynamicStateApiService.buildStateUrl("https://example.com/")
         )
+    }
+
+    @Test
+    fun isHomeNetworkHost_coversHomeRangesAndTailscaleButNotTheInternet() {
+        for (home in listOf("192.168.1.20", "10.0.0.7", "172.16.0.1", "172.31.255.254", "100.64.0.1", "100.127.1.1", "169.254.1.1", "pc.local")) {
+            assertTrue(home, DynamicStateApiService.isHomeNetworkHost(home))
+        }
+        for (other in listOf("8.8.8.8", "172.32.0.1", "172.15.0.1", "100.63.0.1", "100.128.0.1", "pssst.workers.dev", "example.com", "1.2.3", "300.1.1.1")) {
+            assertFalse(other, DynamicStateApiService.isHomeNetworkHost(other))
+        }
     }
 }

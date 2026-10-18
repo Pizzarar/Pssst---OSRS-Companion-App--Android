@@ -17,7 +17,13 @@ import com.pssst.notification.NotificationHelper
 import com.pssst.util.StateDiffAnalyzer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.pssst.data.network.model.StateResponse
+import java.net.ConnectException
+import java.net.NoRouteToHostException
+import java.net.SocketException
+import java.net.SocketTimeoutException
 import java.net.URI
+import java.net.UnknownHostException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -76,7 +82,7 @@ class SyncWorker(
                     else -> {
                         Log.e(TAG, "API error fetching state: $code ${response.message()}")
                         recordFailure("HTTP $code")
-                        return@withContext if (code in 500..599) Result.retry() else Result.failure()
+                        return@withContext if (code in 500..599) retryOrGiveUp() else Result.failure()
                     }
                 }
             }
@@ -90,6 +96,16 @@ class SyncWorker(
 
             val dao = database.playerStateDao()
             val previousEntity = dao.getStateByUuid(uuid)
+
+            // Never replace what is saved with something the game observed earlier (a stale or wrong PC)
+            val newObservedAt = stateResponse.data?.observedAt ?: 0L
+            val savedObservedAt = observedAtOf(previousEntity)
+            if (newObservedAt > 0 && savedObservedAt > newObservedAt) {
+                Log.w(TAG, "Ignoring a snapshot the game observed before the one already saved")
+                preferencesRepository.saveSyncFailures(0)
+                preferencesRepository.saveLastSyncStatus(STATUS_OLDER)
+                return@withContext Result.success()
+            }
 
             val notificationsEnabled = preferencesRepository.getNotificationsEnabled()
 
@@ -139,7 +155,9 @@ class SyncWorker(
             // Prices come with the snapshot, from the player's own RuneLite client; nobody else is asked
             val prices = data?.prices.orEmpty().mapNotNull { (id, price) -> id.toIntOrNull()?.let { it to price } }.toMap()
             if (prices.isNotEmpty()) {
-                database.itemManifestDao().applyPrices(prices, if (updatedAtMs > 0) updatedAtMs else System.currentTimeMillis())
+                // Stamped with when the game saw them: a snapshot the PC saved earlier is served with a fresh updated_at
+                val pricesAsOf = if (newObservedAt > 0) newObservedAt else if (updatedAtMs > 0) updatedAtMs else System.currentTimeMillis()
+                database.itemManifestDao().applyPrices(prices, pricesAsOf)
             }
 
             val invCount = data?.inventory?.size ?: 0
@@ -152,13 +170,27 @@ class SyncWorker(
             Log.i(TAG, "Successfully synced player state")
             Result.success()
         } catch (e: Exception) {
-            // A dropped connection must never end the schedule: WorkManager retries with backoff and the periodic
-            // sync carries on regardless
+            if (isUnreachable(e)) {
+                // Normal whenever the phone is away from the PC or the PC is off: say so quietly, keep the saved data,
+                // and let the next trigger or the periodic run try again. No retry, no failure count, no alarm.
+                Log.i(TAG, "Not reachable right now: ${e::class.java.simpleName}")
+                preferencesRepository.saveLastSyncStatus(STATUS_UNREACHABLE)
+                return@withContext Result.success()
+            }
+            // A dropped connection mid-transfer must never end the schedule: retry with backoff a few times, and the
+            // periodic sync carries on regardless
             Log.e(TAG, "Exception during player state sync ($fullUrl)", e)
             recordFailure(e::class.java.simpleName)
-            Result.retry()
+            retryOrGiveUp()
         }
     }
+
+    /** Retries with WorkManager's backoff, but only a few times: a broken server must not become a retry storm. */
+    private fun retryOrGiveUp(): Result =
+        if (runAttemptCount >= MAX_ATTEMPTS - 1) Result.success() else Result.retry()
+
+    private fun observedAtOf(entity: PlayerStateEntity?): Long =
+        runCatching { gson.fromJson(entity?.rawJson, StateResponse::class.java)?.data?.observedAt }.getOrNull() ?: 0L
 
     /**
      * Counts a failed sync. One or two in a row (flaky Wi-Fi, a server restart) change nothing the user sees; the
@@ -177,6 +209,29 @@ class SyncWorker(
         const val KEY_UUID = "key_uuid"
         const val NOTIFICATION_BASE_ID = 1000
         const val FAILURES_BEFORE_UNREACHABLE = 3
+        const val MAX_ATTEMPTS = 3
+        const val STATUS_UNREACHABLE = "Not reachable right now. Showing saved data."
+        const val STATUS_OLDER = "Ignored older data from the server"
+
+        /**
+         * True when the server simply could not be reached (phone away from home, PC off or asleep, no network):
+         * a refused or timed-out connection, no route, or an unresolvable name. A drop mid-transfer is not this.
+         */
+        fun isUnreachable(error: Throwable): Boolean {
+            var cause: Throwable? = error
+            var depth = 0
+            while (cause != null && depth < 6) {
+                if (cause is ConnectException || cause is NoRouteToHostException || cause is UnknownHostException ||
+                    cause is SocketTimeoutException ||
+                    (cause is SocketException && cause.message?.contains("unreachable", ignoreCase = true) == true)
+                ) {
+                    return true
+                }
+                cause = cause.cause
+                depth++
+            }
+            return false
+        }
 
         @VisibleForTesting
         var defaultApiService: StateApiService? = null

@@ -178,12 +178,21 @@ fun DashboardScreen(
                                 }
                                 state.lastSyncStatus?.let { status ->
                                     val isOk = status.startsWith("OK") || status.startsWith("Connected")
+                                    val isQuiet = status.startsWith(com.pssst.worker.SyncWorker.STATUS_UNREACHABLE)
                                     Text(
                                         text = status,
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = if (isOk) OsrsHerbGreen else OsrsRed
+                                        color = if (isOk) OsrsHerbGreen else if (isQuiet) OsrsTextMuted else OsrsRed
                                     )
+                                    if (state.lastSyncedAt > 0L) {
+                                        val checkedNow by rememberNowMs()
+                                        Text(
+                                            text = "Checked " + TimeFormat.ageLabel(checkedNow - state.lastSyncedAt),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = OsrsTextMuted
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -350,20 +359,17 @@ fun DashboardScreen(
                 ) {
                     TopAppBar(
                         title = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
                                 Text(
                                     text = "Pssst • ${currentTab.title}",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = OsrsGold
                                 )
-                                if (state.lastSyncedAt > 0L) {
-                                    val rel = android.text.format.DateUtils.getRelativeTimeSpanString(state.lastSyncedAt)
+                                if (state.gameObservedAt > 0L) {
+                                    val nowMs by rememberNowMs()
                                     Text(
-                                        text = "($rel)",
+                                        text = "Game state from " + TimeFormat.ageLabel(nowMs - state.gameObservedAt),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = OsrsTextMuted,
                                         maxLines = 1,

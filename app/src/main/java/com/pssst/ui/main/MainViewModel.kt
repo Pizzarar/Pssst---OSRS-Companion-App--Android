@@ -457,6 +457,7 @@ class MainViewModel(
             hasConfiguredUuid = uuid.isNotBlank(),
             lastUpdated = entity.updatedAt,
             lastSyncedAt = entity.lastSyncedAt,
+            gameObservedAt = payload?.observedAt?.takeIf { it > 0 } ?: entity.updatedAt,
             lastSyncStatus = lastSyncStatus,
             bankItems = bankItems,
             inventorySlots = inventorySlots,

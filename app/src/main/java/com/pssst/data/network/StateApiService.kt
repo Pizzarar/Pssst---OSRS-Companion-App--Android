@@ -21,6 +21,7 @@ interface StateApiService {
         // Retrofit insists on a base URL, but every request uses an absolute @Url taken from the user's own setting.
         // Nothing is ever sent here, and there is deliberately no default server.
         private const val UNUSED_BASE_URL = "https://localhost/"
+        private const val HOME_CONNECT_TIMEOUT_SECONDS = 5
 
         fun create(
             preferencesRepository: UserPreferencesRepository? = null,
@@ -29,6 +30,16 @@ interface StateApiService {
             val client = okHttpClient ?: OkHttpClient.Builder()
                 .connectTimeout(15, TimeUnit.SECONDS)
                 .readTimeout(15, TimeUnit.SECONDS)
+                .addInterceptor { chain ->
+                    // A PC on the home network answers in well under a second. When the phone is away, waiting 15 s
+                    // for it only wastes the sync window; a hosted server keeps the longer timeout.
+                    val host = chain.request().url.host
+                    if (DynamicStateApiService.isHomeNetworkHost(host)) {
+                        chain.withConnectTimeout(HOME_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS).proceed(chain.request())
+                    } else {
+                        chain.proceed(chain.request())
+                    }
+                }
                 .addInterceptor(HttpLoggingInterceptor().apply {
                     // BODY dumped the full bank + bearer token to logcat in every build
                     level = HttpLoggingInterceptor.Level.BASIC
@@ -102,6 +113,22 @@ internal class DynamicStateApiService(
             } catch (_: Exception) {
                 withScheme
             }
+        }
+
+        /** A literal address on a home network or Tailscale (192.168/16, 10/8, 172.16/12, 100.64/10, link-local), or a .local name. */
+        fun isHomeNetworkHost(host: String): Boolean {
+            val h = host.lowercase()
+            if (h.endsWith(".local")) return true
+            val parts = h.split('.')
+            if (parts.size != 4) return false
+            val octets = parts.map { it.toIntOrNull() ?: return false }
+            if (octets.any { it !in 0..255 }) return false
+            val (a, b) = octets
+            return a == 10 ||
+                (a == 192 && b == 168) ||
+                (a == 172 && b in 16..31) ||
+                (a == 100 && b in 64..127) ||
+                (a == 169 && b == 254)
         }
 
         fun isLoopbackUrl(url: String): Boolean {

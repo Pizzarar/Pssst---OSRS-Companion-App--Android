@@ -30,6 +30,31 @@ class SyncSchedulerTest {
 
     private fun live(tag: String) = workManager.getWorkInfosByTag(tag).get().filter { !it.state.isFinished }
 
+    private fun cachedEntity(raw: String) =
+        com.pssst.data.local.PlayerStateEntity("token-1234567890abcdef", 1L, raw, "{}", "{}", "[]", "[]", 0L)
+
+    @Test
+    fun replanFromEntity_queuesRemindersFromTheSavedSnapshotWithNoNetworkInvolved() {
+        val readyAt = System.currentTimeMillis() + 45 * 60_000L
+        val raw = """{"data":{"birdhouses":[{"space":"MEADOW_NORTH","state":"SEEDED","readyAt":$readyAt}]},"updated_at":1}"""
+
+        SyncScheduler.replanFromEntity(context, cachedEntity(raw), notificationsEnabled = true)
+        assertEquals(1, live(ReminderWorker.TAG).size)
+
+        SyncScheduler.replanFromEntity(context, cachedEntity(raw), notificationsEnabled = true)
+        assertEquals("replanning again does not duplicate", 1, live(ReminderWorker.TAG).size)
+
+        SyncScheduler.replanFromEntity(context, cachedEntity(raw), notificationsEnabled = false)
+        assertEquals("turning notifications off clears them", 0, live(ReminderWorker.TAG).size)
+    }
+
+    @Test
+    fun syncNow_waitsForANetworkInsteadOfFailing() {
+        SyncScheduler.syncNow(context)
+        val info = workManager.getWorkInfosForUniqueWork(SyncScheduler.SYNC_NOW_WORK_NAME).get().single()
+        assertEquals(androidx.work.NetworkType.CONNECTED, info.constraints.requiredNetworkType)
+    }
+
     @Test
     fun cancelAll_stopsTheSyncAndEveryQueuedReminder() {
         SyncScheduler.schedulePeriodicSync(context)

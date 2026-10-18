@@ -15,6 +15,10 @@ object TimeFormat {
         }
     }
 
+    /** "just now" under a minute, otherwise "42m ago", "3h 05m ago". */
+    fun ageLabel(ms: Long): String =
+        if (ms < 60_000L) "just now" else "${formatDuration(ms)} ago"
+
     /** "17 Oct 2026", in the device's time zone, or "unknown" for a zero/negative timestamp. */
     fun formatDate(epochMs: Long): String {
         if (epochMs <= 0) return "unknown"
