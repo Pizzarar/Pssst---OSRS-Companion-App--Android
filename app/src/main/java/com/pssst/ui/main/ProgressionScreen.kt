@@ -29,8 +29,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pssst.theme.JetBrainsMonoFontFamily
@@ -54,6 +57,8 @@ import com.pssst.theme.art.SpriteTones
 import com.pssst.theme.art.maxedSkillCorners
 import com.pssst.theme.osrsPanel
 import com.pssst.theme.osrsSlot
+import com.pssst.util.OsrsXpTable
+import java.util.Locale
 
 enum class ProgressionSubTab(val title: String) {
     SKILLS("Skills & XP"),
@@ -164,42 +169,50 @@ fun combatLevel(skills: List<SkillUiModel>): Int {
     return kotlin.math.floor(base + maxOf(melee, range, mage)).toInt().coerceAtLeast(3)
 }
 
+private fun formatCompactBracketXp(xp: Long): String {
+    return when {
+        xp >= 1_000_000_000L -> String.format(Locale.US, "%.2fB", xp / 1_000_000_000.0)
+        xp >= 1_000_000L -> String.format(Locale.US, "%.1fM", xp / 1_000_000.0)
+        xp >= 10_000L -> "${xp / 1_000L}K"
+        xp >= 1_000L -> String.format(Locale.US, "%.1fK", xp / 1_000.0)
+        else -> xp.toString()
+    }
+}
+
 /**
- * Top row of a skill tile: icon well as tall as the row, the level, and a two-line note on the right
- * (e.g. "561K" over "to 86"). The level is sized from the width the note leaves and the row height
- * (JetBrains Mono advances 0.6em per glyph), so the row fills the tile at any screen size.
+ * Top section of a skill tile: recessed icon well on the left, and a stacked column on the right
+ * with the level centered at top-middle and the XP metric ("177K / 337K" or "18.1M xp") below it.
  */
 @Composable
 private fun SkillHeaderRow(
     modifier: Modifier,
     level: String,
     levelColor: androidx.compose.ui.graphics.Color,
-    noteTop: String,
-    noteBottom: String,
-    noteTopColor: androidx.compose.ui.graphics.Color,
+    midPrimary: String,
+    midSecondary: String,
+    midPrimaryColor: androidx.compose.ui.graphics.Color,
     hasIcon: Boolean,
-    // Width the note is budgeted for, so every tile in the grid gets the same level size
-    noteTopSample: String = noteTop,
     icon: @Composable (inner: androidx.compose.ui.unit.Dp) -> Unit
 ) {
     androidx.compose.foundation.layout.BoxWithConstraints(modifier = modifier) {
         val density = androidx.compose.ui.platform.LocalDensity.current
         val gap = 4.dp
         val wellSize = (maxHeight * 0.92f).coerceIn(26.dp, 52.dp)
-        val noteTopDp = (maxHeight * 0.38f).coerceIn(11.dp, 13.dp)
-        val noteBottomDp = (noteTopDp * 0.82f).coerceAtLeast(10.dp)
-        // Bold sans digits run ~0.6em, lighter lowercase ~0.55em; the note is as wide as its longer line
-        val noteWidth = maxOf(
-            noteTopDp * (maxOf(noteTop.length, noteTopSample.length) * 0.6f),
-            noteBottomDp * (noteBottom.length * 0.55f)
-        )
-        val avail = (maxWidth - wellSize - gap * 2 - noteWidth).coerceAtLeast(0.dp)
-        val byWidth = avail / (level.length * 0.62f)
-        val byHeight = maxHeight * 0.95f
-        val levelDp = minOf(byWidth, byHeight).coerceIn(14.dp, 44.dp)
+        val availWidth = (maxWidth - wellSize - gap).coerceAtLeast(24.dp)
+
+        val levelDp = minOf(
+            maxHeight * 0.46f,
+            availWidth / (level.length.coerceAtLeast(2) * 0.64f)
+        ).coerceIn(11.dp, 16.dp)
+
+        val totalMidChars = (midPrimary.length + midSecondary.length).coerceAtLeast(1)
+        val midDp = minOf(
+            maxHeight * 0.42f,
+            availWidth / (totalMidChars * 0.63f)
+        ).coerceIn(9.dp, 13.5.dp)
+
         val levelSp = with(density) { levelDp.toSp() }
-        val noteTopSp = with(density) { noteTopDp.toSp() }
-        val noteBottomSp = with(density) { noteBottomDp.toSp() }
+        val midSp = with(density) { midDp.toSp() }
         val tight = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
 
         Row(
@@ -215,39 +228,51 @@ private fun SkillHeaderRow(
                 icon(wellSize - 4.dp)
             }
             Spacer(modifier = Modifier.width(gap))
-            Text(
-                text = level,
-                style = MaterialTheme.typography.titleMedium.copy(platformStyle = tight),
-                fontFamily = JetBrainsMonoFontFamily,
-                fontSize = levelSp,
-                lineHeight = levelSp,
-                fontWeight = FontWeight.ExtraBold,
-                color = levelColor,
-                maxLines = 1,
-                softWrap = false,
-                overflow = TextOverflow.Visible
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Column(horizontalAlignment = Alignment.End) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceEvenly
+            ) {
                 Text(
-                    text = noteTop,
-                    style = MaterialTheme.typography.labelSmall.copy(platformStyle = tight),
-                    fontSize = noteTopSp,
-                    lineHeight = noteTopSp * 1.1f,
-                    fontWeight = FontWeight.Bold,
-                    color = noteTopColor,
+                    text = level,
+                    style = MaterialTheme.typography.titleMedium.copy(platformStyle = tight),
+                    fontFamily = JetBrainsMonoFontFamily,
+                    fontSize = levelSp,
+                    lineHeight = levelSp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = levelColor,
                     maxLines = 1,
-                    softWrap = false
+                    softWrap = false,
+                    overflow = TextOverflow.Visible
                 )
                 Text(
-                    text = noteBottom,
+                    text = buildAnnotatedString {
+                        withStyle(
+                            SpanStyle(
+                                color = midPrimaryColor,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        ) {
+                            append(midPrimary)
+                        }
+                        withStyle(
+                            SpanStyle(
+                                color = OsrsTextMuted,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        ) {
+                            append(midSecondary)
+                        }
+                    },
                     style = MaterialTheme.typography.labelSmall.copy(platformStyle = tight),
-                    fontSize = noteBottomSp,
-                    lineHeight = noteBottomSp * 1.1f,
-                    fontWeight = FontWeight.SemiBold,
-                    color = OsrsTextMuted,
+                    fontFamily = JetBrainsMonoFontFamily,
+                    fontSize = midSp,
+                    lineHeight = midSp,
                     maxLines = 1,
-                    softWrap = false
+                    softWrap = false,
+                    overflow = TextOverflow.Visible
                 )
             }
         }
@@ -260,6 +285,12 @@ fun SkillCard(skill: SkillUiModel, modifier: Modifier = Modifier) {
         if (skill.itemId > 0) ItemIconCache.getOrCreate(skill.itemId, skill.iconBase64) else null
     }
     val isMaxed = skill.level >= 99
+    val levelLabel = if (isMaxed && skill.virtualLevel > 99) {
+        "99 (${skill.virtualLevel})"
+    } else {
+        "${skill.level}"
+    }
+    val bracketXp = (OsrsXpTable.xpForLevel(skill.level + 1) - OsrsXpTable.xpForLevel(skill.level)).coerceAtLeast(1L)
 
     Box(
         modifier = modifier
@@ -270,18 +301,17 @@ fun SkillCard(skill: SkillUiModel, modifier: Modifier = Modifier) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Row 1: icon well, level, and XP to the next level (total XP once there is no next level)
+            // Row 1: icon well on left; stacked top-middle level + middle XP row on right
             SkillHeaderRow(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-                level = "${skill.level}",
+                level = levelLabel,
                 levelColor = if (isMaxed) OsrsHerbGreen else OsrsGold,
-                noteTop = formatXp(if (isMaxed) skill.xp else skill.xpRemaining),
-                noteBottom = if (isMaxed) "xp" else "to ${skill.level + 1}",
-                noteTopColor = if (isMaxed) OsrsHerbGreen else OsrsTextPrimary,
-                hasIcon = bitmap != null,
-                noteTopSample = "13.5M"
+                midPrimary = if (isMaxed) formatXp(skill.xp) else formatCompactBracketXp(skill.xpRemaining),
+                midSecondary = if (isMaxed) " xp" else "/${formatCompactBracketXp(bracketXp)}",
+                midPrimaryColor = if (isMaxed) OsrsHerbGreen else OsrsTextPrimary,
+                hasIcon = bitmap != null
             ) { inner ->
                 if (bitmap != null) {
                     com.pssst.theme.art.PixelItemImage(
@@ -350,16 +380,16 @@ fun TotalSkillCard(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Row 1: star well, total level, total XP
+            // Row 1: star well, total level at top-middle, combat level below
             SkillHeaderRow(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
                 level = "$totalLevel",
                 levelColor = if (isMaxed) OsrsHerbGreen else OsrsGold,
-                noteTop = "$combatLevel",
-                noteBottom = "cmb",
-                noteTopColor = OsrsTextPrimary,
+                midPrimary = "$combatLevel",
+                midSecondary = " cmb",
+                midPrimaryColor = OsrsTextPrimary,
                 hasIcon = true
             ) { inner ->
                 PixelIcon(
