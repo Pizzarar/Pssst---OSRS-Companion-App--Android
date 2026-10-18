@@ -29,6 +29,8 @@ data class StateDataDto(
     @SerializedName("varps") val varps: Map<String, Int> = emptyMap(),
     /** GE price (gp) of each held or offered item, by the id that has the price; from the plugin's ItemManager. */
     @SerializedName("prices") val prices: Map<String, Long> = emptyMap(),
+    /** High Alchemy price (gp) of each held item; from the plugin's ItemManager. */
+    @SerializedName("haPrices", alternate = ["ha_prices"]) val haPrices: Map<String, Long> = emptyMap(),
     @SerializedName("slayer") val slayer: SlayerEntryDto? = null,
     @SerializedName("ge_offers", alternate = ["geOffers"]) val geOffers: List<GeOfferDto> = emptyList(),
     @SerializedName("skills") val skills: List<SkillEntryDto> = emptyList(),
@@ -65,7 +67,9 @@ data class ItemEntryDto(
     @SerializedName("id") val id: Int,
     @SerializedName("quantity") val quantity: Int,
     /** For a noted item: the unnoted item id, which is the one that has a name and a price. Absent otherwise. */
-    @SerializedName("baseId") val baseId: Int? = null
+    @SerializedName("baseId") val baseId: Int? = null,
+    /** Bank tab (1..9, 0 = Main tab). Absent for non-bank items. */
+    @SerializedName("tab") val tab: Int? = null
 ) {
     /** The id to look up in the item manifest. */
     val manifestId: Int get() = baseId ?: id

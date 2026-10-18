@@ -73,6 +73,8 @@ fun MainNavigation(
                         // Queue (or cancel) the reminders from the saved snapshot right now, with or without a network
                         scope.launch(Dispatchers.IO) { SyncScheduler.replanFromCache(appContext, enabled) }
                     },
+                    onSaveGoalConfig = { viewModel.saveGoalConfig(it) },
+                    onSearchGoalItem = { viewModel.onGoalSearchQueryChanged(it) },
                     onDisconnect = {
                         SyncScheduler.cancelAll(appContext)
                         viewModel.clearUuid()

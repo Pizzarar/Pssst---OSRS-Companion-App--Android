@@ -264,10 +264,11 @@ fun OsrsProgressBar(
     progress: Float,
     color: Color = OsrsHerbGreen,
     thin: Boolean = false,
+    height: Dp? = null,
     modifier: Modifier = Modifier
 ) {
     val clamped = progress.coerceIn(0f, 1f)
-    val barHeight = if (thin) 6.dp else 8.dp
+    val barHeight = height ?: if (thin) 6.dp else 8.dp
     Canvas(
         modifier = modifier
             .fillMaxWidth()

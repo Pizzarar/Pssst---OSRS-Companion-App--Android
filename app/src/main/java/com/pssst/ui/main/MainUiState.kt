@@ -1,5 +1,6 @@
 package com.pssst.ui.main
 
+import com.pssst.data.local.GoalConfig
 import com.pssst.data.network.model.BirdhouseEntryDto
 import com.pssst.data.network.model.FarmingEntryDto
 import com.pssst.util.FarmingTiming
@@ -13,9 +14,12 @@ data class ItemUiModel(
     val name: String = "",
     val iconBase64: String? = null,
     val gePrice: Long = 0L,
+    val haPrice: Long = 0L,
+    val tab: Int? = null,
     val formattedQuantity: String = formatQuantity(quantity)
 ) {
     val stackValue: Long get() = quantity.toLong() * gePrice
+    val stackHaValue: Long get() = quantity.toLong() * haPrice
 }
 
 data class InventorySlotUiModel(
@@ -369,7 +373,11 @@ data class MainDashboardUiState(
     val potionSearchQuery: String = "",
     val questSearchQuery: String = "",
     val questFilter: QuestFilter = QuestFilter.ALL,
-    val bankSortMode: BankSortMode = BankSortMode.DEFAULT
+    val bankSortMode: BankSortMode = BankSortMode.DEFAULT,
+    val isIronman: Boolean = false,
+    val goalConfig: GoalConfig = GoalConfig(),
+    val goalTargetItem: ItemUiModel? = null,
+    val goalItemSearchResults: List<ItemUiModel> = emptyList()
 ) {
     val totalBankValue: Long
         get() = bankItems.sumOf { it.stackValue }

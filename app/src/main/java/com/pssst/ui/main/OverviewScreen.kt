@@ -27,23 +27,27 @@ import com.pssst.theme.OsrsHerbGreen
 import com.pssst.theme.OsrsSlotEmpty
 import com.pssst.theme.OsrsStatusBadge
 import com.pssst.theme.OsrsTextMuted
+import com.pssst.data.local.GoalConfig
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.OsrsYellow
 import com.pssst.theme.osrsPanel
 
 /** The Overview tab's cards, in their default order. */
 enum class OverviewCard(val title: String) {
-    PHONE("Phone address"),
+    GOAL("Goal tracker"),
     WEALTH("Total account wealth"),
     STATUS("Ready now"),
     SLAYER("Slayer task"),
-    MISCELLANIA("Kingdom of Miscellania")
+    MISCELLANIA("Kingdom of Miscellania"),
+    PHONE("Phone address")
 }
 
 @Composable
 fun OverviewScreen(
     state: MainDashboardUiState,
     onNavigateToTab: (DashboardTab) -> Unit,
+    onSaveGoalConfig: (GoalConfig) -> Unit = {},
+    onSearchGoalItem: (String) -> Unit = {},
     editing: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -84,6 +88,11 @@ fun OverviewScreen(
         }
     ) { card ->
         when (card) {
+            OverviewCard.GOAL -> GoalCard(
+                state = state,
+                onSaveGoalConfig = onSaveGoalConfig,
+                onSearchGoalItem = onSearchGoalItem
+            )
             OverviewCard.PHONE -> PhoneAddressCard(state, onHelp = { showAddressHelp = true })
             OverviewCard.WEALTH -> TotalWealthCard(state)
             OverviewCard.STATUS -> QuickActionsBanner(

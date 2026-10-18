@@ -1,6 +1,8 @@
 package com.pssst.ui.main
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -263,14 +266,24 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
                     }
                 }
 
-                // Middle: Price & Bought/Sold label-value rows
+                // Middle: Price & Bought/Sold label-value rows inside recessed ledger well
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+                        .background(
+                            androidx.compose.ui.graphics.Brush.verticalGradient(
+                                listOf(OsrsSlotEmpty, com.pssst.theme.OsrsBorderDark.copy(alpha = 0.5f))
+                            )
+                        )
+                        .border(1.dp, com.pssst.theme.OsrsOuterFrame, androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+                        .padding(horizontal = 8.dp, vertical = 5.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
                     GeLabelValueRow(
                         label = "Price",
-                        value = formatGp(offer.price.toLong())
+                        value = formatGp(offer.price.toLong()),
+                        valueColor = OsrsGold
                     )
                     GeLabelValueRow(
                         label = if (isSell) "Sold" else "Bought",
@@ -317,7 +330,11 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun GeLabelValueRow(label: String, value: String) {
+private fun GeLabelValueRow(
+    label: String,
+    value: String,
+    valueColor: Color = OsrsTextPrimary
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -335,7 +352,7 @@ private fun GeLabelValueRow(label: String, value: String) {
             fontFamily = JetBrainsMonoFontFamily,
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
-            color = OsrsTextPrimary,
+            color = valueColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )

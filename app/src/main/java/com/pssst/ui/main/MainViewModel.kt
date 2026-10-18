@@ -9,6 +9,8 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.pssst.data.local.AppDatabase
 import com.pssst.data.local.DataStoreUserPreferencesRepository
+import com.pssst.data.local.GoalConfig
+import com.pssst.data.local.GoalPrefs
 import com.pssst.data.local.ItemManifestDao
 import com.pssst.data.local.ItemManifestEntity
 import com.pssst.data.local.PlayerStateDao
@@ -28,6 +30,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -35,6 +38,7 @@ class MainViewModel(
     private val playerStateDao: PlayerStateDao,
     private val preferencesRepository: UserPreferencesRepository,
     private val itemManifestDao: ItemManifestDao? = null,
+    private val application: Application? = null,
     sharingStarted: SharingStarted = SharingStarted.WhileSubscribed(5000)
 ) : ViewModel() {
 
@@ -81,11 +85,43 @@ class MainViewModel(
         PrefsState(uuid, rememberedUuid, serverUrl, lastSyncStatus, notificationsEnabled)
     }
 
+    private val goalConfigFlow: StateFlow<GoalConfig> = if (application != null) {
+        GoalPrefs.flow(application)
+    } else {
+        MutableStateFlow(GoalConfig())
+    }
+
+    private val goalSearchQueryFlow = MutableStateFlow("")
+
+    val goalSearchResultsFlow: StateFlow<List<ItemUiModel>> = goalSearchQueryFlow
+        .map { query ->
+            val clean = query.trim()
+            if (clean.length < 2 || itemManifestDao == null) {
+                emptyList()
+            } else {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    runCatching {
+                        itemManifestDao.searchItemsByName(clean, 10).map { entity ->
+                            ItemUiModel(
+                                id = entity.id,
+                                quantity = 1,
+                                name = entity.name,
+                                iconBase64 = entity.iconBase64,
+                                gePrice = entity.gePrice
+                            )
+                        }
+                    }.getOrDefault(emptyList())
+                }
+            }
+        }.stateIn(viewModelScope, sharingStarted, emptyList())
+
     val uiState: StateFlow<MainDashboardUiState> = combine(
         prefsFlow,
         playerStateDao.getLatestStateFlow(),
-        filtersFlow
-    ) { prefs, entityList, filters ->
+        filtersFlow,
+        goalConfigFlow,
+        goalSearchResultsFlow
+    ) { prefs, entityList, filters, goalConfig, goalSearchResults ->
         val activeUuid = prefs.uuid?.trim().orEmpty()
         val hasUuid = activeUuid.isNotEmpty()
         val currentServerUrl = prefs.serverUrl ?: ""
@@ -107,7 +143,9 @@ class MainViewModel(
                 potionSearchQuery = filters.potionSearchQuery,
                 questSearchQuery = filters.questSearchQuery,
                 questFilter = filters.questFilter,
-                bankSortMode = filters.bankSortMode
+                bankSortMode = filters.bankSortMode,
+                goalConfig = goalConfig,
+                goalItemSearchResults = goalSearchResults
             )
         } else {
             parseEntityToUiState(
@@ -117,7 +155,9 @@ class MainViewModel(
                 prefs.lastSyncStatus,
                 prefs.notificationsEnabled,
                 entity,
-                filters
+                filters,
+                goalConfig,
+                goalSearchResults
             )
         }
     }.stateIn(
@@ -132,6 +172,18 @@ class MainViewModel(
 
     fun onPotionSearchQueryChanged(query: String) {
         potionSearchQueryFlow.value = query
+    }
+
+    fun onGoalSearchQueryChanged(query: String) {
+        goalSearchQueryFlow.value = query
+    }
+
+    fun saveGoalConfig(config: GoalConfig) {
+        if (application != null) {
+            GoalPrefs.update(application) { config }
+        } else if (goalConfigFlow is MutableStateFlow<GoalConfig>) {
+            goalConfigFlow.value = config
+        }
     }
 
     fun onQuestSearchQueryChanged(query: String) {
@@ -201,7 +253,9 @@ class MainViewModel(
         lastSyncStatus: String?,
         notificationsEnabled: Boolean,
         entity: PlayerStateEntity,
-        filters: FilterState
+        filters: FilterState,
+        goalConfig: GoalConfig,
+        goalSearchResults: List<ItemUiModel>
     ): MainDashboardUiState {
         // Parse raw bank and inventory entries
         val bankEntries: List<ItemEntryDto> = try {
@@ -253,6 +307,7 @@ class MainViewModel(
             null
         }
 
+        val haPricesMap = payload?.haPrices.orEmpty()
         val farmingItemIds = payload?.farming.orEmpty().map { if (it.itemId > 0) it.itemId else 6055 }
         val birdhouseItemIds = payload?.birdhouses.orEmpty().map { BirdHouseUiModel.itemIdForType(it.houseType) }
 
@@ -270,7 +325,8 @@ class MainViewModel(
             SkillUiModel.SKILL_ITEM_IDS.values +
             topBarIconIds +
             farmingItemIds +
-            birdhouseItemIds
+            birdhouseItemIds +
+            listOfNotNull(goalConfig.targetItemId)
         ).distinct().filter { it > 0 }
 
         val dao = itemManifestDao
@@ -294,7 +350,7 @@ class MainViewModel(
             }.getOrDefault(0L)
         } ?: 0L
 
-        // Map to ItemUiModel with name, base64 icon, and gePrice
+        // Map to ItemUiModel with name, base64 icon, gePrice, haPrice, and tab
         val bankItems: List<ItemUiModel> = bankEntries.map { entry ->
             val manifest = manifestMap[entry.id]
             ItemUiModel(
@@ -302,7 +358,9 @@ class MainViewModel(
                 quantity = entry.quantity,
                 name = manifest?.name ?: "",
                 iconBase64 = manifest?.iconBase64,
-                gePrice = manifest?.gePrice ?: 0L
+                gePrice = manifest?.gePrice ?: 0L,
+                haPrice = haPricesMap[entry.id.toString()] ?: 0L,
+                tab = entry.tab
             )
         }
 
@@ -319,7 +377,9 @@ class MainViewModel(
                         quantity = entry.quantity,
                         name = manifest?.name?.let { if (entry.baseId != null) "$it (noted)" else it } ?: "",
                         iconBase64 = manifest?.iconBase64,
-                        gePrice = manifest?.gePrice ?: 0L
+                        gePrice = manifest?.gePrice ?: 0L,
+                        haPrice = haPricesMap[entry.manifestId.toString()] ?: 0L,
+                        tab = null
                     )
                 )
             } else {
@@ -482,6 +542,19 @@ class MainViewModel(
         }
 
         val topBarIcons = topBarIconIds.associateWith { manifestMap[it]?.iconBase64 }
+        val isIronman = (varbits["1777"] ?: 0) > 0
+
+        val goalTargetItem: ItemUiModel? = goalConfig.targetItemId?.let { targetId ->
+            val manifest = manifestMap[targetId]
+            ItemUiModel(
+                id = targetId,
+                quantity = 1,
+                name = manifest?.name ?: "Unknown item ($targetId)",
+                iconBase64 = manifest?.iconBase64,
+                gePrice = manifest?.gePrice ?: 0L,
+                haPrice = haPricesMap[targetId.toString()] ?: 0L
+            )
+        }
 
         return MainDashboardUiState(
             uuid = uuid,
@@ -514,7 +587,11 @@ class MainViewModel(
             potionSearchQuery = filters.potionSearchQuery,
             questSearchQuery = filters.questSearchQuery,
             questFilter = filters.questFilter,
-            bankSortMode = filters.bankSortMode
+            bankSortMode = filters.bankSortMode,
+            isIronman = isIronman,
+            goalConfig = goalConfig,
+            goalTargetItem = goalTargetItem,
+            goalItemSearchResults = goalSearchResults
         )
     }
 
@@ -525,7 +602,7 @@ class MainViewModel(
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     val db = AppDatabase.getDatabase(application)
                     val prefs = DataStoreUserPreferencesRepository(application)
-                    return MainViewModel(db.playerStateDao(), prefs, db.itemManifestDao()) as T
+                    return MainViewModel(db.playerStateDao(), prefs, db.itemManifestDao(), application = application) as T
                 }
             }
     }

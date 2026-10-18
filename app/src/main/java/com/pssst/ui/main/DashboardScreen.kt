@@ -98,6 +98,8 @@ fun DashboardScreen(
     onQuestFilterChanged: (QuestFilter) -> Unit,
     onDisconnect: () -> Unit,
     onToggleNotifications: (Boolean) -> Unit = {},
+    onSaveGoalConfig: (com.pssst.data.local.GoalConfig) -> Unit = {},
+    onSearchGoalItem: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -457,7 +459,7 @@ fun DashboardScreen(
                                             )
                                         }
                                         if (isSelected) {
-                                            val indH = 2.dp.toPx()
+                                            val indH = 3.dp.toPx()
                                             drawRect(
                                                 color = OsrsGold,
                                                 topLeft = Offset(0f, 0f),
@@ -465,23 +467,23 @@ fun DashboardScreen(
                                             )
                                         }
                                     }
-                                    .padding(vertical = 8.dp),
+                                    .padding(vertical = 10.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
                                 when (tab) {
-                                    DashboardTab.OVERVIEW -> ShieldVectorIcon(tint = tint, modifier = Modifier.size(19.dp))
-                                    DashboardTab.STORAGE -> ChestVectorIcon(tint = tint, modifier = Modifier.size(19.dp))
-                                    DashboardTab.GE -> CoinsVectorIcon(tint = tint, modifier = Modifier.size(19.dp))
-                                    DashboardTab.PROGRESSION -> StarVectorIcon(tint = tint, modifier = Modifier.size(19.dp))
-                                    DashboardTab.TIMERS -> HourglassVectorIcon(tint = tint, modifier = Modifier.size(19.dp))
+                                    DashboardTab.OVERVIEW -> ShieldVectorIcon(tint = tint, modifier = Modifier.size(24.dp))
+                                    DashboardTab.STORAGE -> ChestVectorIcon(tint = tint, modifier = Modifier.size(24.dp))
+                                    DashboardTab.GE -> CoinsVectorIcon(tint = tint, modifier = Modifier.size(24.dp))
+                                    DashboardTab.PROGRESSION -> StarVectorIcon(tint = tint, modifier = Modifier.size(24.dp))
+                                    DashboardTab.TIMERS -> HourglassVectorIcon(tint = tint, modifier = Modifier.size(24.dp))
                                 }
-                                Spacer(modifier = Modifier.height(2.dp))
+                                Spacer(modifier = Modifier.height(3.dp))
                                 Text(
                                     text = tab.title,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     color = tint,
-                                    fontSize = 10.sp,
+                                    fontSize = 11.5.sp,
                                     maxLines = 1,
                                     style = MaterialTheme.typography.labelSmall.copy(shadow = OsrsHardShadow)
                                 )
@@ -501,6 +503,8 @@ fun DashboardScreen(
                     DashboardTab.OVERVIEW -> OverviewScreen(
                         state = state,
                         onNavigateToTab = { selectedTabIndex = tabs.indexOf(it) },
+                        onSaveGoalConfig = onSaveGoalConfig,
+                        onSearchGoalItem = onSearchGoalItem,
                         editing = editing
                     )
                     DashboardTab.STORAGE -> StorageScreen(

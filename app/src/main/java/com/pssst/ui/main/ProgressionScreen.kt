@@ -47,6 +47,7 @@ import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.OsrsYellow
 import com.pssst.theme.osrsPanel
+import com.pssst.theme.osrsSlot
 
 enum class ProgressionSubTab(val title: String) {
     SKILLS("Skills & XP"),
@@ -142,81 +143,91 @@ fun SkillCard(skill: SkillUiModel, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .osrsPanel(showRivets = false)
-            .padding(horizontal = 8.dp, vertical = 6.dp)
+            .padding(horizontal = 7.dp, vertical = 5.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Row 1: 24dp Skill Icon on left, 20sp Level on right
+            // Row 1: 36dp recessed slot holding 30dp icon on left, 22sp level + 10sp XP on right
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (bitmap != null) {
-                    Image(
-                        bitmap = bitmap,
-                        contentDescription = skill.name,
-                        filterQuality = FilterQuality.None,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.size(24.dp)
-                    )
-                } else {
-                    Spacer(modifier = Modifier.size(24.dp))
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .osrsSlot(hasItem = bitmap != null, cornerRadius = 2.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap,
+                            contentDescription = skill.name,
+                            filterQuality = FilterQuality.None,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.size(30.dp)
+                        )
+                    }
                 }
-                Text(
-                    text = "${skill.level}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontFamily = JetBrainsMonoFontFamily,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = if (skill.level >= 99) OsrsHerbGreen else OsrsYellow
-                )
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "${skill.level}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontFamily = JetBrainsMonoFontFamily,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (skill.level >= 99) OsrsHerbGreen else OsrsYellow
+                    )
+                    Text(
+                        text = formatXp(skill.xp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = JetBrainsMonoFontFamily,
+                        fontSize = 10.sp,
+                        color = OsrsTextMuted,
+                        maxLines = 1
+                    )
+                }
             }
 
-            // Row 2: Full-width Skill Name
-            Text(
-                text = skill.name,
-                style = MaterialTheme.typography.bodyMedium,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = OsrsTextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            // Row 3: Standard height (8dp) progress bar
-            OsrsProgressBar(
-                progress = skill.progress,
-                color = if (skill.level >= 99) OsrsHerbGreen else OsrsGold,
-                thin = false
-            )
-
-            // Row 4: Formatted XP on left, % or MAX on right
+            // Row 2: Skill Name (12.5sp Bold, ellipsis) + % (10sp mono, MAX in green at 99)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${formatXp(skill.xp)} XP",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = JetBrainsMonoFontFamily,
-                    fontSize = 11.sp,
-                    color = OsrsTextMuted,
-                    maxLines = 1
+                    text = skill.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = OsrsTextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = if (skill.level >= 99) "MAX" else "${(skill.progress * 100).toInt()}%",
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = JetBrainsMonoFontFamily,
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (skill.level >= 99) OsrsHerbGreen else OsrsTextMuted,
                     maxLines = 1
                 )
             }
+
+            // Row 3: 3dp hairline bar
+            OsrsProgressBar(
+                progress = skill.progress,
+                color = if (skill.level >= 99) OsrsHerbGreen else OsrsGold,
+                height = 3.dp
+            )
         }
     }
 }
@@ -232,64 +243,81 @@ fun TotalSkillCard(
     Box(
         modifier = modifier
             .osrsPanel(showRivets = false)
-            .padding(horizontal = 8.dp, vertical = 6.dp)
+            .padding(horizontal = 7.dp, vertical = 5.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
+            // Row 1: 36dp recessed slot holding star icon, 22sp level + 10sp XP on right
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                StarVectorIcon(
-                    tint = OsrsGold,
-                    modifier = Modifier.size(24.dp)
-                )
-                Text(
-                    text = "$totalLevel",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontFamily = JetBrainsMonoFontFamily,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = if (isMaxed) OsrsHerbGreen else OsrsYellow
-                )
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .osrsSlot(hasItem = true, cornerRadius = 2.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    StarVectorIcon(
+                        tint = OsrsGold,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "$totalLevel",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontFamily = JetBrainsMonoFontFamily,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (isMaxed) OsrsHerbGreen else OsrsYellow
+                    )
+                    Text(
+                        text = formatXp(totalXp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = JetBrainsMonoFontFamily,
+                        fontSize = 10.sp,
+                        color = OsrsTextMuted,
+                        maxLines = 1
+                    )
+                }
             }
 
-            Text(
-                text = "Total Level",
-                style = MaterialTheme.typography.bodyMedium,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = OsrsGold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
+            // Row 2: "Total Level" on left, "/ 2277" on right
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${formatXp(totalXp)} XP",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = JetBrainsMonoFontFamily,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = OsrsTextPrimary,
-                    maxLines = 1
+                    text = "Total Level",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = OsrsGold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "/ $maxTotalLevel",
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = JetBrainsMonoFontFamily,
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     color = OsrsTextMuted,
                     maxLines = 1
                 )
             }
+
+            // Row 3: 3dp matching spacer so alignment matches skill tiles exactly
+            Spacer(modifier = Modifier.height(3.dp))
         }
     }
 }
