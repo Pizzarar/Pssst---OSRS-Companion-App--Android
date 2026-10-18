@@ -364,14 +364,14 @@ fun DashboardScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 6.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
+                            .padding(start = 6.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(
                             onClick = { scope.launch { drawerState.open() } },
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(44.dp)
                         ) {
-                            HamburgerVectorIcon(tint = OsrsGold, modifier = Modifier.size(22.dp))
+                            HamburgerVectorIcon(tint = OsrsGold, modifier = Modifier.size(26.dp))
                         }
                         Spacer(modifier = Modifier.width(6.dp))
                         Column(
@@ -381,7 +381,7 @@ fun DashboardScreen(
                             Text(
                                 text = currentTab.title,
                                 style = MaterialTheme.typography.titleMedium,
-                                fontSize = 18.sp,
+                                fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = OsrsGold,
                                 maxLines = 1,
@@ -394,7 +394,7 @@ fun DashboardScreen(
                                     "Offline snapshot"
                                 },
                                 style = MaterialTheme.typography.labelSmall,
-                                fontSize = 11.sp,
+                                fontSize = 12.5.sp,
                                 color = OsrsTextMuted,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -415,12 +415,12 @@ fun DashboardScreen(
                             Spacer(modifier = Modifier.width(4.dp))
                             IconButton(
                                 onClick = { editing = !editing },
-                                modifier = Modifier.size(32.dp)
+                                modifier = Modifier.size(40.dp)
                             ) {
                                 if (editing) {
-                                    CheckVectorIcon(tint = OsrsHerbGreen, modifier = Modifier.size(20.dp))
+                                    CheckVectorIcon(tint = OsrsHerbGreen, modifier = Modifier.size(24.dp))
                                 } else {
-                                    PencilVectorIcon(tint = OsrsGold, modifier = Modifier.size(20.dp))
+                                    PencilVectorIcon(tint = OsrsGold, modifier = Modifier.size(24.dp))
                                 }
                             }
                         }

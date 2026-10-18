@@ -2,22 +2,17 @@ package com.pssst.ui.main
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
@@ -29,12 +24,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pssst.theme.JetBrainsMonoFontFamily
-import com.pssst.theme.OsrsBorderOutline
 import com.pssst.theme.OsrsHardShadow
 import com.pssst.theme.OsrsHerbGreen
-import com.pssst.theme.OsrsSlotEmpty
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.Typography
+import com.pssst.theme.osrsSlot
 
 /** What is waiting for the player right now. One place for the counts Overview and Timers show. */
 data class ReadyCounts(
@@ -64,7 +58,7 @@ private data class ReadyChipSpec(
 
 /**
  * 4-slot quick-status strip for the right side of the top bar (Patches, Birdhouses, Dailies, GE).
- * Always shows all 4 slots so the header bar stays balanced; ready slots (> 0) light up in green.
+ * Always shows all 4 OSRS inventory slots so the header bar stays balanced; ready slots (> 0) light up in green.
  */
 @Composable
 fun TopBarReadyRow(
@@ -83,7 +77,7 @@ fun TopBarReadyRow(
 
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         chips.forEach { chip ->
@@ -92,18 +86,14 @@ fun TopBarReadyRow(
             val bitmap = remember(chip.itemId, iconBase64) {
                 ItemIconCache.getOrCreate(chip.itemId, iconBase64)
             }
-            Row(
+            Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(if (isReady) Color(0xFF1B2B18) else OsrsSlotEmpty)
-                    .border(
-                        width = 1.dp,
-                        color = if (isReady) OsrsHerbGreen.copy(alpha = 0.75f) else OsrsBorderOutline,
-                        shape = RoundedCornerShape(2.dp)
+                    .size(38.dp)
+                    .osrsSlot(
+                        hasItem = true,
+                        highlightBorderColor = if (isReady) OsrsHerbGreen else null
                     )
                     .clickable { onNavigate(chip.tab, chip.subTab) }
-                    .padding(horizontal = 6.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
             ) {
                 if (bitmap != null) {
                     Image(
@@ -111,18 +101,23 @@ fun TopBarReadyRow(
                         contentDescription = chip.fallbackLabel,
                         filterQuality = FilterQuality.None,
                         contentScale = ContentScale.Fit,
-                        alpha = if (isReady) 1f else 0.65f,
-                        modifier = Modifier.size(16.dp)
+                        alpha = if (isReady) 1f else 0.55f,
+                        modifier = Modifier
+                            .size(26.dp)
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 2.dp, bottom = 2.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
                 }
                 Text(
                     text = "${chip.count}",
-                    color = if (isReady) OsrsHerbGreen else OsrsTextMuted.copy(alpha = 0.65f),
-                    fontSize = 11.sp,
+                    color = if (isReady) OsrsHerbGreen else OsrsTextMuted,
+                    fontSize = 12.sp,
                     fontFamily = JetBrainsMonoFontFamily,
-                    fontWeight = if (isReady) FontWeight.Bold else FontWeight.Medium,
-                    style = Typography.labelSmall.copy(shadow = OsrsHardShadow)
+                    fontWeight = FontWeight.Bold,
+                    style = Typography.labelSmall.copy(shadow = OsrsHardShadow),
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 3.dp, top = 1.dp)
                 )
             }
         }

@@ -451,6 +451,16 @@ fun formatQuantity(quantity: Int): String {
     }
 }
 
+fun formatXp(xp: Long): String {
+    return when {
+        xp >= 1_000_000_000L -> String.format(Locale.US, "%.2fB", xp / 1_000_000_000.0)
+        xp >= 10_000_000L -> String.format(Locale.US, "%.1fM", xp / 1_000_000.0)
+        xp >= 1_000_000L -> String.format(Locale.US, "%.2fM", xp / 1_000_000.0)
+        xp >= 10_000L -> "${xp / 1_000L}K"
+        else -> xp.toString()
+    }
+}
+
 fun formatGp(gp: Long): String {
     return when {
         gp >= 1_000_000_000L -> String.format(Locale.US, "%.2fB GP", gp / 1_000_000_000.0)

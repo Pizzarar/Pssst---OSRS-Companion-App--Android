@@ -59,12 +59,12 @@ fun GrandExchangeScreen(
             .fillMaxSize()
             .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
-        // Compact Summary Header
+        // Summary Header
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .osrsPanel(showRivets = true)
-                .padding(horizontal = 12.dp, vertical = 10.dp)
+                .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -74,14 +74,15 @@ fun GrandExchangeScreen(
                 Column {
                     Text(
                         text = "Grand Exchange Offers",
-                        style = MaterialTheme.typography.titleSmall,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = OsrsGold
                     )
                     Text(
                         text = "$activeCount / 8 Slots Active • $completeCount Complete",
                         style = MaterialTheme.typography.bodySmall,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         color = OsrsTextMuted
                     )
                 }
@@ -89,6 +90,8 @@ fun GrandExchangeScreen(
                 Text(
                     text = formatGp(state.totalActiveGeValue),
                     style = MaterialTheme.typography.titleMedium,
+                    fontFamily = JetBrainsMonoFontFamily,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = OsrsYellow
                 )
@@ -130,12 +133,15 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
     val bitmap = remember(offer.itemId, offer.iconBase64) {
         if (offer.itemId > 0) ItemIconCache.getOrCreate(offer.itemId, offer.iconBase64) else null
     }
+    val emptyCoinsBitmap = remember(offer.isEmpty) {
+        if (offer.isEmpty) ItemIconCache.getOrCreate(995, null) else null
+    }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .osrsPanel()
-            .padding(8.dp)
+            .padding(10.dp)
     ) {
         if (offer.isEmpty) {
             Column(
@@ -145,8 +151,9 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
                 Text(
                     text = "Slot ${offer.slot}",
                     style = MaterialTheme.typography.labelSmall,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = OsrsTextMuted.copy(alpha = 0.6f)
+                    color = OsrsTextMuted.copy(alpha = 0.65f)
                 )
                 Box(
                     modifier = Modifier
@@ -154,26 +161,43 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
                         .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Empty",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = OsrsTextMuted.copy(alpha = 0.38f)
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        if (emptyCoinsBitmap != null) {
+                            Image(
+                                bitmap = emptyCoinsBitmap,
+                                contentDescription = null,
+                                filterQuality = FilterQuality.None,
+                                contentScale = ContentScale.Fit,
+                                alpha = 0.25f,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+                        Text(
+                            text = "Empty",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontSize = 13.sp,
+                            color = OsrsTextMuted.copy(alpha = 0.45f)
+                        )
+                    }
                 }
             }
         } else {
+            val isSell = offer.state == GeOfferState.SELLING ||
+                offer.state == GeOfferState.SOLD ||
+                offer.state == GeOfferState.CANCELLED_SELL
             Column(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Top: Icon + Name/Slot + Status Badge
+                // Top: 44dp Icon Slot + Two-Line Name + Badge/Slot Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.Top
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(44.dp)
                             .osrsSlot(hasItem = true)
                             .padding(3.dp),
                         contentAlignment = Alignment.Center
@@ -184,41 +208,38 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
                                 contentDescription = offer.itemName,
                                 filterQuality = FilterQuality.None,
                                 contentScale = ContentScale.Fit,
-                                modifier = Modifier.size(26.dp)
+                                modifier = Modifier.size(38.dp)
                             )
                         } else {
                             Text(
                                 text = itemInitials(offer.itemName),
                                 color = OsrsTextPrimary,
-                                fontSize = 9.sp,
+                                fontSize = 11.sp,
                                 style = MaterialTheme.typography.bodySmall.copy(shadow = OsrsHardShadow)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
 
-                    Column(modifier = Modifier.weight(1f)) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
                         Text(
                             text = offer.itemName,
                             style = MaterialTheme.typography.bodyMedium,
-                            fontSize = 12.sp,
+                            fontSize = 14.sp,
+                            lineHeight = 16.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = OsrsTextPrimary,
-                            maxLines = 1,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text(
-                                text = "Slot ${offer.slot}",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 10.sp,
-                                color = OsrsTextMuted
-                            )
                             val (chipText, chipBg, chipFg) = when (offer.state) {
                                 GeOfferState.BOUGHT -> Triple("BOUGHT", OsrsHerbGreen, Color.Black)
                                 GeOfferState.SOLD -> Triple("SOLD", OsrsHerbGreen, Color.Black)
@@ -232,29 +253,39 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
                                 containerColor = chipBg,
                                 contentColor = chipFg
                             )
+                            Text(
+                                text = "Slot ${offer.slot}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 11.sp,
+                                color = OsrsTextMuted
+                            )
                         }
                     }
                 }
 
-                // Middle: Quantity & Unit Price
-                Text(
-                    text = "${offer.quantitySold} / ${offer.totalQuantity} @ ${formatGp(offer.price.toLong())}",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontFamily = JetBrainsMonoFontFamily,
-                    fontSize = 10.sp,
-                    color = OsrsTextMuted,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                // Middle: Price & Bought/Sold label-value rows
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    GeLabelValueRow(
+                        label = "Price",
+                        value = formatGp(offer.price.toLong())
+                    )
+                    GeLabelValueRow(
+                        label = if (isSell) "Sold" else "Bought",
+                        value = "${offer.quantitySold} / ${offer.totalQuantity}"
+                    )
+                }
 
-                // Bottom: Progress Bar + Total Value
+                // Bottom: Full-Height Progress Bar + Total Value
                 Column(modifier = Modifier.fillMaxWidth()) {
                     OsrsProgressBar(
                         progress = offer.progress,
                         color = if (offer.isComplete) OsrsHerbGreen else OsrsGold,
-                        thin = true
+                        thin = false
                     )
-                    Spacer(modifier = Modifier.height(3.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -263,7 +294,8 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
                         Text(
                             text = formatGp(offer.spent),
                             style = MaterialTheme.typography.labelSmall,
-                            fontSize = 10.sp,
+                            fontFamily = JetBrainsMonoFontFamily,
+                            fontSize = 12.sp,
                             color = OsrsTextMuted,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -271,7 +303,8 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
                         Text(
                             text = formatGp(offer.totalOfferValue),
                             style = MaterialTheme.typography.labelSmall,
-                            fontSize = 10.sp,
+                            fontFamily = JetBrainsMonoFontFamily,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = OsrsYellow,
                             maxLines = 1
@@ -280,5 +313,31 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun GeLabelValueRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            fontSize = 11.sp,
+            color = OsrsTextMuted
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = JetBrainsMonoFontFamily,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = OsrsTextPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
