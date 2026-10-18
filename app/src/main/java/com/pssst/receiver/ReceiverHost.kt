@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 /**
  * Owns the one [PhoneReceiver] in the process and keeps it listening while anyone needs it: the app in the foreground,
  * or a short background window. Reference counted, so the window ending while the app is open doesn't stop it.
- * Listens only in phone mode (no server URL set) and only once a Sync Token is saved.
+ * Accepts snapshots only once a Sync Token is saved.
  */
 object ReceiverHost {
     private const val TAG = "ReceiverHost"
@@ -68,10 +68,7 @@ object ReceiverHost {
         val prefs = DataStoreUserPreferencesRepository(context)
         val ingest = SnapshotIngest(context, AppDatabase.getDatabase(context), prefs)
         return PhoneReceiver(
-            token = {
-                // Phone mode only: with a server URL set, the app pulls from that server instead
-                if (prefs.getServerUrl().isNullOrBlank()) prefs.getUuid() else null
-            },
+            token = { prefs.getUuid() },
             onSnapshot = { snapshot ->
                 val uuid = prefs.getUuid()
                 if (!uuid.isNullOrBlank()) ingest.ingest(uuid, snapshot)

@@ -65,7 +65,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import com.pssst.data.network.StateApiService
 import com.pssst.theme.OsrsBorderOutline
 import com.pssst.theme.OsrsDarkStone
 import com.pssst.theme.OsrsGold
@@ -109,7 +108,6 @@ fun DashboardScreen(
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
     val tabs = DashboardTab.entries
     val currentTab = tabs[selectedTabIndex]
-    val displayServerUrl = state.serverUrl.ifBlank { "Not set" }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -163,13 +161,6 @@ fun DashboardScreen(
                                     fontWeight = FontWeight.Bold,
                                     color = OsrsGold
                                 )
-                                Text(
-                                    text = "Server: $displayServerUrl",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = OsrsTextMuted,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
                                 if (state.uuid.isNotBlank()) {
                                     Text(
                                         text = "Sync Token: ${state.uuid.take(6)}...${state.uuid.takeLast(6)}",
@@ -177,18 +168,16 @@ fun DashboardScreen(
                                         color = OsrsTextMuted
                                     )
                                 }
-                                if (state.serverUrl.isBlank()) {
-                                    val phoneAddresses = remember { com.pssst.util.PhoneAddresses.forDisplay(context) }
-                                    Text(
-                                        text = if (phoneAddresses.isEmpty()) "Phone address: connect to Wi-Fi to see it"
-                                        else "Phone address for RuneLite: " + phoneAddresses.joinToString(" or ") { it.host },
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = OsrsTextMuted
-                                    )
-                                }
+                                val phoneAddresses = remember { com.pssst.util.PhoneAddresses.forDisplay(context) }
+                                Text(
+                                    text = if (phoneAddresses.isEmpty()) "Phone address: connect to Wi-Fi to see it"
+                                    else "Phone address for RuneLite: " + phoneAddresses.joinToString(" or ") { it.host },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = OsrsTextMuted
+                                )
                                 state.lastSyncStatus?.let { status ->
-                                    val isOk = status.startsWith("OK") || status.startsWith("Connected")
-                                    val isQuiet = status.startsWith(com.pssst.worker.SyncWorker.STATUS_UNREACHABLE)
+                                    val isOk = status.startsWith("OK")
+                                    val isQuiet = !isOk && !status.startsWith(com.pssst.worker.SyncWorker.STATUS_OLDER)
                                     Text(
                                         text = status,
                                         style = MaterialTheme.typography.labelSmall,

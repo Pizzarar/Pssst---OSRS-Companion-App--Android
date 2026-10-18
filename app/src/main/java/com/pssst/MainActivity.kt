@@ -24,6 +24,8 @@ class MainActivity : ComponentActivity() {
 
     SyncScheduler.cancelLegacyPriceWork(applicationContext)
     lifecycleScope.launch(Dispatchers.IO) {
+      // Older builds could pull from a server URL; the PC now sends to this phone, so that setting is gone
+      DataStoreUserPreferencesRepository(applicationContext).clearServerUrl()
       val database = AppDatabase.getDatabase(applicationContext)
       AssetDatabaseSeeder.seedIfNeeded(applicationContext, database)
     }

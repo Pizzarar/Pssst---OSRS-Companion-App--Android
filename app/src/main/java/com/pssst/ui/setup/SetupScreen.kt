@@ -36,7 +36,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.pssst.data.network.DynamicStateApiService
 import com.pssst.theme.OsrsBorderOutline
 import com.pssst.theme.OsrsGold
 import com.pssst.theme.OsrsPanelDark
@@ -48,11 +47,9 @@ import com.pssst.ui.main.MainViewModel
 import com.pssst.util.PhoneAddresses
 import com.pssst.worker.SyncScheduler
 
-private const val LOOPBACK_WARNING = "127.0.0.1 is this phone. Use your server's address, such as https://pssst-worker.yourname.workers.dev"
-
 /**
  * Pairing. Normal path: paste the Sync Token from RuneLite here, and type this phone's address (shown here) into the
- * plugin's Phone Address; the plugin then sends to this phone. Advanced: pull from your own server (a Pssst Worker).
+ * plugin's Phone Address; the plugin then sends to this phone.
  */
 @Composable
 fun SetupScreen(
@@ -60,17 +57,11 @@ fun SetupScreen(
     onSetupComplete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val initialServerUrl = viewModel.uiState.value.serverUrl
     val initialUuid = viewModel.uiState.value.uuid.ifBlank { viewModel.uiState.value.rememberedUuid }
 
     var tokenInput by remember { mutableStateOf(initialUuid) }
     var rememberMe by remember { mutableStateOf(viewModel.uiState.value.rememberedUuid.isNotBlank() || initialUuid.isNotBlank()) }
-    var useOwnServer by remember { mutableStateOf(initialServerUrl.isNotBlank()) }
-    var serverUrlInput by remember { mutableStateOf(initialServerUrl) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var urlWarningMessage by remember {
-        mutableStateOf(if (DynamicStateApiService.isLoopbackUrl(initialServerUrl)) LOOPBACK_WARNING else null)
-    }
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     var phoneAddresses by remember { mutableStateOf(PhoneAddresses.forDisplay(context)) }
@@ -164,7 +155,7 @@ fun SetupScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                if (!useOwnServer) {
+                run {
                     Text(
                         text = "2. Phone Address",
                         style = MaterialTheme.typography.titleSmall,
@@ -205,50 +196,19 @@ fun SetupScreen(
                         style = MaterialTheme.typography.labelSmall,
                         color = OsrsTextMuted
                     )
-                } else {
-                    Text(
-                        text = "2. Your server",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = OsrsGold
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    OutlinedTextField(
-                        value = serverUrlInput,
-                        onValueChange = {
-                            serverUrlInput = it
-                            urlWarningMessage = if (DynamicStateApiService.isLoopbackUrl(it)) LOOPBACK_WARNING else null
-                            errorMessage = null
-                        },
-                        label = { Text("Server URL", color = OsrsTextMuted) },
-                        placeholder = { Text("https://pssst-worker.yourname.workers.dev", color = OsrsTextMuted.copy(alpha = 0.5f)) },
-                        supportingText = urlWarningMessage?.let { { Text(it, color = OsrsRed) } },
-                        colors = fieldColors,
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-                TextButton(onClick = { useOwnServer = !useOwnServer }) {
-                    Text(
-                        if (useOwnServer) "Use the normal setup (PC sends to this phone)" else "Advanced: I run my own server",
-                        color = OsrsTextMuted
-                    )
-                }
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Button(
                     onClick = {
                         val trimmedToken = tokenInput.trim()
-                        val trimmedServerUrl = if (useOwnServer) serverUrlInput.trim() else ""
                         if (trimmedToken.isEmpty()) {
                             errorMessage = "Enter the Sync Token from Pssst Companion"
-                        } else if (useOwnServer && trimmedServerUrl.isEmpty()) {
-                            urlWarningMessage = "Enter your server's address"
                         } else {
-                            viewModel.saveSetup(trimmedServerUrl, trimmedToken, rememberUuid = rememberMe)
+                            viewModel.saveSetup("", trimmedToken, rememberUuid = rememberMe)
                             SyncScheduler.schedulePeriodicSync(context)
                             SyncScheduler.syncNow(context)
                             onSetupComplete()
