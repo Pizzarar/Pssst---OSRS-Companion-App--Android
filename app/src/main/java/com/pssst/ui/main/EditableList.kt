@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.MaterialTheme
@@ -42,9 +42,11 @@ import androidx.compose.ui.zIndex
 import com.pssst.data.local.ListLayouts
 import com.pssst.theme.OsrsBorderOutline
 import com.pssst.theme.OsrsGold
-import com.pssst.theme.OsrsHeaderDivider
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
+import com.pssst.theme.art.FrameWeight
+import com.pssst.theme.art.IronGripHandle
+import com.pssst.theme.art.OsrsTableRowSeparator
 import com.pssst.theme.osrsPanel
 import com.pssst.util.ListLayout
 import kotlin.math.roundToInt
@@ -67,7 +69,8 @@ fun <T> EditableList(
     spacing: Dp = 8.dp,
     showDividers: Boolean = false,
     header: (LazyListScope.() -> Unit)? = null,
-    itemContent: @Composable (T) -> Unit
+    indexedItemContent: (@Composable (Int, T) -> Unit)? = null,
+    itemContent: @Composable (T) -> Unit = {}
 ) {
     val context = LocalContext.current
     val layout by ListLayouts.flow(context, listId).collectAsState()
@@ -89,11 +92,15 @@ fun <T> EditableList(
                 )
             }
         } else {
-            items(arranged.visible, key = { "v_" + key(it) }) { entry ->
+            itemsIndexed(arranged.visible, key = { _, it -> "v_" + key(it) }) { index, entry ->
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    itemContent(entry)
+                    if (indexedItemContent != null) {
+                        indexedItemContent(index, entry)
+                    } else {
+                        itemContent(entry)
+                    }
                     if (showDividers) {
-                        OsrsHeaderDivider()
+                        OsrsTableRowSeparator()
                     }
                 }
             }
@@ -161,7 +168,7 @@ private fun ReorderChecklist(
                             translationY = if (isDragged) dragOffset else 0f
                             shadowElevation = if (isDragged) 10f else 0f
                         }
-                        .osrsPanel(showRivets = false),
+                        .osrsPanel(weight = FrameWeight.LIGHT),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
@@ -186,7 +193,7 @@ private fun ReorderChecklist(
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("≡", style = MaterialTheme.typography.titleLarge, color = if (isDragged) OsrsGold else OsrsTextMuted)
+                        IronGripHandle()
                     }
                     Checkbox(
                         checked = k !in hidden,
