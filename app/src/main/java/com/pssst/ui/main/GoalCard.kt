@@ -276,7 +276,7 @@ fun GoalCard(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        val title = state.goalTargetItem?.name ?: "${formatGp(targetGp)} GP Goal"
+                        val title = state.goalTargetItem?.name ?: "${formatGp(targetGp)} Goal"
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleMedium,
@@ -404,7 +404,7 @@ fun GoalSettingsDialog(
     var selectedItem by remember { mutableStateOf(state.goalTargetItem) }
     var itemSearchText by remember { mutableStateOf("") }
     var customGpText by remember {
-        mutableStateOf(currentConfig.targetGp?.let { formatGp(it).replace(" ", "") } ?: "")
+        mutableStateOf(currentConfig.targetGp?.let { formatGp(it) } ?: "")
     }
 
     Dialog(onDismissRequest = onDismiss) {

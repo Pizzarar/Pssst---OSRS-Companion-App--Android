@@ -17,6 +17,9 @@ class GoalMathTest {
         assertEquals(2_500_000L, GoalMath.parseGp("2,500,000"))
         assertEquals(1_000_000L, GoalMath.parseGp("1000000"))
         assertEquals(50_000_000L, GoalMath.parseGp(" 50M "))
+        assertEquals(20_000_000L, GoalMath.parseGp("20.0M GP"))
+        assertEquals(150_000_000L, GoalMath.parseGp("150m gp"))
+        assertEquals(1_200_000_000L, GoalMath.parseGp("1.2b coins"))
     }
 
     @Test

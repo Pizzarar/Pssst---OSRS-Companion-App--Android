@@ -70,11 +70,17 @@ object GoalMath {
     }
 
     /**
-     * Parses human GP expressions like "150m", "1.2b", "500k", "2,500,000", "1000000".
+     * Parses human GP expressions like "150m", "1.2b", "500k", "2,500,000", "1000000", "20.0M GP".
      * Returns null if blank, malformed, or <= 0.
      */
     fun parseGp(text: String): Long? {
-        val clean = text.trim().replace(",", "").lowercase(Locale.ROOT)
+        val clean = text.trim()
+            .replace(",", "")
+            .lowercase(Locale.ROOT)
+            .removeSuffix("coins")
+            .trim()
+            .removeSuffix("gp")
+            .trim()
         if (clean.isEmpty()) return null
 
         try {
@@ -92,7 +98,7 @@ object GoalMath {
                     if (num <= 0.0) null else (num * 1_000.0).toLong()
                 }
                 else -> {
-                    val value = clean.toLongOrNull() ?: return null
+                    val value = clean.toLongOrNull() ?: clean.toDoubleOrNull()?.toLong() ?: return null
                     if (value <= 0L) null else value
                 }
             }
