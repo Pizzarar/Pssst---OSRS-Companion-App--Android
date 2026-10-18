@@ -229,3 +229,86 @@ fun PixelScene(
             }
     )
 }
+
+/**
+ * Computes the destination pixel size for an item sprite (`36x32` OSRS item PNG) inside a
+ * target box of [boxWidthPx] x [boxHeightPx] device pixels.
+ *
+ * When the box is at least as large as the source sprite, returns an exact integer multiple
+ * (`scale * srcWidth`, `scale * srcHeight`) so every pixel of the sprite maps to an identical
+ * `scale x scale` block of device pixels without uneven row/column doubling.
+ * When the box is smaller than the source sprite (e.g. a 18dp chip at 1.0x density), scales down
+ * proportionally to fit within the box.
+ */
+fun computeItemSpriteDrawSize(
+    srcWidth: Int,
+    srcHeight: Int,
+    boxWidthPx: Int,
+    boxHeightPx: Int
+): IntSize {
+    if (srcWidth <= 0 || srcHeight <= 0 || boxWidthPx <= 0 || boxHeightPx <= 0) {
+        return IntSize.Zero
+    }
+    val intScaleX = boxWidthPx / srcWidth
+    val intScaleY = boxHeightPx / srcHeight
+    val intScale = minOf(intScaleX, intScaleY)
+    return if (intScale >= 1) {
+        IntSize(srcWidth * intScale, srcHeight * intScale)
+    } else {
+        val ratio = minOf(
+            boxWidthPx.toFloat() / srcWidth.toFloat(),
+            boxHeightPx.toFloat() / srcHeight.toFloat()
+        )
+        IntSize(
+            (srcWidth * ratio).roundToInt().coerceAtLeast(1),
+            (srcHeight * ratio).roundToInt().coerceAtLeast(1)
+        )
+    }
+}
+
+/**
+ * Draws an OSRS item [ImageBitmap] centered inside [modifier] at an integer device-pixel scale
+ * (when the target box is >= `bitmap.width x bitmap.height`) with [FilterQuality.None].
+ */
+@Composable
+fun PixelItemImage(
+    bitmap: ImageBitmap,
+    contentDescription: String?,
+    modifier: Modifier = Modifier
+) {
+    val semanticsModifier = if (contentDescription != null) {
+        Modifier.semantics {
+            this.contentDescription = contentDescription
+            this.role = Role.Image
+        }
+    } else {
+        Modifier
+    }
+    Box(
+        modifier = modifier
+            .then(semanticsModifier)
+            .drawWithCache {
+                val boxW = size.width.roundToInt()
+                val boxH = size.height.roundToInt()
+                val dstSize = computeItemSpriteDrawSize(
+                    srcWidth = bitmap.width,
+                    srcHeight = bitmap.height,
+                    boxWidthPx = boxW,
+                    boxHeightPx = boxH
+                )
+                val ox = (boxW - dstSize.width) / 2
+                val oy = (boxH - dstSize.height) / 2
+                onDrawBehind {
+                    if (dstSize.width > 0 && dstSize.height > 0) {
+                        drawImage(
+                            image = bitmap,
+                            dstOffset = IntOffset(ox, oy),
+                            dstSize = dstSize,
+                            filterQuality = FilterQuality.None
+                        )
+                    }
+                }
+            }
+    )
+}
+

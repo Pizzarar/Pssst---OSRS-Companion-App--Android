@@ -1,50 +1,44 @@
 package com.pssst.ui.main
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pssst.theme.OsrsHardShadow
 import com.pssst.theme.OsrsSlotEmpty
 import com.pssst.theme.OsrsTextMuted
+import com.pssst.theme.art.PixelItemImage
+import com.pssst.theme.art.pixelBevelBox
 
-/** The pixel-art icon of an item, or its initials on a dark tile while the app has no icon for it yet. */
+/** The pixel-art icon of an item, or its initials on a dark recessed stone tile while the app has no icon for it yet. */
 @Composable
 fun ItemIcon(id: Int, base64: String?, name: String, size: Dp = 32.dp, modifier: Modifier = Modifier) {
     val bitmap = remember(id, base64) { if (id > 0) ItemIconCache.getOrCreate(id, base64) else null }
     if (bitmap != null) {
-        Image(
+        PixelItemImage(
             bitmap = bitmap,
             contentDescription = name,
-            filterQuality = FilterQuality.None,
-            contentScale = ContentScale.Fit,
             modifier = modifier.size(size)
         )
     } else {
         Box(
             modifier = modifier
                 .size(size)
-                .clip(RoundedCornerShape(4.dp))
-                .background(OsrsSlotEmpty),
+                .pixelBevelBox(fill = OsrsSlotEmpty, raised = false),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = itemInitials(name),
                 color = OsrsTextMuted,
                 fontSize = (size.value * 0.34f).sp,
-                style = MaterialTheme.typography.labelSmall
+                style = MaterialTheme.typography.labelSmall.copy(shadow = OsrsHardShadow)
             )
         }
     }
