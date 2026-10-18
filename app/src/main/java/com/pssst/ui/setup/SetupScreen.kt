@@ -40,8 +40,8 @@ import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.OsrsYellow
 import com.pssst.theme.art.FrameWeight
 import com.pssst.theme.art.GoldLeafText
+import com.pssst.theme.art.NumberPlaque
 import com.pssst.theme.art.TitlePlaque
-import com.pssst.theme.art.WaxSealMedallion
 import com.pssst.theme.art.parchmentNotice
 import com.pssst.theme.art.stoneGround
 import com.pssst.theme.osrsPanel
@@ -104,7 +104,7 @@ fun SetupScreen(
         ) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    WaxSealMedallion(label = "1", size = 24.dp)
+                    NumberPlaque(label = "1", size = 24.dp)
                     Spacer(modifier = Modifier.width(8.dp))
                     GoldLeafText(
                         text = "1. Sync Token",
@@ -140,7 +140,7 @@ fun SetupScreen(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    WaxSealMedallion(label = "2", size = 24.dp)
+                    NumberPlaque(label = "2", size = 24.dp)
                     Spacer(modifier = Modifier.width(8.dp))
                     GoldLeafText(
                         text = "2. Phone Address",

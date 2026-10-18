@@ -37,7 +37,7 @@ import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.art.EmptyStateKind
 import com.pssst.theme.art.GoldLeafText
 import com.pssst.theme.art.OsrsEmptyState
-import com.pssst.theme.art.chamferedPlaqueFrame
+import com.pssst.theme.art.plaqueFrame
 import com.pssst.theme.osrsPanel
 import com.pssst.theme.osrsSlot
 
@@ -67,7 +67,7 @@ fun PotionStorageScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .chamferedPlaqueFrame()
+                .plaqueFrame()
                 .padding(horizontal = 14.dp, vertical = 7.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically

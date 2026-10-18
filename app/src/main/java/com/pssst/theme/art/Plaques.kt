@@ -1,6 +1,5 @@
 package com.pssst.theme.art
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,15 +16,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -34,31 +27,143 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pssst.theme.OsrsBorderDark
 import com.pssst.theme.OsrsBorderLight
+import com.pssst.theme.OsrsBorderOutline
 import com.pssst.theme.OsrsBrassMid
+import com.pssst.theme.OsrsDarkStone
 import com.pssst.theme.OsrsGold
 import com.pssst.theme.OsrsGoldDark
 import com.pssst.theme.OsrsGoldHighlight
-import com.pssst.theme.OsrsIronBody
-import com.pssst.theme.OsrsIronEdgeLight
-import com.pssst.theme.OsrsLeatherBase
-import com.pssst.theme.OsrsLeatherHighlight
-import com.pssst.theme.OsrsLeatherStitch
-import com.pssst.theme.OsrsOakBase
+import com.pssst.theme.OsrsGoldShadow
 import com.pssst.theme.OsrsOuterFrame
 import com.pssst.theme.OsrsSlotEmpty
 import com.pssst.theme.OsrsTextPrimary
-import com.pssst.theme.OsrsWaxCrimson
-import com.pssst.theme.OsrsWaxHighlight
-import com.pssst.theme.OsrsWaxShadow
-import com.pssst.theme.art.Ornaments.drawCornerFlourishes
-import com.pssst.theme.art.Ornaments.drawDomedRivet
-import com.pssst.theme.art.Ornaments.drawFacetedDiamond
-import kotlin.math.cos
-import kotlin.math.sin
 
 /**
- * Gold-leaf lettering composable: vertical 3-stop gold-leaf gradient fill with a crisp
- * 1px hard dark shadow (never a blur).
+ * Pixel-honest plaque, tab, and number-badge drawing routines on [PixelCanvas].
+ */
+object Plaques {
+
+    /**
+     * Draws a stepped-corner stone-and-brass plaque with seated side rivets into [canvas].
+     */
+    fun drawPlaqueFrame(canvas: PixelCanvas, seed: Int = 208) {
+        val w = canvas.w
+        val h = canvas.h
+        if (w <= 0 || h <= 0) return
+
+        Textures.drawOakBeam(canvas, seed = seed, showPlankSeams = false, showEndBands = false)
+        val outline = OsrsOuterFrame.toArgb()
+        val brass = OsrsBrassMid.toArgb()
+        val dark = OsrsBorderDark.toArgb()
+        val ext = OsrsDarkStone.toArgb()
+
+        canvas.bevelBox(0, 0, w, h, outline = outline, light = brass, dark = dark, raised = true)
+        if (w >= 14 && h >= 10) {
+            canvas.stairCorner(0, 0, steps = 2, cornerIndex = 0, outline = outline, bevelTone = brass, exteriorFill = ext)
+            canvas.stairCorner(w - 1, 0, steps = 2, cornerIndex = 1, outline = outline, bevelTone = brass, exteriorFill = ext)
+            canvas.stairCorner(w - 1, h - 1, steps = 2, cornerIndex = 2, outline = outline, bevelTone = dark, exteriorFill = ext)
+            canvas.stairCorner(0, h - 1, steps = 2, cornerIndex = 3, outline = outline, bevelTone = dark, exteriorFill = ext)
+        }
+        if (w >= 20 && h >= 8) {
+            val ry = (h / 2 - 1).coerceAtLeast(2)
+            canvas.rivet(3, ry, size = 3)
+            canvas.rivet(w - 6, ry, size = 3)
+        }
+    }
+
+    /**
+     * Draws a segmented bookmark tab:
+     * - [selected] = true: raised stone tab with a 2-art-px top gold/brass bar, side bevels,
+     *   top corner rivets, and an open bottom edge that joins the panel below.
+     * - [selected] = false: recessed stone well one tone darker ([OsrsSlotEmpty]) closed off at the bottom.
+     */
+    fun drawBookmarkTab(canvas: PixelCanvas, selected: Boolean, seed: Int = 404) {
+        val w = canvas.w
+        val h = canvas.h
+        if (w <= 0 || h <= 0) return
+
+        val outline = OsrsOuterFrame.toArgb()
+        val light = OsrsBorderLight.toArgb()
+        val dark = OsrsBorderDark.toArgb()
+        val brass = OsrsBrassMid.toArgb()
+        val goldHi = OsrsGoldHighlight.toArgb()
+
+        if (selected) {
+            Textures.drawPanelStone(canvas, seed = seed)
+            // Top and side outline (bottom is open into the panel below)
+            canvas.hLine(0, 0, w, outline)
+            canvas.vLine(0, 0, h, outline)
+            canvas.vLine(w - 1, 0, h, outline)
+            // Top 2-art-px brass/gold clip bar
+            if (h >= 4 && w >= 4) {
+                canvas.hLine(1, 1, w - 2, goldHi)
+                canvas.hLine(1, 2, w - 2, brass)
+                // Left highlight & right shadow down to bottom
+                canvas.vLine(1, 3, h - 3, light)
+                canvas.vLine(w - 2, 3, h - 3, dark)
+            }
+            if (w >= 16 && h >= 8) {
+                canvas.rivet(2, 2, size = 3)
+                canvas.rivet(w - 5, 2, size = 3)
+            }
+        } else {
+            canvas.clear(OsrsSlotEmpty.toArgb())
+            canvas.rectOutline(0, 0, w, h, outline)
+            if (w >= 4 && h >= 4) {
+                // Recessed top/left shadow
+                canvas.hLine(1, 1, w - 2, dark)
+                canvas.vLine(1, 1, h - 2, dark)
+                // Caught light on right, dark groove along bottom
+                canvas.vLine(w - 2, 1, h - 2, OsrsBorderOutline.toArgb())
+                canvas.hLine(1, h - 2, w - 2, dark)
+            }
+        }
+    }
+
+    /**
+     * Draws a small raised gold pixel plaque with 1-step corners for step numbers ("1", "2", "IP").
+     */
+    fun drawNumberPlaque(canvas: PixelCanvas) {
+        val w = canvas.w
+        val h = canvas.h
+        if (w <= 0 || h <= 0) return
+
+        val outline = OsrsOuterFrame.toArgb()
+        val goldHi = OsrsGoldHighlight.toArgb()
+        val goldBase = OsrsGold.toArgb()
+        val goldDark = OsrsGoldDark.toArgb()
+        val goldShadow = OsrsGoldShadow.toArgb()
+        val goldPair = intArrayOf(goldDark, goldBase)
+
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                val v = 110 + ((h - 1 - y) * 80) / h.coerceAtLeast(1)
+                canvas.set(x, y, PixelNoise.quantise(v, goldPair, x, y))
+            }
+        }
+
+        canvas.bevelBox(
+            x = 0,
+            y = 0,
+            bw = w,
+            bh = h,
+            outline = outline,
+            light = goldHi,
+            dark = goldShadow,
+            raised = true
+        )
+        if (w >= 6 && h >= 6) {
+            canvas.stairCorner(0, 0, steps = 1, cornerIndex = 0, outline = outline, bevelTone = goldHi, exteriorFill = 0)
+            canvas.stairCorner(w - 1, 0, steps = 1, cornerIndex = 1, outline = outline, bevelTone = goldHi, exteriorFill = 0)
+            canvas.stairCorner(w - 1, h - 1, steps = 1, cornerIndex = 2, outline = outline, bevelTone = goldShadow, exteriorFill = 0)
+            canvas.stairCorner(0, h - 1, steps = 1, cornerIndex = 3, outline = outline, bevelTone = goldShadow, exteriorFill = 0)
+        }
+    }
+}
+
+/**
+ * Gold-leaf lettering composable: flat [OsrsGold] with a hard 1-art-px [OsrsOuterFrame] shadow
+ * (no smooth gradient brush, no blur).
  */
 @Composable
 fun GoldLeafText(
@@ -69,18 +174,11 @@ fun GoldLeafText(
     textAlign: TextAlign? = null,
     maxLines: Int = 1
 ) {
-    val goldBrush = Brush.verticalGradient(
-        colors = listOf(
-            OsrsGoldHighlight,
-            OsrsGold,
-            OsrsGoldDark
-        )
-    )
     Text(
         text = text,
         modifier = modifier,
+        color = OsrsGold,
         style = style.copy(
-            brush = goldBrush,
             fontWeight = fontWeight,
             shadow = Shadow(
                 color = OsrsOuterFrame,
@@ -95,7 +193,7 @@ fun GoldLeafText(
 }
 
 /**
- * Chamfered stone-and-brass title plaque for screen titles, hero headers, or onboarding banners.
+ * Stepped-corner stone-and-brass title plaque for screen titles, hero headers, or onboarding banners.
  */
 @Composable
 fun TitlePlaque(
@@ -106,7 +204,7 @@ fun TitlePlaque(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .chamferedPlaqueFrame()
+            .plaqueFrame()
             .padding(horizontal = 16.dp, vertical = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -129,8 +227,8 @@ fun TitlePlaque(
 }
 
 /**
- * Section header plaque with gold-leaf lettering, chiseled diamond bullet, optional trailing slot,
- * and an engraved bottom rule.
+ * Section header plaque with flat gold lettering, 5x5 pixel diamond bullet, optional trailing slot,
+ * and an engraved bottom pixel rule.
  */
 @Composable
 fun SectionHeaderPlaque(
@@ -150,7 +248,7 @@ fun SectionHeaderPlaque(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f, fill = false)
             ) {
-                BulletGlyph(size = 7.dp, color = OsrsBrassMid)
+                BulletGlyph(size = 6.dp, color = OsrsBrassMid)
                 Spacer(modifier = Modifier.width(6.dp))
                 GoldLeafText(
                     text = title,
@@ -171,154 +269,60 @@ fun SectionHeaderPlaque(
 }
 
 /**
- * Chamfered octagonal brass-and-oak plaque frame modifier with side rivets and inner corner flourishes.
+ * Stepped-corner oak-and-brass pixel plaque frame modifier with seated side rivets.
  */
-fun Modifier.chamferedPlaqueFrame(
+fun Modifier.plaqueFrame(
     seed: Int = 208
-): Modifier = this.drawWithCache {
-    val oak = Textures.oakBrush(seed = seed)
-    val cut = 6.dp.toPx()
-    val strokePx = 1.4.dp.toPx()
-    val rivetR = 2.dp.toPx()
-
-    onDrawBehind {
-        val w = size.width
-        val h = size.height
-        val path = Path().apply {
-            moveTo(cut, 1f)
-            lineTo(w - cut, 1f)
-            lineTo(w - 1f, cut)
-            lineTo(w - 1f, h - cut)
-            lineTo(w - cut, h - 1f)
-            lineTo(cut, h - 1f)
-            lineTo(1f, h - cut)
-            lineTo(1f, cut)
-            close()
-        }
-        drawPath(path, color = OsrsOakBase)
-        drawPath(path, brush = oak, alpha = 0.85f)
-        drawPath(
-            path,
-            color = OsrsBrassMid,
-            style = Stroke(width = strokePx, join = StrokeJoin.Bevel)
-        )
-        drawCornerFlourishes(inset = 4.dp.toPx(), armLength = 7.dp.toPx(), color = OsrsGoldDark.copy(alpha = 0.65f))
-        if (h > 20.dp.toPx() && w > 48.dp.toPx()) {
-            drawDomedRivet(Offset(8.dp.toPx(), h * 0.5f), rivetR)
-            drawDomedRivet(Offset(w - 8.dp.toPx(), h * 0.5f), rivetR)
-        }
-    }
+): Modifier = this.pixelArt(key = Pair("plaqueFrame", seed)) {
+    Plaques.drawPlaqueFrame(this, seed)
 }
 
 /**
- * Physical bookmark / index tab modifier for segmented tabs:
- * - Selected tab: warm worn-leather surface, raised brass top clip, side saddle-stitching,
- *   and gold-leaf bottom accent.
- * - Unselected tab: recessed dark stone slot with iron divider rim.
+ * Physical pixel tab modifier for segmented tabs:
+ * - Selected tab: raised panel stone with top brass clip and open bottom edge into content below.
+ * - Unselected tab: recessed dark stone slot ([OsrsSlotEmpty]) closed at the bottom.
  */
 fun Modifier.bookmarkTab(
     selected: Boolean,
     seed: Int = 404
-): Modifier = this.drawWithCache {
-    val leatherBrush = Textures.leatherBrush(seed = seed)
-    val strokePx = 1.2.dp.toPx()
-    val clipH = 2.5.dp.toPx()
-    val rivetR = 1.5.dp.toPx()
-
-    onDrawBehind {
-        val w = size.width
-        val h = size.height
-        if (selected) {
-            // Raised leather tab body
-            drawRect(color = OsrsLeatherBase)
-            drawRect(brush = leatherBrush, alpha = 0.88f)
-            // Top brass bookmark clip
-            drawRect(
-                color = OsrsBrassMid,
-                topLeft = Offset(0f, 0f),
-                size = Size(w, clipH)
-            )
-            drawLine(OsrsGoldHighlight, Offset(0f, 0f), Offset(w, 0f), 1.dp.toPx())
-            // Side bevels & bottom gold-leaf bar
-            drawLine(OsrsLeatherHighlight, Offset(0f, clipH), Offset(0f, h), strokePx)
-            drawLine(OsrsBorderDark, Offset(w - strokePx, clipH), Offset(w - strokePx, h), strokePx)
-            drawRect(
-                color = OsrsGold,
-                topLeft = Offset(0f, h - 2.5.dp.toPx()),
-                size = Size(w, 2.5.dp.toPx())
-            )
-            // Corner clip rivets
-            if (w > 40.dp.toPx()) {
-                drawDomedRivet(Offset(6.dp.toPx(), 5.dp.toPx()), rivetR)
-                drawDomedRivet(Offset(w - 6.dp.toPx(), 5.dp.toPx()), rivetR)
-            }
-        } else {
-            // Recessed stone tab well
-            drawRect(color = OsrsSlotEmpty)
-            drawLine(OsrsBorderDark, Offset(0f, 0f), Offset(w, 0f), strokePx * 1.3f)
-            drawLine(OsrsBorderDark, Offset(0f, 0f), Offset(0f, h), strokePx)
-            drawLine(OsrsBorderLight.copy(alpha = 0.55f), Offset(w - strokePx, 0f), Offset(w - strokePx, h), strokePx)
-            drawLine(OsrsBorderDark, Offset(0f, h - strokePx), Offset(w, h - strokePx), strokePx)
-        }
-    }
+): Modifier = this.pixelArt(key = Triple("bookmarkTab", selected, seed)) {
+    Plaques.drawBookmarkTab(this, selected = selected, seed = seed)
 }
 
 /**
- * 12-lobe scalloped Crimson Sealing Wax medallion stamped with a gold-leaf numeral or label.
+ * Raised gold pixel plaque with dark engraved numeral/label (replaces WaxSealMedallion).
  */
 @Composable
-fun WaxSealMedallion(
+fun NumberPlaque(
     label: String,
     modifier: Modifier = Modifier,
-    size: Dp = 32.dp
+    size: Dp = 24.dp
 ) {
     Box(
-        modifier = modifier.size(size),
+        modifier = modifier
+            .size(size)
+            .pixelArt(key = "NumberPlaque") {
+                Plaques.drawNumberPlaque(this)
+            },
         contentAlignment = Alignment.Center
     ) {
-        Canvas(modifier = Modifier.matchParentSize()) {
-            val cx = this.size.width * 0.5f
-            val cy = this.size.height * 0.5f
-            val baseR = this.size.minDimension * 0.44f
-            val lobes = 12
-            val sealPath = Path()
-            val steps = 60
-            for (i in 0..steps) {
-                val angle = (i.toFloat() / steps) * 2f * Math.PI.toFloat()
-                val wave = sin(angle * lobes) * (baseR * 0.065f)
-                val r = baseR + wave
-                val x = cx + cos(angle) * r
-                val y = cy + sin(angle) * r
-                if (i == 0) sealPath.moveTo(x, y) else sealPath.lineTo(x, y)
-            }
-            sealPath.close()
-
-            // Outer drop shadow & crimson wax body
-            drawCircle(color = OsrsOuterFrame, radius = baseR * 1.04f, center = Offset(cx + 1f, cy + 1.5f))
-            drawPath(sealPath, color = OsrsWaxCrimson)
-            drawPath(
-                sealPath,
-                color = OsrsWaxHighlight,
-                style = Stroke(width = 1.4.dp.toPx(), join = StrokeJoin.Round)
-            )
-            // Stamped inner recess ring
-            drawCircle(
-                color = OsrsWaxShadow,
-                radius = baseR * 0.72f,
-                center = Offset(cx, cy)
-            )
-            drawCircle(
-                color = OsrsBrassMid.copy(alpha = 0.75f),
-                radius = baseR * 0.72f,
-                center = Offset(cx, cy),
-                style = Stroke(width = 1.dp.toPx())
-            )
-        }
-        GoldLeafText(
+        Text(
             text = label,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.labelMedium,
+            color = OsrsOuterFrame,
             fontWeight = FontWeight.ExtraBold,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            maxLines = 1
         )
     }
+}
+
+// Temporary bridge for ArtPacketPreviews.kt until Unit 9 updates previews; delegates to NumberPlaque.
+@Composable
+internal fun WaxSealMedallion(
+    label: String,
+    modifier: Modifier = Modifier,
+    size: Dp = 24.dp
+) {
+    NumberPlaque(label = label, modifier = modifier, size = size)
 }

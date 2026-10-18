@@ -41,7 +41,7 @@ import com.pssst.theme.OsrsYellow
 import com.pssst.theme.art.BulletGlyph
 import com.pssst.theme.art.FrameWeight
 import com.pssst.theme.art.GoldLeafText
-import com.pssst.theme.art.Ornaments.drawWatermarkScale
+import com.pssst.theme.art.WatermarkScale
 import com.pssst.theme.art.ledgerWellSlot
 import com.pssst.theme.osrsPanel
 import com.pssst.theme.osrsSlot
@@ -163,7 +163,7 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = OsrsTextMuted.copy(alpha = 0.65f)
+                    color = OsrsTextMuted
                 )
                 Box(
                     modifier = Modifier
@@ -172,15 +172,13 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Canvas(modifier = Modifier.size(34.dp)) {
-                            drawWatermarkScale(radius = size.minDimension * 0.42f)
-                        }
+                        WatermarkScale()
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Empty",
                             style = MaterialTheme.typography.bodyMedium,
                             fontSize = 13.sp,
-                            color = OsrsTextMuted.copy(alpha = 0.45f)
+                            color = OsrsTextMuted
                         )
                     }
                 }

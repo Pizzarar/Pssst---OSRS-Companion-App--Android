@@ -27,7 +27,7 @@ import com.pssst.theme.OsrsRed
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.art.GoldLeafText
-import com.pssst.theme.art.WaxSealMedallion
+import com.pssst.theme.art.NumberPlaque
 import com.pssst.theme.art.parchmentNotice
 import com.pssst.theme.osrsPanel
 import com.pssst.util.PhoneAddresses
@@ -50,7 +50,7 @@ fun PhoneAddressCard(state: MainDashboardUiState, modifier: Modifier = Modifier,
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            WaxSealMedallion(label = "IP", size = 26.dp)
+            NumberPlaque(label = "IP", size = 26.dp)
             GoldLeafText(
                 text = if (waiting) "Waiting for your PC" else "Phone Address for RuneLite",
                 style = MaterialTheme.typography.titleSmall,

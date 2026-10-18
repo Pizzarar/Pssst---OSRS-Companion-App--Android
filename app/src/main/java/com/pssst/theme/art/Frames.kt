@@ -1,452 +1,409 @@
 package com.pssst.theme.art
 
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.toArgb
 import com.pssst.theme.OsrsBorderDark
 import com.pssst.theme.OsrsBorderLight
 import com.pssst.theme.OsrsBorderOutline
 import com.pssst.theme.OsrsBrassMid
 import com.pssst.theme.OsrsGold
-import com.pssst.theme.OsrsGoldDark
-import com.pssst.theme.OsrsGoldHighlight
 import com.pssst.theme.OsrsIronBody
 import com.pssst.theme.OsrsIronEdgeDark
 import com.pssst.theme.OsrsIronEdgeLight
-import com.pssst.theme.OsrsLeatherBase
-import com.pssst.theme.OsrsLeatherCrease
-import com.pssst.theme.OsrsLeatherHighlight
-import com.pssst.theme.OsrsLeatherStitch
-import com.pssst.theme.OsrsOakBase
-import com.pssst.theme.OsrsOakGrainDark
-import com.pssst.theme.OsrsOakGrainLight
 import com.pssst.theme.OsrsOuterFrame
 import com.pssst.theme.OsrsPanelDark
-import com.pssst.theme.OsrsPanelLight
-import com.pssst.theme.OsrsParchmentDark
-import com.pssst.theme.OsrsParchmentStain
 import com.pssst.theme.OsrsSlotEmpty
 import com.pssst.theme.OsrsSlotRecessed
-import com.pssst.theme.art.Ornaments.drawDomedRivet
-import com.pssst.theme.art.Ornaments.drawFacetedDiamond
 
 /**
- * Corner hardware weight tiers for panel frames.
+ * Corner hardware and frame weight tiers for panel frames.
  */
 enum class FrameWeight {
-    /** Single forged dome rivet in each corner (small cards, chips, dialogs). */
+    /** 1-art-px outline + 1-art-px bevel on flat OsrsPanelDark (dense lists, no bitmap). */
     LIGHT,
-    /** Chamfered wrought-iron L-brackets with dual rivets in each corner (standard cards). */
+
+    /** 1-art-px outline + 1-art-px bevel + 1-art-px inner groove + 3x3 corner rivets on panel stone. */
     MEDIUM,
-    /** Forged horizontal spearhead hinge straps with triple rivets + inner brass fillet (hero cards, top bar). */
+
+    /** 1-art-px outline + 2-art-px wrought-iron band + 1-art-px bevel + 4x4 rivets & straps on panel stone. */
     HEAVY
 }
 
 /**
- * Upgraded carved-stone panel frame with procedural stone grain, chiseled bevel edges,
- * and wrought-iron corner hardware in [weight].
+ * Pixel-honest hardware and frame drawing routines on [PixelCanvas].
+ */
+object Frames {
+
+    /**
+     * Draws a carved-stone panel frame with pixel hardware according to [weight].
+     */
+    fun drawLedgerPanel(
+        canvas: PixelCanvas,
+        weight: FrameWeight,
+        seed: Int = 101,
+        accentBorderArgb: Int? = null
+    ) {
+        val w = canvas.w
+        val h = canvas.h
+        if (w <= 0 || h <= 0) return
+
+        val outline = OsrsOuterFrame.toArgb()
+        val light = accentBorderArgb ?: OsrsBorderLight.toArgb()
+        val dark = OsrsBorderDark.toArgb()
+        val groove = OsrsBorderOutline.toArgb()
+        val brass = accentBorderArgb ?: OsrsBrassMid.toArgb()
+
+        when (weight) {
+            FrameWeight.LIGHT -> {
+                canvas.bevelBox(
+                    x = 0,
+                    y = 0,
+                    bw = w,
+                    bh = h,
+                    outline = outline,
+                    light = light,
+                    dark = dark,
+                    fill = OsrsPanelDark.toArgb(),
+                    raised = true
+                )
+            }
+
+            FrameWeight.MEDIUM -> {
+                Textures.drawPanelStone(canvas, seed)
+                canvas.bevelBox(0, 0, w, h, outline = outline, light = light, dark = dark, raised = true)
+                if (w > 6 && h > 6) {
+                    canvas.rectOutline(2, 2, w - 4, h - 4, groove)
+                }
+                drawPixelCornerLBrackets(canvas)
+            }
+
+            FrameWeight.HEAVY -> {
+                Textures.drawPanelStone(canvas, seed)
+                // 1-px outer outline
+                canvas.rectOutline(0, 0, w, h, outline)
+                // 2-px wrought-iron band
+                if (w > 6 && h > 6) {
+                    val ironDark = OsrsIronEdgeDark.toArgb()
+                    val ironBody = OsrsIronBody.toArgb()
+                    val ironLight = OsrsIronEdgeLight.toArgb()
+                    canvas.rectOutline(1, 1, w - 2, h - 2, ironBody)
+                    canvas.rectOutline(2, 2, w - 4, h - 4, ironBody)
+                    canvas.hLine(1, 1, w - 3, ironLight)
+                    canvas.vLine(1, 1, h - 3, ironLight)
+                    canvas.hLine(2, h - 2, w - 3, ironDark)
+                    canvas.vLine(w - 2, 2, h - 3, ironDark)
+                }
+                // 1-px inner bevel
+                if (w > 8 && h > 8) {
+                    canvas.hLine(3, h - 4, w - 6, dark)
+                    canvas.vLine(w - 4, 3, h - 6, dark)
+                    canvas.hLine(3, 3, w - 7, brass)
+                    canvas.vLine(3, 3, h - 7, brass)
+                }
+                drawPixelHingeStraps(canvas)
+            }
+        }
+    }
+
+    /**
+     * Draws a top-bar oak beam bound with wrought-iron straps and seated pixel rivets.
+     */
+    fun drawOakBeamFrame(canvas: PixelCanvas, seed: Int = 202) {
+        val w = canvas.w
+        val h = canvas.h
+        if (w <= 0 || h <= 0) return
+
+        Textures.drawOakBeam(canvas, seed = seed, showPlankSeams = true, showEndBands = true)
+
+        val outline = OsrsOuterFrame.toArgb()
+        val ironDark = OsrsIronEdgeDark.toArgb()
+        val ironBody = OsrsIronBody.toArgb()
+        val ironLight = OsrsIronEdgeLight.toArgb()
+
+        // Top 2-px iron band + 1-px outline
+        canvas.hLine(0, 0, w, outline)
+        if (h >= 4) {
+            canvas.hLine(0, 1, w, ironLight)
+            canvas.hLine(0, 2, w, ironBody)
+            canvas.hLine(0, 3, w, ironDark)
+        }
+        // Bottom 2-px iron band + 1-px outline
+        if (h >= 8) {
+            canvas.hLine(0, h - 4, w, ironLight)
+            canvas.hLine(0, h - 3, w, ironBody)
+            canvas.hLine(0, h - 2, w, ironDark)
+        }
+        canvas.hLine(0, h - 1, w, outline)
+
+        // Corner hinge straps and rivets
+        drawPixelHingeStraps(canvas)
+    }
+
+    /**
+     * Draws a bottom-nav carved stone sill with top brass/iron rail and corner brackets.
+     */
+    fun drawStoneSillFrame(canvas: PixelCanvas, seed: Int = 109) {
+        val w = canvas.w
+        val h = canvas.h
+        if (w <= 0 || h <= 0) return
+
+        Textures.drawPanelStone(canvas, seed = seed)
+        val outline = OsrsOuterFrame.toArgb()
+        val brass = OsrsBrassMid.toArgb()
+        val dark = OsrsBorderDark.toArgb()
+
+        canvas.rectOutline(0, 0, w, h, outline)
+        if (h >= 5) {
+            canvas.hLine(1, 1, w - 2, brass)
+            canvas.hLine(1, 2, w - 2, dark)
+        }
+        drawPixelCornerLBrackets(canvas)
+    }
+
+    /**
+     * Draws a weathered parchment notice slip with 1-art-px nicked dark outline and 3x3 iron corner tacks.
+     */
+    fun drawParchmentNotice(
+        canvas: PixelCanvas,
+        accentBorderArgb: Int = OsrsBrassMid.toArgb(),
+        seed: Int = 303
+    ) {
+        val w = canvas.w
+        val h = canvas.h
+        if (w <= 0 || h <= 0) return
+
+        Textures.drawParchment(canvas, seed = seed, showStainVignette = true)
+
+        val outline = OsrsOuterFrame.toArgb()
+        val dark = OsrsBorderDark.toArgb()
+        canvas.rectOutline(0, 0, w, h, outline)
+        if (w > 4 && h > 4) {
+            canvas.hLine(1, h - 2, w - 2, dark)
+            canvas.vLine(w - 2, 1, h - 2, dark)
+            canvas.hLine(1, 1, w - 3, accentBorderArgb)
+            canvas.vLine(1, 1, h - 3, accentBorderArgb)
+        }
+
+        // Occasional 1-px edge nicks
+        for (x in 4 until w - 4) {
+            if (PixelNoise.hash(x, 0, seed + 19) < 16) {
+                canvas.set(x, 1, outline)
+            }
+            if (PixelNoise.hash(x, 1, seed + 29) < 16) {
+                canvas.set(x, h - 2, outline)
+            }
+        }
+
+        // 4 iron corner tacks (3x3 pixel studs)
+        if (w >= 14 && h >= 10) {
+            canvas.rivet(2, 2, size = 3)
+            canvas.rivet(w - 5, 2, size = 3)
+            canvas.rivet(2, h - 5, size = 3)
+            canvas.rivet(w - 5, h - 5, size = 3)
+        }
+    }
+
+    /**
+     * Draws a bound worn-leather panel with cellular pebble grain, single-art-px stitch line,
+     * and corner wrought-iron brackets.
+     */
+    fun drawLeatherBoundPanel(canvas: PixelCanvas, seed: Int = 404) {
+        val w = canvas.w
+        val h = canvas.h
+        if (w <= 0 || h <= 0) return
+
+        Textures.drawLeather(canvas, seed = seed, stitched = true)
+        canvas.bevelBox(
+            x = 0,
+            y = 0,
+            bw = w,
+            bh = h,
+            outline = OsrsOuterFrame.toArgb(),
+            light = OsrsBorderLight.toArgb(),
+            dark = OsrsBorderDark.toArgb(),
+            raised = true
+        )
+        drawPixelCornerLBrackets(canvas)
+    }
+
+    internal fun drawPixelCornerLBrackets(canvas: PixelCanvas) {
+        val w = canvas.w
+        val h = canvas.h
+        if (w < 16 || h < 12) return
+
+        val outline = OsrsIronEdgeDark.toArgb()
+        val body = OsrsIronBody.toArgb()
+        val light = OsrsIronEdgeLight.toArgb()
+        val arm = 7
+
+        // Top-left L-bracket
+        canvas.fill(1, 1, arm, 3, body)
+        canvas.fill(1, 1, 3, arm, body)
+        canvas.hLine(1, 1, arm, light)
+        canvas.vLine(1, 1, arm, light)
+        canvas.hLine(3, 3, arm - 3, outline)
+        canvas.vLine(3, 3, arm - 3, outline)
+        canvas.set(arm, 1, outline)
+        canvas.set(arm, 2, outline)
+        canvas.set(1, arm, outline)
+        canvas.set(2, arm, outline)
+        canvas.rivet(2, 2, size = 3)
+
+        // Top-right L-bracket
+        canvas.fill(w - 1 - arm, 1, arm, 3, body)
+        canvas.fill(w - 4, 1, 3, arm, body)
+        canvas.hLine(w - 1 - arm, 1, arm, light)
+        canvas.vLine(w - 2, 1, arm, outline)
+        canvas.hLine(w - 1 - arm, 3, arm - 3, outline)
+        canvas.vLine(w - 4, 3, arm - 3, light)
+        canvas.set(w - 2 - arm, 1, outline)
+        canvas.set(w - 2 - arm, 2, outline)
+        canvas.set(w - 3, arm, outline)
+        canvas.set(w - 2, arm, outline)
+        canvas.rivet(w - 5, 2, size = 3)
+
+        // Bottom-left L-bracket
+        canvas.fill(1, h - 4, arm, 3, body)
+        canvas.fill(1, h - 1 - arm, 3, arm, body)
+        canvas.vLine(1, h - 1 - arm, arm, light)
+        canvas.hLine(1, h - 2, arm, outline)
+        canvas.hLine(3, h - 4, arm - 3, light)
+        canvas.vLine(3, h - 1 - arm, arm - 3, outline)
+        canvas.set(1, h - 2 - arm, outline)
+        canvas.set(2, h - 2 - arm, outline)
+        canvas.set(arm, h - 3, outline)
+        canvas.set(arm, h - 2, outline)
+        canvas.rivet(2, h - 5, size = 3)
+
+        // Bottom-right L-bracket
+        canvas.fill(w - 1 - arm, h - 4, arm, 3, body)
+        canvas.fill(w - 4, h - 1 - arm, 3, arm, body)
+        canvas.hLine(w - 1 - arm, h - 2, arm, outline)
+        canvas.vLine(w - 2, h - 1 - arm, arm, outline)
+        canvas.hLine(w - 1 - arm, h - 4, arm - 3, light)
+        canvas.vLine(w - 4, h - 1 - arm, arm - 3, light)
+        canvas.rivet(w - 5, h - 5, size = 3)
+    }
+
+    internal fun drawPixelHingeStraps(canvas: PixelCanvas) {
+        val w = canvas.w
+        val h = canvas.h
+        if (w < 26 || h < 14) {
+            drawPixelCornerLBrackets(canvas)
+            return
+        }
+
+        val outline = OsrsIronEdgeDark.toArgb()
+        val body = OsrsIronBody.toArgb()
+        val light = OsrsIronEdgeLight.toArgb()
+        val strapLen = 11
+        val strapH = 4
+
+        val yPositions = intArrayOf(1, h - 1 - strapH)
+        for (sy in yPositions) {
+            // Left horizontal strap with stepped spearhead tip
+            canvas.fill(1, sy, strapLen - 1, strapH, body)
+            canvas.hLine(1, sy, strapLen - 1, light)
+            canvas.hLine(1, sy + strapH - 1, strapLen - 1, outline)
+            canvas.vLine(strapLen, sy + 1, strapH - 2, outline)
+            canvas.set(strapLen - 1, sy, outline)
+            canvas.set(strapLen - 1, sy + strapH - 1, outline)
+            canvas.rivet(2, sy, size = 4)
+            canvas.rivet(7, sy + 1, size = 3)
+
+            // Right horizontal strap with stepped spearhead tip
+            val rx = w - strapLen
+            canvas.fill(rx, sy, strapLen - 1, strapH, body)
+            canvas.hLine(rx, sy, strapLen - 1, light)
+            canvas.hLine(rx, sy + strapH - 1, strapLen - 1, outline)
+            canvas.vLine(rx - 1, sy + 1, strapH - 2, outline)
+            canvas.set(rx, sy, outline)
+            canvas.set(rx, sy + strapH - 1, outline)
+            canvas.rivet(w - 6, sy, size = 4)
+            canvas.rivet(w - 10, sy + 1, size = 3)
+        }
+    }
+}
+
+/**
+ * Carved-stone panel frame with pixel bevels and wrought-iron hardware in [weight].
+ *
+ * [FrameWeight.LIGHT] uses [pixelBevelBox] (zero bitmap allocation) for dense lists.
  */
 fun Modifier.ledgerPanelFrame(
     weight: FrameWeight = FrameWeight.MEDIUM,
     seed: Int = 101,
     accentBorder: Color? = null
-): Modifier = this.drawWithCache {
-    val stoneBrush = Textures.stoneBrush(seed = seed, darkGround = false)
-    val sheen = Brush.verticalGradient(
-        colors = listOf(
-            OsrsPanelLight.copy(alpha = 0.42f),
-            Color.Transparent,
-            OsrsBorderDark.copy(alpha = 0.35f)
+): Modifier {
+    if (weight == FrameWeight.LIGHT) {
+        return this.pixelBevelBox(
+            fill = OsrsPanelDark,
+            outline = OsrsOuterFrame,
+            light = accentBorder ?: OsrsBorderLight,
+            dark = OsrsBorderDark,
+            raised = true
         )
-    )
-    val outerPx = 1.dp.toPx()
-    val bevelPx = 1.5.dp.toPx()
-
-    onDrawBehind {
-        val w = size.width
-        val h = size.height
-
-        // 1. Outermost carved shadow trench
-        drawRect(color = OsrsOuterFrame)
-
-        // 2. Carved stone fill + procedural grain + top-lit lantern gradient
-        drawRect(
-            color = OsrsPanelDark,
-            topLeft = Offset(outerPx, outerPx),
-            size = Size(w - outerPx * 2, h - outerPx * 2)
+    }
+    val accentArgb = accentBorder?.toArgb()
+    return this.pixelArt(key = Triple("ledgerPanel", weight, seed to accentArgb)) {
+        Frames.drawLedgerPanel(
+            canvas = this,
+            weight = weight,
+            seed = seed,
+            accentBorderArgb = accentArgb
         )
-        drawRect(
-            brush = stoneBrush,
-            topLeft = Offset(outerPx, outerPx),
-            size = Size(w - outerPx * 2, h - outerPx * 2),
-            alpha = 0.78f
-        )
-        drawRect(
-            brush = sheen,
-            topLeft = Offset(outerPx, outerPx),
-            size = Size(w - outerPx * 2, h - outerPx * 2)
-        )
-
-        // 3. Chiseled stone bevels (top/left highlight, bottom/right shadow)
-        val topBevelColor = accentBorder ?: OsrsBorderLight
-        drawLine(topBevelColor, Offset(outerPx, outerPx), Offset(w - outerPx, outerPx), bevelPx)
-        drawLine(topBevelColor, Offset(outerPx, outerPx), Offset(outerPx, h - outerPx), bevelPx)
-        drawLine(OsrsBorderDark, Offset(outerPx, h - outerPx), Offset(w - outerPx, h - outerPx), bevelPx)
-        drawLine(OsrsBorderDark, Offset(w - outerPx, outerPx), Offset(w - outerPx, h - outerPx), bevelPx)
-
-        // 4. Optional inner brass fillet for HEAVY frames
-        if (weight == FrameWeight.HEAVY && w > 36.dp.toPx() && h > 36.dp.toPx()) {
-            val inset = 4.dp.toPx()
-            drawRect(
-                color = (accentBorder ?: OsrsBrassMid).copy(alpha = 0.38f),
-                topLeft = Offset(inset, inset),
-                size = Size(w - inset * 2, h - inset * 2),
-                style = Stroke(width = 1.dp.toPx())
-            )
-        }
-
-        // 5. Corner hardware by weight
-        when (weight) {
-            FrameWeight.LIGHT -> drawCornerStuds()
-            FrameWeight.MEDIUM -> drawCornerLBrackets()
-            FrameWeight.HEAVY -> drawCornerHingeStraps()
-        }
     }
 }
 
 /**
- * Top-bar frame: heavy aged dark oak beam bound with horizontal wrought-iron edge straps and rivets.
+ * Top-bar frame: heavy aged dark oak beam bound with wrought-iron edge straps and pixel rivets.
  */
-fun Modifier.oakBeamFrame(seed: Int = 202): Modifier = this.drawWithCache {
-    val oakBrush = Textures.oakBrush(seed = seed)
-    val ironBrush = Textures.ironBrush(seed = seed + 11)
-    val sheen = Brush.verticalGradient(
-        colors = listOf(
-            OsrsOakGrainLight.copy(alpha = 0.35f),
-            Color.Transparent,
-            OsrsOakGrainDark.copy(alpha = 0.55f)
-        )
-    )
-    val strapH = 3.dp.toPx()
-    val strokePx = 1.dp.toPx()
-
-    onDrawBehind {
-        val w = size.width
-        val h = size.height
-
-        // Base oak timber
-        drawRect(color = OsrsOakBase)
-        drawRect(brush = oakBrush, alpha = 0.92f)
-        drawRect(brush = sheen)
-
-        // Mid-beam horizontal timber join
-        val seamY = h * 0.52f
-        drawLine(OsrsOakGrainDark.copy(alpha = 0.7f), Offset(0f, seamY), Offset(w, seamY), strokePx)
-        drawLine(OsrsOakGrainLight.copy(alpha = 0.3f), Offset(0f, seamY + strokePx), Offset(w, seamY + strokePx), strokePx)
-
-        // Top & bottom forged iron binding bands
-        drawRect(brush = ironBrush, topLeft = Offset(0f, 0f), size = Size(w, strapH))
-        drawLine(OsrsIronEdgeLight, Offset(0f, strapH), Offset(w, strapH), strokePx)
-
-        drawRect(brush = ironBrush, topLeft = Offset(0f, h - strapH), size = Size(w, strapH))
-        drawLine(OsrsBrassMid.copy(alpha = 0.65f), Offset(0f, h - strapH - strokePx), Offset(w, h - strapH - strokePx), strokePx)
-        drawLine(OsrsOuterFrame, Offset(0f, h - strokePx), Offset(w, h - strokePx), strokePx * 1.5f)
-
-        // Corner hinge straps
-        drawCornerHingeStraps()
+fun Modifier.oakBeamFrame(seed: Int = 202): Modifier =
+    this.pixelArt(key = Pair("oakBeamFrame", seed)) {
+        Frames.drawOakBeamFrame(this, seed)
     }
-}
 
 /**
- * Bottom navigation sill frame: carved stone sill with an engraved top brass/iron rail and corner brackets.
+ * Bottom navigation sill frame: carved stone sill with top brass/iron rail and corner brackets.
  */
-fun Modifier.stoneSillFrame(seed: Int = 109): Modifier = this.drawWithCache {
-    val stoneBrush = Textures.stoneBrush(seed = seed, darkGround = false)
-    val railH = 3.dp.toPx()
-    val strokePx = 1.dp.toPx()
-
-    onDrawBehind {
-        val w = size.width
-        val h = size.height
-        drawRect(color = OsrsPanelDark)
-        drawRect(brush = stoneBrush, alpha = 0.85f)
-
-        // Chiseled top iron & brass rail
-        drawRect(color = OsrsOuterFrame, topLeft = Offset(0f, 0f), size = Size(w, railH))
-        drawLine(OsrsBrassMid.copy(alpha = 0.7f), Offset(0f, railH), Offset(w, railH), strokePx * 1.2f)
-        drawLine(OsrsBorderDark, Offset(0f, railH + strokePx), Offset(w, railH + strokePx), strokePx)
-
-        // Corner L-brackets
-        drawCornerLBrackets()
+fun Modifier.stoneSillFrame(seed: Int = 109): Modifier =
+    this.pixelArt(key = Pair("stoneSillFrame", seed)) {
+        Frames.drawStoneSillFrame(this, seed)
     }
-}
 
 /**
  * Recessed carved-stone well for item slots, skill cells, and top-bar status wells.
- * Features a 45-degree chamfered inner shadow rim and optional active gold-leaf glint.
+ * Drawn as integer-aligned pixel rects with zero bitmap allocation.
  */
 fun Modifier.ledgerWellSlot(
     empty: Boolean = false,
     highlighted: Boolean = false
-): Modifier = this.drawWithCache {
-    val fill = if (empty) OsrsSlotEmpty else OsrsSlotRecessed
-    val strokePx = 1.2.dp.toPx()
-    val innerPx = 2.2.dp.toPx()
-
-    onDrawBehind {
-        val w = size.width
-        val h = size.height
-        drawRect(color = OsrsOuterFrame)
-        drawRect(
-            color = fill,
-            topLeft = Offset(strokePx, strokePx),
-            size = Size(w - strokePx * 2, h - strokePx * 2)
-        )
-        // Recessed shadow on top & left
-        drawLine(OsrsBorderDark, Offset(strokePx, strokePx), Offset(w - strokePx, strokePx), innerPx)
-        drawLine(OsrsBorderDark, Offset(strokePx, strokePx), Offset(strokePx, h - strokePx), innerPx)
-        // Caught light on bottom & right
-        val catchColor = if (highlighted) OsrsGold.copy(alpha = 0.85f) else OsrsBorderLight
-        drawLine(catchColor, Offset(strokePx, h - strokePx), Offset(w - strokePx, h - strokePx), strokePx)
-        drawLine(catchColor, Offset(w - strokePx, strokePx), Offset(w - strokePx, h - strokePx), strokePx)
-
-        if (highlighted) {
-            drawRect(
-                color = OsrsGoldHighlight.copy(alpha = 0.45f),
-                topLeft = Offset(strokePx, strokePx),
-                size = Size(w - strokePx * 2, h - strokePx * 2),
-                style = Stroke(width = 1.dp.toPx())
-            )
-        }
-    }
-}
+): Modifier = this.pixelBevelBox(
+    fill = if (empty) OsrsSlotEmpty else OsrsSlotRecessed,
+    outline = OsrsOuterFrame,
+    light = if (highlighted) OsrsGold else OsrsBorderLight,
+    dark = OsrsBorderDark,
+    raised = false
+)
 
 /**
- * Weathered parchment notice strip pinned with forged iron corner tacks (used for QuickActionsBanner & URL slips).
+ * Weathered parchment notice strip pinned with 3x3 iron corner tacks.
  */
 fun Modifier.parchmentNotice(
     accentBorder: Color = OsrsBrassMid,
     seed: Int = 303
-): Modifier = this.drawWithCache {
-    val vellum = Textures.parchmentBrush(seed = seed)
-    val strokePx = 1.2.dp.toPx()
-    val tackInset = 5.dp.toPx()
-    val tackR = 2.dp.toPx()
-
-    onDrawBehind {
-        val w = size.width
-        val h = size.height
-        drawRect(color = OsrsOuterFrame)
-        drawRect(
-            color = OsrsParchmentDark,
-            topLeft = Offset(strokePx, strokePx),
-            size = Size(w - strokePx * 2, h - strokePx * 2)
-        )
-        drawRect(
-            brush = vellum,
-            topLeft = Offset(strokePx, strokePx),
-            size = Size(w - strokePx * 2, h - strokePx * 2),
-            alpha = 0.85f
-        )
-        // Aged edge vignette
-        drawRect(
-            color = OsrsParchmentStain.copy(alpha = 0.35f),
-            topLeft = Offset(strokePx, strokePx),
-            size = Size(w - strokePx * 2, h - strokePx * 2),
-            style = Stroke(width = 3.dp.toPx())
-        )
-        // Crisp border rule
-        drawRect(
-            color = accentBorder.copy(alpha = 0.75f),
-            topLeft = Offset(strokePx, strokePx),
-            size = Size(w - strokePx * 2, h - strokePx * 2),
-            style = Stroke(width = strokePx)
-        )
-        // 4 iron pin tacks
-        if (w > 28.dp.toPx() && h > 22.dp.toPx()) {
-            drawDomedRivet(Offset(tackInset, tackInset), tackR)
-            drawDomedRivet(Offset(w - tackInset, tackInset), tackR)
-            drawDomedRivet(Offset(tackInset, h - tackInset), tackR)
-            drawDomedRivet(Offset(w - tackInset, h - tackInset), tackR)
-        }
+): Modifier {
+    val accentArgb = accentBorder.toArgb()
+    return this.pixelArt(key = Triple("parchmentNotice", seed, accentArgb)) {
+        Frames.drawParchmentNotice(this, accentBorderArgb = accentArgb, seed = seed)
     }
 }
 
 /**
- * Bound worn-leather panel with saddle-stitched border and iron corner brackets (drawer, inventory pack tray).
+ * Bound worn-leather panel with cellular pebble grain, single-art-px stitch line, and corner brackets.
  */
-fun Modifier.leatherBoundPanel(seed: Int = 404): Modifier = this.drawWithCache {
-    val hide = Textures.leatherBrush(seed = seed)
-    val sheen = Brush.verticalGradient(
-        colors = listOf(
-            OsrsLeatherHighlight.copy(alpha = 0.28f),
-            Color.Transparent,
-            OsrsLeatherCrease.copy(alpha = 0.48f)
-        )
-    )
-    val outerPx = 1.dp.toPx()
-    val stitchInset = 5.dp.toPx()
-    val dash = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
-        floatArrayOf(4.dp.toPx(), 3.dp.toPx()),
-        0f
-    )
-
-    onDrawBehind {
-        val w = size.width
-        val h = size.height
-        drawRect(color = OsrsOuterFrame)
-        drawRect(
-            color = OsrsLeatherBase,
-            topLeft = Offset(outerPx, outerPx),
-            size = Size(w - outerPx * 2, h - outerPx * 2)
-        )
-        drawRect(
-            brush = hide,
-            topLeft = Offset(outerPx, outerPx),
-            size = Size(w - outerPx * 2, h - outerPx * 2),
-            alpha = 0.88f
-        )
-        drawRect(
-            brush = sheen,
-            topLeft = Offset(outerPx, outerPx),
-            size = Size(w - outerPx * 2, h - outerPx * 2)
-        )
-        // Outer bevel
-        drawLine(OsrsBorderLight, Offset(outerPx, outerPx), Offset(w - outerPx, outerPx), 1.5.dp.toPx())
-        drawLine(OsrsBorderLight, Offset(outerPx, outerPx), Offset(outerPx, h - outerPx), 1.5.dp.toPx())
-        drawLine(OsrsBorderDark, Offset(outerPx, h - outerPx), Offset(w - outerPx, h - outerPx), 1.5.dp.toPx())
-        drawLine(OsrsBorderDark, Offset(w - outerPx, outerPx), Offset(w - outerPx, h - outerPx), 1.5.dp.toPx())
-
-        if (w > stitchInset * 4 && h > stitchInset * 4) {
-            drawRect(
-                color = OsrsLeatherCrease,
-                topLeft = Offset(stitchInset, stitchInset),
-                size = Size(w - stitchInset * 2, h - stitchInset * 2),
-                style = Stroke(width = 1.6.dp.toPx())
-            )
-            drawRect(
-                color = OsrsLeatherStitch.copy(alpha = 0.72f),
-                topLeft = Offset(stitchInset, stitchInset),
-                size = Size(w - stitchInset * 2, h - stitchInset * 2),
-                style = Stroke(width = 1.dp.toPx(), pathEffect = dash)
-            )
-        }
-        drawCornerLBrackets()
+fun Modifier.leatherBoundPanel(seed: Int = 404): Modifier =
+    this.pixelArt(key = Pair("leatherBoundPanel", seed)) {
+        Frames.drawLeatherBoundPanel(this, seed = seed)
     }
-}
-
-internal fun DrawScope.drawCornerStuds() {
-    val w = size.width
-    val h = size.height
-    if (w < 24.dp.toPx() || h < 20.dp.toPx()) return
-    val inset = 4.5.dp.toPx()
-    val r = 2.dp.toPx()
-    drawDomedRivet(Offset(inset, inset), r)
-    drawDomedRivet(Offset(w - inset, inset), r)
-    drawDomedRivet(Offset(inset, h - inset), r)
-    drawDomedRivet(Offset(w - inset, h - inset), r)
-}
-
-internal fun DrawScope.drawCornerLBrackets() {
-    val w = size.width
-    val h = size.height
-    if (w < 32.dp.toPx() || h < 28.dp.toPx()) {
-        drawCornerStuds()
-        return
-    }
-    val arm = 11.dp.toPx()
-    val thick = 3.2.dp.toPx()
-    val inset = 1.dp.toPx()
-    val rivetR = 1.6.dp.toPx()
-
-    // Helper for each corner (sx, sy in {-1, 1})
-    val corners = arrayOf(
-        intArrayOf(1, 1),
-        intArrayOf(-1, 1),
-        intArrayOf(1, -1),
-        intArrayOf(-1, -1)
-    )
-    for (c in corners) {
-        val sx = c[0]
-        val sy = c[1]
-        val cx = if (sx > 0) inset else w - inset
-        val cy = if (sy > 0) inset else h - inset
-
-        val bracket = Path().apply {
-            moveTo(cx, cy)
-            lineTo(cx + sx * arm, cy)
-            lineTo(cx + sx * (arm - thick * 0.6f), cy + sy * thick)
-            lineTo(cx + sx * thick, cy + sy * thick)
-            lineTo(cx + sx * thick, cy + sy * (arm - thick * 0.6f))
-            lineTo(cx, cy + sy * arm)
-            close()
-        }
-        drawPath(bracket, color = OsrsIronBody)
-        drawPath(
-            bracket,
-            color = OsrsIronEdgeLight,
-            style = Stroke(width = 0.9.dp.toPx(), join = StrokeJoin.Bevel)
-        )
-        // Corner rivet
-        drawDomedRivet(
-            center = Offset(cx + sx * (thick + 1.8.dp.toPx()), cy + sy * (thick + 1.8.dp.toPx())),
-            radius = rivetR
-        )
-    }
-}
-
-internal fun DrawScope.drawCornerHingeStraps() {
-    val w = size.width
-    val h = size.height
-    if (w < 56.dp.toPx() || h < 34.dp.toPx()) {
-        drawCornerLBrackets()
-        return
-    }
-    val strapLen = 18.dp.toPx()
-    val strapH = 5.dp.toPx()
-    val insetY = 2.dp.toPx()
-    val insetX = 1.5.dp.toPx()
-    val rivetR = 1.6.dp.toPx()
-
-    val corners = arrayOf(
-        intArrayOf(1, 1),
-        intArrayOf(-1, 1),
-        intArrayOf(1, -1),
-        intArrayOf(-1, -1)
-    )
-    for (c in corners) {
-        val sx = c[0]
-        val sy = c[1]
-        val x0 = if (sx > 0) insetX else w - insetX
-        val y0 = if (sy > 0) insetY else h - insetY
-        val yInner = y0 + sy * strapH
-        val yMid = (y0 + yInner) * 0.5f
-
-        // Spearhead horizontal hinge strap
-        val strap = Path().apply {
-            moveTo(x0, y0)
-            lineTo(x0 + sx * (strapLen - 3.dp.toPx()), y0)
-            lineTo(x0 + sx * strapLen, yMid)
-            lineTo(x0 + sx * (strapLen - 3.dp.toPx()), yInner)
-            lineTo(x0, yInner)
-            close()
-        }
-        drawPath(strap, color = OsrsIronBody)
-        drawPath(
-            strap,
-            color = OsrsIronEdgeLight,
-            style = Stroke(width = 1.dp.toPx(), join = StrokeJoin.Bevel)
-        )
-        // Dual rivets along the hinge strap
-        drawDomedRivet(Offset(x0 + sx * 4.5.dp.toPx(), yMid), rivetR)
-        drawDomedRivet(Offset(x0 + sx * 11.5.dp.toPx(), yMid), rivetR)
-    }
-}

@@ -247,7 +247,7 @@ class PixelCanvas(val w: Int, val h: Int) {
     }
 
     /**
-     * Cuts a 45-degree corner as an integer pixel staircase of [steps] art pixels.
+     * Cuts a 45-degree corner as a 4-connected integer pixel staircase of [steps] art pixels.
      *
      * @param cornerIndex 0 = top-left, 1 = top-right, 2 = bottom-right, 3 = bottom-left
      */
@@ -261,31 +261,23 @@ class PixelCanvas(val w: Int, val h: Int) {
         exteriorFill: Int = 0
     ) {
         if (steps <= 0) return
-        for (i in 0 until steps) {
-            val span = steps - i
-            for (j in 0 until span) {
-                val (cx, cy) = when (cornerIndex) {
-                    0 -> (x + j) to (y + i)
-                    1 -> (x - j) to (y + i)
-                    2 -> (x - j) to (y - i)
-                    else -> (x + j) to (y - i)
+        fun mapCoord(dx: Int, dy: Int): Pair<Int, Int> = when (cornerIndex) {
+            0 -> (x + dx) to (y + dy)
+            1 -> (x - dx) to (y + dy)
+            2 -> (x - dx) to (y - dy)
+            else -> (x + dx) to (y - dy)
+        }
+        fun isExt(dx: Int, dy: Int): Boolean = dx >= 0 && dy >= 0 && (dx + dy) < steps
+
+        for (dy in 0..(steps + 1)) {
+            for (dx in 0..(steps + 1)) {
+                val (px, py) = mapCoord(dx, dy)
+                when {
+                    isExt(dx, dy) -> set(px, py, exteriorFill)
+                    isExt(dx - 1, dy) || isExt(dx, dy - 1) || isExt(dx - 1, dy - 1) -> set(px, py, outline)
+                    dx >= 1 && dy >= 1 && (dx + dy == steps + 1) -> set(px, py, bevelTone)
                 }
-                set(cx, cy, exteriorFill)
             }
-            val (ox, oy) = when (cornerIndex) {
-                0 -> (x + span) to (y + i)
-                1 -> (x - span) to (y + i)
-                2 -> (x - span) to (y - i)
-                else -> (x + span) to (y - i)
-            }
-            set(ox, oy, outline)
-            val (bx, by) = when (cornerIndex) {
-                0 -> (ox + 1) to oy
-                1 -> (ox - 1) to oy
-                2 -> (ox - 1) to oy
-                else -> (ox + 1) to oy
-            }
-            set(bx, by, bevelTone)
         }
     }
 

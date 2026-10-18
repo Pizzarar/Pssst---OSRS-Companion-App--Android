@@ -1,23 +1,23 @@
 package com.pssst.theme.art
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pssst.theme.OsrsBorderDark
 import com.pssst.theme.OsrsBorderLight
+import com.pssst.theme.OsrsBorderOutline
 import com.pssst.theme.OsrsBrassMid
+import com.pssst.theme.OsrsGold
 import com.pssst.theme.OsrsGoldDark
 import com.pssst.theme.OsrsGoldHighlight
 import com.pssst.theme.OsrsIronBody
@@ -26,236 +26,288 @@ import com.pssst.theme.OsrsIronEdgeLight
 import com.pssst.theme.OsrsOuterFrame
 import com.pssst.theme.OsrsRivetDark
 import com.pssst.theme.OsrsRivetLight
+import com.pssst.theme.OsrsSlotRecessed
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
- * Engraved rules, end caps, flourishes, corner ornaments, bullet glyphs, and watermarks
- * in one consistent 45-degree chiseled family.
+ * Pixel-honest rules, diamond studs, grip handles, corner marks, and empty-slot watermarks.
+ *
+ * Every ornament is drawn on an integer art-pixel grid without antialiasing or smooth curves.
  */
 object Ornaments {
 
     /**
-     * Draws a forged dome rivet with top-left specular crescent and bottom-right shadow.
+     * Low-contrast recessed stone tones for the 16x16 empty-GE-slot balance scale sprite.
      */
-    fun DrawScope.drawDomedRivet(
+    val WATERMARK_TONES = SpriteTones(
+        outline = OsrsBorderDark.toArgb(),
+        highlight = OsrsBorderLight.toArgb(),
+        base = OsrsBorderOutline.toArgb(),
+        shadow = OsrsSlotRecessed.toArgb(),
+        accent = OsrsBorderLight.toArgb(),
+        accentDark = OsrsBorderDark.toArgb()
+    )
+
+    /**
+     * 16x16 pixel sprite of a merchant's balance scale for empty Grand Exchange slots.
+     */
+    val WatermarkScaleSprite = Sprite(
+        ".......oo.......",
+        "......ohbo......",
+        "..oooooooooooo..",
+        ".ohbbbbhhbbbbso.",
+        "..o..o.oo.o..o..",
+        "..o..o.oo.o..o..",
+        ".o...o.oo.o...o.",
+        ".o...o.oo.o...o.",
+        "ooooooo..ooooooo",
+        ".ohbsbo..ohbsbo.",
+        "..oooo....oooo..",
+        ".......oo.......",
+        ".......oo.......",
+        ".....oooooo.....",
+        "....ohbbbbso....",
+        "....oooooooo...."
+    )
+
+    /**
+     * 5x5 pixel diamond sprite used for section bullets.
+     */
+    val BulletDiamondSprite = Sprite(
+        "..o..",
+        ".ohb.",
+        "ohbso",
+        ".obs.",
+        "..o.."
+    )
+
+    /**
+     * Draws a stepped integer pixel diamond centered at ([cx], [cy]) with Manhattan [radius].
+     */
+    fun drawPixelDiamond(
+        canvas: PixelCanvas,
+        cx: Int,
+        cy: Int,
+        radius: Int = 1,
+        outline: Int = OsrsOuterFrame.toArgb(),
+        fill: Int = OsrsBrassMid.toArgb(),
+        highlight: Int = OsrsGoldHighlight.toArgb(),
+        shadow: Int = OsrsBorderDark.toArgb()
+    ) {
+        if (radius <= 1) {
+            // 3x3 pixel diamond
+            canvas.set(cx, cy - 1, highlight)
+            canvas.set(cx - 1, cy, highlight)
+            canvas.set(cx, cy, fill)
+            canvas.set(cx + 1, cy, shadow)
+            canvas.set(cx, cy + 1, shadow)
+        } else {
+            for (dy in -radius..radius) {
+                for (dx in -radius..radius) {
+                    val manhattan = abs(dx) + abs(dy)
+                    when {
+                        manhattan == radius -> canvas.set(cx + dx, cy + dy, outline)
+                        manhattan < radius -> {
+                            val c = when {
+                                dx + dy < 0 -> highlight
+                                dx + dy > 0 -> shadow
+                                else -> fill
+                            }
+                            canvas.set(cx + dx, cy + dy, c)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Draws an engraved horizontal pixel rule: 1-art-px dark groove over a 1-art-px light ridge,
+     * with 3x3 stepped diamond end caps and an optional center 5x5 diamond flourish.
+     */
+    fun drawEngravedRule(
+        canvas: PixelCanvas,
+        withEndCaps: Boolean = true,
+        withCenterFlourish: Boolean = false,
+        accentColor: Int = OsrsBrassMid.toArgb()
+    ) {
+        val w = canvas.w
+        val h = canvas.h
+        if (w <= 0 || h <= 0) return
+
+        val cy = h / 2
+        val dark = OsrsBorderDark.toArgb()
+        val light = OsrsBorderLight.toArgb()
+        val highlight = OsrsGoldHighlight.toArgb()
+
+        val startX = if (withEndCaps) 4 else 0
+        val endX = if (withEndCaps) (w - 4).coerceAtLeast(startX) else w
+        val span = endX - startX
+        if (span > 0) {
+            val midX = w / 2
+            if (withCenterFlourish && span > 14) {
+                val leftLen = (midX - 4 - startX).coerceAtLeast(0)
+                val rightStart = midX + 5
+                val rightLen = (endX - rightStart).coerceAtLeast(0)
+                canvas.hLine(startX, (cy - 1).coerceAtLeast(0), leftLen, dark)
+                canvas.hLine(startX, cy, leftLen, light)
+                canvas.hLine(rightStart, (cy - 1).coerceAtLeast(0), rightLen, dark)
+                canvas.hLine(rightStart, cy, rightLen, light)
+                drawPixelDiamond(
+                    canvas = canvas,
+                    cx = midX,
+                    cy = cy,
+                    radius = 2,
+                    fill = accentColor,
+                    highlight = highlight,
+                    shadow = dark
+                )
+            } else {
+                canvas.hLine(startX, (cy - 1).coerceAtLeast(0), span, dark)
+                canvas.hLine(startX, cy, span, light)
+            }
+        }
+
+        if (withEndCaps && w >= 7) {
+            drawPixelDiamond(canvas, cx = 2, cy = cy, radius = 1, fill = accentColor, highlight = highlight, shadow = dark)
+            drawPixelDiamond(canvas, cx = w - 3, cy = cy, radius = 1, fill = accentColor, highlight = highlight, shadow = dark)
+        }
+    }
+
+    /**
+     * Draws 3-art-px gold pixel L-marks inside the four corners of a canvas (used on maxed skills).
+     */
+    fun drawCornerMarks(
+        canvas: PixelCanvas,
+        inset: Int = 2,
+        arm: Int = 3,
+        baseColor: Int = OsrsGold.toArgb(),
+        highlightColor: Int = OsrsGoldHighlight.toArgb()
+    ) {
+        val w = canvas.w
+        val h = canvas.h
+        if (w < inset * 2 + arm * 2 || h < inset * 2 + arm * 2) return
+
+        // Top-left
+        canvas.hLine(inset, inset, arm, baseColor)
+        canvas.vLine(inset, inset, arm, baseColor)
+        canvas.set(inset, inset, highlightColor)
+
+        // Top-right
+        canvas.hLine(w - inset - arm, inset, arm, baseColor)
+        canvas.vLine(w - 1 - inset, inset, arm, baseColor)
+        canvas.set(w - 1 - inset, inset, highlightColor)
+
+        // Bottom-left
+        canvas.hLine(inset, h - 1 - inset, arm, baseColor)
+        canvas.vLine(inset, h - inset - arm, arm, baseColor)
+        canvas.set(inset, h - 1 - inset, highlightColor)
+
+        // Bottom-right
+        canvas.hLine(w - inset - arm, h - 1 - inset, arm, baseColor)
+        canvas.vLine(w - 1 - inset, h - inset - arm, arm, baseColor)
+        canvas.set(w - 1 - inset, h - 1 - inset, highlightColor)
+    }
+
+    /**
+     * Draws a 3-bar wrought-iron grip handle with side pixel rivets into [canvas].
+     */
+    fun drawIronGrip(canvas: PixelCanvas) {
+        val w = canvas.w
+        val h = canvas.h
+        if (w < 8 || h < 7) return
+
+        val dark = OsrsIronEdgeDark.toArgb()
+        val light = OsrsIronEdgeLight.toArgb()
+        val barX = 5
+        val barW = (w - 10).coerceAtLeast(2)
+
+        val rows = intArrayOf(h / 4, h / 2, (h * 3) / 4)
+        for (ry in rows) {
+            canvas.hLine(barX, (ry - 1).coerceAtLeast(0), barW, light)
+            canvas.hLine(barX, ry.coerceAtMost(h - 1), barW, dark)
+        }
+        val rivetY = (h / 2 - 1).coerceAtLeast(0)
+        canvas.rivet(1, rivetY, size = 3)
+        canvas.rivet((w - 4).coerceAtLeast(1), rivetY, size = 3)
+    }
+
+    // Temporary DrawScope shims for Theme.kt (Unit 4) and Tables.kt (Unit 6); removed once migrated.
+    internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawDomedRivet(
         center: Offset,
         radius: Float,
         bodyColor: Color = OsrsIronBody,
         highlightColor: Color = OsrsRivetLight,
         shadowColor: Color = OsrsRivetDark
     ) {
-        // Outer shadow rim
-        drawCircle(
-            color = OsrsOuterFrame,
-            radius = radius + 0.8f,
-            center = center
-        )
-        // Shadow base
-        drawCircle(
-            color = shadowColor,
-            radius = radius,
-            center = center
-        )
-        // Forged body
-        drawCircle(
-            color = bodyColor,
-            radius = radius * 0.85f,
-            center = Offset(center.x - radius * 0.1f, center.y - radius * 0.1f)
-        )
-        // Top-left glint
-        drawCircle(
-            color = highlightColor,
-            radius = radius * 0.42f,
-            center = Offset(center.x - radius * 0.28f, center.y - radius * 0.28f)
-        )
+        val r = radius.roundToInt().coerceAtLeast(1).toFloat()
+        drawRect(color = OsrsOuterFrame, topLeft = Offset(center.x - r, center.y - r), size = Size(r * 2, r * 2))
+        drawRect(color = bodyColor, topLeft = Offset(center.x - r + 1f, center.y - r + 1f), size = Size((r * 2 - 2f).coerceAtLeast(1f), (r * 2 - 2f).coerceAtLeast(1f)))
+        drawRect(color = highlightColor, topLeft = Offset(center.x - r + 1f, center.y - r + 1f), size = Size(1f, 1f))
+        drawRect(color = shadowColor, topLeft = Offset(center.x, center.y), size = Size(1f, 1f))
     }
 
-    /**
-     * Draws a 45-degree faceted diamond stud or bullet at [center].
-     */
-    fun DrawScope.drawFacetedDiamond(
+    internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFacetedDiamond(
         center: Offset,
         halfSize: Float,
         fill: Color = OsrsBrassMid,
         highlight: Color = OsrsGoldHighlight,
         shadow: Color = OsrsBorderDark
     ) {
-        val outer = Path().apply {
-            moveTo(center.x, center.y - halfSize)
-            lineTo(center.x + halfSize, center.y)
-            lineTo(center.x, center.y + halfSize)
-            lineTo(center.x - halfSize, center.y)
-            close()
-        }
-        drawPath(outer, color = fill)
-        // Top-left highlight edges
-        drawLine(
-            color = highlight,
-            start = Offset(center.x - halfSize, center.y),
-            end = Offset(center.x, center.y - halfSize),
-            strokeWidth = 1.2f
-        )
-        drawLine(
-            color = highlight,
-            start = Offset(center.x, center.y - halfSize),
-            end = Offset(center.x + halfSize, center.y),
-            strokeWidth = 1.2f
-        )
-        // Bottom-right shadow edges
-        drawLine(
-            color = shadow,
-            start = Offset(center.x + halfSize, center.y),
-            end = Offset(center.x, center.y + halfSize),
-            strokeWidth = 1.2f
-        )
-        drawLine(
-            color = shadow,
-            start = Offset(center.x, center.y + halfSize),
-            end = Offset(center.x - halfSize, center.y),
-            strokeWidth = 1.2f
-        )
+        val s = halfSize.roundToInt().coerceAtLeast(1).toFloat()
+        drawRect(color = fill, topLeft = Offset(center.x - s, center.y - s), size = Size(s * 2, s * 2))
+        drawRect(color = highlight, topLeft = Offset(center.x - s, center.y - s), size = Size(s, s))
+        drawRect(color = shadow, topLeft = Offset(center.x, center.y), size = Size(s, s))
     }
 
-    /**
-     * Draws an engraved horizontal rule with chiseled 45-degree diamond end-caps
-     * and an optional center diamond-and-chevron flourish.
-     */
-    fun DrawScope.drawEngravedRule(
-        y: Float = size.height * 0.5f,
-        startX: Float = 0f,
-        endX: Float = size.width,
-        withEndCaps: Boolean = true,
-        withCenterFlourish: Boolean = false,
-        accentColor: Color = OsrsBrassMid
-    ) {
-        val capSize = 3.dp.toPx()
-        val lineStart = if (withEndCaps) startX + capSize * 2.2f else startX
-        val lineEnd = if (withEndCaps) endX - capSize * 2.2f else endX
-        if (lineEnd <= lineStart) return
-
-        val midX = (startX + endX) * 0.5f
-        val flourishGap = if (withCenterFlourish) 14.dp.toPx() else 0f
-
-        if (withCenterFlourish && (lineEnd - lineStart) > flourishGap * 3f) {
-            // Left groove segment
-            drawLine(OsrsBorderDark, Offset(lineStart, y - 0.7f), Offset(midX - flourishGap, y - 0.7f), 1.2.dp.toPx())
-            drawLine(OsrsBorderLight, Offset(lineStart, y + 0.8f), Offset(midX - flourishGap, y + 0.8f), 1.dp.toPx())
-            // Right groove segment
-            drawLine(OsrsBorderDark, Offset(midX + flourishGap, y - 0.7f), Offset(lineEnd, y - 0.7f), 1.2.dp.toPx())
-            drawLine(OsrsBorderLight, Offset(midX + flourishGap, y + 0.8f), Offset(lineEnd, y + 0.8f), 1.dp.toPx())
-
-            // Left & right chevrons flanking center diamond
-            val chev = 4.dp.toPx()
-            val leftChev = Path().apply {
-                moveTo(midX - flourishGap + chev, y - chev * 0.75f)
-                lineTo(midX - flourishGap, y)
-                lineTo(midX - flourishGap + chev, y + chev * 0.75f)
-            }
-            val rightChev = Path().apply {
-                moveTo(midX + flourishGap - chev, y - chev * 0.75f)
-                lineTo(midX + flourishGap, y)
-                lineTo(midX + flourishGap - chev, y + chev * 0.75f)
-            }
-            drawPath(leftChev, accentColor, style = Stroke(width = 1.3.dp.toPx()))
-            drawPath(rightChev, accentColor, style = Stroke(width = 1.3.dp.toPx()))
-            drawFacetedDiamond(Offset(midX, y), halfSize = 4.dp.toPx(), fill = accentColor)
-        } else {
-            drawLine(OsrsBorderDark, Offset(lineStart, y - 0.7f), Offset(lineEnd, y - 0.7f), 1.2.dp.toPx())
-            drawLine(OsrsBorderLight, Offset(lineStart, y + 0.8f), Offset(lineEnd, y + 0.8f), 1.dp.toPx())
-        }
-
-        if (withEndCaps) {
-            drawFacetedDiamond(
-                center = Offset(startX + capSize, y),
-                halfSize = capSize,
-                fill = accentColor.copy(alpha = 0.85f)
-            )
-            drawFacetedDiamond(
-                center = Offset(endX - capSize, y),
-                halfSize = capSize,
-                fill = accentColor.copy(alpha = 0.85f)
-            )
-        }
-    }
-
-    /**
-     * Draws subtle chiseled gold-leaf corner flourishes inside a plaque or level-99 cell.
-     */
-    fun DrawScope.drawCornerFlourishes(
-        inset: Float = 3.dp.toPx(),
-        armLength: Float = 8.dp.toPx(),
-        color: Color = OsrsBrassMid
-    ) {
-        val stroke = 1.25.dp.toPx()
-        val w = size.width
-        val h = size.height
-        // Top-left
-        drawLine(color, Offset(inset, inset), Offset(inset + armLength, inset), stroke)
-        drawLine(color, Offset(inset, inset), Offset(inset, inset + armLength), stroke)
-        // Top-right
-        drawLine(color, Offset(w - inset, inset), Offset(w - inset - armLength, inset), stroke)
-        drawLine(color, Offset(w - inset, inset), Offset(w - inset, inset + armLength), stroke)
-        // Bottom-left
-        drawLine(color, Offset(inset, h - inset), Offset(inset + armLength, h - inset), stroke)
-        drawLine(color, Offset(inset, h - inset), Offset(inset, h - inset - armLength), stroke)
-        // Bottom-right
-        drawLine(color, Offset(w - inset, h - inset), Offset(w - inset - armLength, h - inset), stroke)
-        drawLine(color, Offset(w - inset, h - inset), Offset(w - inset, h - inset - armLength), stroke)
-    }
-
-    /**
-     * Draws a low-contrast engraved merchant balance scale watermark inside empty GE offer slots.
-     */
-    fun DrawScope.drawWatermarkScale(
+    internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawWatermarkScale(
         center: Offset = Offset(size.width * 0.5f, size.height * 0.5f),
         radius: Float = minOf(size.width, size.height) * 0.28f,
-        color: Color = OsrsBorderLight.copy(alpha = 0.16f)
+        color: Color = OsrsBorderLight
     ) {
-        val stroke = Stroke(width = 1.3.dp.toPx(), cap = StrokeCap.Square)
-        // Central pillar
-        drawLine(
-            color = color,
-            start = Offset(center.x, center.y - radius * 0.85f),
-            end = Offset(center.x, center.y + radius * 0.85f),
-            strokeWidth = stroke.width
-        )
-        // Base plinth
-        drawLine(
-            color = color,
-            start = Offset(center.x - radius * 0.55f, center.y + radius * 0.85f),
-            end = Offset(center.x + radius * 0.55f, center.y + radius * 0.85f),
-            strokeWidth = stroke.width * 1.3f
-        )
-        // Balance beam
-        val beamY = center.y - radius * 0.55f
-        val beamHalf = radius * 0.85f
-        drawLine(
-            color = color,
-            start = Offset(center.x - beamHalf, beamY),
-            end = Offset(center.x + beamHalf, beamY),
-            strokeWidth = stroke.width
-        )
-        // Left & right pans
-        val panY = center.y + radius * 0.15f
-        val panHalf = radius * 0.32f
-        for (dir in intArrayOf(-1, 1)) {
-            val px = center.x + dir * beamHalf
-            drawLine(color, Offset(px, beamY), Offset(px - panHalf, panY), stroke.width * 0.8f)
-            drawLine(color, Offset(px, beamY), Offset(px + panHalf, panY), stroke.width * 0.8f)
-            drawLine(color, Offset(px - panHalf, panY), Offset(px + panHalf, panY), stroke.width * 1.2f)
-        }
-        // Fulcrum diamond
-        drawFacetedDiamond(
-            center = Offset(center.x, beamY),
-            halfSize = 2.5.dp.toPx(),
-            fill = color,
-            highlight = color,
-            shadow = OsrsBorderDark.copy(alpha = 0.2f)
-        )
+        val r = radius.roundToInt().coerceAtLeast(2).toFloat()
+        drawRect(color = color, topLeft = Offset(center.x - r, center.y), size = Size(r * 2, 2f))
     }
 }
 
 /**
- * Engraved rule divider composable with diamond end-caps and optional center flourish.
+ * Modifier that draws 3-art-px gold pixel corner L-marks when [enabled] is true (used on level-99 skills).
+ */
+fun Modifier.maxedSkillCorners(enabled: Boolean = true): Modifier =
+    if (!enabled) {
+        this
+    } else {
+        this.drawWithCache {
+            val p = computeArtPx(density).toFloat()
+            val inset = 2f * p
+            val arm = 3f * p
+            val w = size.width.roundToInt().toFloat()
+            val h = size.height.roundToInt().toFloat()
+            onDrawBehind {
+                if (w < inset * 2 + arm * 2 || h < inset * 2 + arm * 2) return@onDrawBehind
+                // Top-left
+                drawRect(OsrsGold, Offset(inset, inset), Size(arm, p))
+                drawRect(OsrsGold, Offset(inset, inset), Size(p, arm))
+                drawRect(OsrsGoldHighlight, Offset(inset, inset), Size(p, p))
+                // Top-right
+                drawRect(OsrsGold, Offset(w - inset - arm, inset), Size(arm, p))
+                drawRect(OsrsGold, Offset(w - inset - p, inset), Size(p, arm))
+                drawRect(OsrsGoldHighlight, Offset(w - inset - p, inset), Size(p, p))
+                // Bottom-left
+                drawRect(OsrsGold, Offset(inset, h - inset - p), Size(arm, p))
+                drawRect(OsrsGold, Offset(inset, h - inset - arm), Size(p, arm))
+                drawRect(OsrsGoldHighlight, Offset(inset, h - inset - p), Size(p, p))
+                // Bottom-right
+                drawRect(OsrsGold, Offset(w - inset - arm, h - inset - p), Size(arm, p))
+                drawRect(OsrsGold, Offset(w - inset - p, h - inset - arm), Size(p, arm))
+                drawRect(OsrsGoldHighlight, Offset(w - inset - p, h - inset - p), Size(p, p))
+            }
+        }
+    }
+
+/**
+ * Engraved pixel rule divider composable with 3x3 stepped diamond end caps and optional center diamond.
  */
 @Composable
 fun EngravedRule(
@@ -264,76 +316,73 @@ fun EngravedRule(
     withCenterFlourish: Boolean = false,
     accentColor: Color = OsrsBrassMid
 ) {
-    val heightDp = if (withCenterFlourish) 10.dp else 6.dp
-    Canvas(modifier = modifier.fillMaxWidth().height(heightDp)) {
-        with(Ornaments) {
-            drawEngravedRule(
-                y = size.height * 0.5f,
-                startX = 0f,
-                endX = size.width,
-                withEndCaps = withEndCaps,
-                withCenterFlourish = withCenterFlourish,
-                accentColor = accentColor
-            )
-        }
-    }
+    val heightDp = if (withCenterFlourish) 7.dp else 5.dp
+    val accentArgb = accentColor.toArgb()
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(heightDp)
+            .pixelArt(key = Triple("EngravedRule", withEndCaps to withCenterFlourish, accentArgb)) {
+                Ornaments.drawEngravedRule(
+                    canvas = this,
+                    withEndCaps = withEndCaps,
+                    withCenterFlourish = withCenterFlourish,
+                    accentColor = accentArgb
+                )
+            }
+    )
 }
 
 /**
- * Faceted 45-degree diamond bullet glyph replacing plain text bullet characters.
+ * 5x5 pixel diamond bullet glyph replacing vector diamond paths.
  */
 @Composable
 fun BulletGlyph(
     modifier: Modifier = Modifier,
-    size: Dp = 7.dp,
+    size: Dp = 5.dp,
     color: Color = OsrsGoldDark
 ) {
-    Canvas(modifier = modifier.size(size)) {
-        with(Ornaments) {
-            drawFacetedDiamond(
-                center = Offset(this@Canvas.size.width * 0.5f, this@Canvas.size.height * 0.5f),
-                halfSize = this@Canvas.size.minDimension * 0.42f,
-                fill = color,
-                highlight = OsrsGoldHighlight,
-                shadow = OsrsBorderDark
-            )
-        }
-    }
+    val tones = SpriteTones(
+        outline = OsrsOuterFrame.toArgb(),
+        highlight = OsrsGoldHighlight.toArgb(),
+        base = color.toArgb(),
+        shadow = OsrsBorderDark.toArgb()
+    )
+    PixelIcon(
+        sprite = Ornaments.BulletDiamondSprite,
+        tones = tones,
+        modifier = modifier.size(size)
+    )
 }
 
 /**
- * Forged wrought-iron 3-bar grip handle with side rivets for reordering rows in EditableList.
+ * Low-resolution wrought-iron 3-bar grip handle with pixel rivets for reordering rows.
  */
 @Composable
 fun IronGripHandle(
     modifier: Modifier = Modifier,
-    width: Dp = 20.dp,
-    height: Dp = 16.dp
+    width: Dp = 18.dp,
+    height: Dp = 14.dp
 ) {
-    Canvas(modifier = modifier.size(width, height)) {
-        val barCount = 3
-        val padX = 2.dp.toPx()
-        val barWidth = size.width - padX * 2
-        val barHeight = 2.dp.toPx()
-        for (i in 0 until barCount) {
-            val y = size.height * (0.22f + i * 0.28f)
-            // Recessed groove
-            drawRect(
-                color = OsrsIronEdgeDark,
-                topLeft = Offset(padX, y),
-                size = Size(barWidth, barHeight)
-            )
-            // Iron ridge glint
-            drawLine(
-                color = OsrsIronEdgeLight,
-                start = Offset(padX, y),
-                end = Offset(padX + barWidth, y),
-                strokeWidth = 1.dp.toPx()
-            )
-        }
-        with(Ornaments) {
-            drawDomedRivet(Offset(2.5.dp.toPx(), size.height * 0.5f), radius = 1.6.dp.toPx())
-            drawDomedRivet(Offset(size.width - 2.5.dp.toPx(), size.height * 0.5f), radius = 1.6.dp.toPx())
-        }
-    }
+    Box(
+        modifier = modifier
+            .size(width, height)
+            .pixelArt(key = "IronGripHandle") {
+                Ornaments.drawIronGrip(this)
+            }
+    )
+}
+
+/**
+ * 16x16 low-contrast pixel balance-scale watermark for empty Grand Exchange slots.
+ */
+@Composable
+fun WatermarkScale(
+    modifier: Modifier = Modifier
+) {
+    PixelIcon(
+        sprite = Ornaments.WatermarkScaleSprite,
+        tones = Ornaments.WATERMARK_TONES,
+        modifier = modifier.size(16.dp)
+    )
 }

@@ -49,8 +49,8 @@ import com.pssst.theme.art.BulletGlyph
 import com.pssst.theme.art.EmptyStateKind
 import com.pssst.theme.art.FrameWeight
 import com.pssst.theme.art.GoldLeafText
-import com.pssst.theme.art.Ornaments.drawCornerFlourishes
 import com.pssst.theme.art.OsrsEmptyState
+import com.pssst.theme.art.maxedSkillCorners
 import com.pssst.theme.osrsPanel
 import com.pssst.theme.osrsSlot
 
@@ -149,19 +149,7 @@ fun SkillCard(skill: SkillUiModel, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .osrsPanel(weight = FrameWeight.LIGHT)
-            .drawWithCache {
-                val armPx = 6.dp.toPx()
-                val insetPx = 3.dp.toPx()
-                onDrawBehind {
-                    if (isMaxed) {
-                        drawCornerFlourishes(
-                            armLength = armPx,
-                            inset = insetPx,
-                            color = OsrsGold.copy(alpha = 0.65f)
-                        )
-                    }
-                }
-            }
+            .maxedSkillCorners(enabled = isMaxed)
             .padding(horizontal = 7.dp, vertical = 5.dp)
     ) {
         Column(
