@@ -50,6 +50,8 @@ import com.pssst.theme.art.EmptyStateKind
 import com.pssst.theme.art.FrameWeight
 import com.pssst.theme.art.GoldLeafText
 import com.pssst.theme.art.OsrsEmptyState
+import com.pssst.theme.art.PixelIcon
+import com.pssst.theme.art.SpriteTones
 import com.pssst.theme.art.maxedSkillCorners
 import com.pssst.theme.osrsPanel
 import com.pssst.theme.osrsSlot
@@ -268,11 +270,10 @@ fun TotalSkillCard(
                         .osrsSlot(hasItem = true, cornerRadius = 2.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = ArtIcons.ProgressStar,
-                        contentDescription = null,
-                        tint = OsrsGold,
-                        modifier = Modifier.size(22.dp)
+                    PixelIcon(
+                        sprite = ArtIcons.ProgressStar,
+                        tones = SpriteTones.GOLD,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
                 Column(

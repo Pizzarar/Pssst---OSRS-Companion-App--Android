@@ -61,50 +61,27 @@ import com.pssst.theme.OsrsTextField
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.OsrsYellow
+import com.pssst.theme.art.ArtIcons
 import com.pssst.theme.art.BulletGlyph
 import com.pssst.theme.art.EmptyStateKind
 import com.pssst.theme.art.EmptyStateVignette
 import com.pssst.theme.art.FrameWeight
 import com.pssst.theme.art.GoldLeafText
+import com.pssst.theme.art.PixelIcon
+import com.pssst.theme.art.SpriteTones
 import com.pssst.theme.osrsPanel
 import com.pssst.theme.osrsSlot
 import com.pssst.util.GoalMath
 import com.pssst.util.GoalPriceMode
 import com.pssst.util.TimeFormat
-import kotlin.math.cos
-import kotlin.math.sin
 
 @Composable
-fun GearVectorIcon(tint: Color, modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier) {
-        val radius = size.minDimension / 2f
-        val center = Offset(size.width / 2f, size.height / 2f)
-        val toothCount = 8
-        val outerR = radius * 0.95f
-        val innerR = radius * 0.65f
-        val holeR = radius * 0.32f
-
-        for (i in 0 until toothCount) {
-            val angle = (i.toDouble() * 2.0 * Math.PI / toothCount).toFloat()
-            val start = Offset(
-                center.x + (innerR * cos(angle)),
-                center.y + (innerR * sin(angle))
-            )
-            val end = Offset(
-                center.x + (outerR * cos(angle)),
-                center.y + (outerR * sin(angle))
-            )
-            drawLine(
-                color = tint,
-                start = start,
-                end = end,
-                strokeWidth = radius * 0.35f,
-                cap = StrokeCap.Round
-            )
-        }
-        drawCircle(color = tint, radius = innerR, center = center)
-        drawCircle(color = OsrsPanelDark, radius = holeR, center = center)
-    }
+fun GearVectorIcon(tint: Color = OsrsGold, modifier: Modifier = Modifier) {
+    PixelIcon(
+        sprite = ArtIcons.Gear,
+        tones = SpriteTones.GOLD,
+        modifier = modifier
+    )
 }
 
 @Composable
@@ -179,9 +156,7 @@ fun GoalCard(
                     // GE | HA Price Mode Toggle
                     Row(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(OsrsSlotEmpty)
-                            .border(1.dp, OsrsOuterFrame, RoundedCornerShape(2.dp))
+                            .osrsSlot(hasItem = false)
                     ) {
                         Box(
                             modifier = Modifier
@@ -217,9 +192,7 @@ fun GoalCard(
                     Box(
                         modifier = Modifier
                             .size(26.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(OsrsSlotEmpty)
-                            .border(1.dp, OsrsOuterFrame, RoundedCornerShape(2.dp))
+                            .osrsSlot(hasItem = false)
                             .clickable { showSettingsDialog = true },
                         contentAlignment = Alignment.Center
                     ) {

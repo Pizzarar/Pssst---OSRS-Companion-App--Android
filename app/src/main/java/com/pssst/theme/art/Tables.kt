@@ -218,11 +218,15 @@ fun OsrsTableStatusCell(
             .padding(horizontal = 7.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(13.dp)
+        PixelIcon(
+            sprite = icon,
+            tones = when (status) {
+                TableStatusKind.READY -> SpriteTones.HERB
+                TableStatusKind.GROWING -> SpriteTones.STONE
+                TableStatusKind.EMPTY -> SpriteTones.STONE
+                TableStatusKind.WARNING -> SpriteTones.WARNING
+            },
+            modifier = Modifier.size(16.dp)
         )
         Spacer(modifier = Modifier.width(5.dp))
         Text(

@@ -105,6 +105,54 @@ class ArtSheetExportTest {
         assertTrue("Expected frames_plaques_ornaments.png to be written", outFile.exists() && outFile.length() > 0)
     }
 
+    @Test
+    fun exportSpritesSheetPng() {
+        val outDir = File("build/art-sheet")
+        outDir.mkdirs()
+
+        val sprites = ArtIcons.ALL_SPRITES
+        val cellSize = 22
+        val gap = 4
+        val cols = 8
+        // 3 rows of 8 for NATURAL, 2 rows of 8 for GOLD, 2 rows of 8 for STONE
+        val totalRows = 6
+        val sheetArtW = cols * cellSize + (cols + 1) * gap
+        val sheetArtH = totalRows * cellSize + (totalRows + 1) * gap
+        val sheet = PixelCanvas(sheetArtW, sheetArtH)
+        Textures.drawPanelStone(sheet, seed = 101)
+
+        // Rows 0..1: NATURAL default tones in recessed wells
+        // Rows 2..3: GOLD tones in recessed wells
+        // Rows 4..5: STONE tones in recessed wells
+        val modes = listOf<Pair<Int, (Sprite) -> SpriteTones>>(
+            0 to { s -> s.defaultNaturalTones ?: SpriteTones.GOLD },
+            2 to { _ -> SpriteTones.GOLD },
+            4 to { _ -> SpriteTones.STONE }
+        )
+
+        for ((baseRow, toneFn) in modes) {
+            sprites.forEachIndexed { idx, (_, sprite) ->
+                val col = idx % cols
+                val row = baseRow + (idx / cols)
+                val ox = gap + col * (cellSize + gap)
+                val oy = gap + row * (cellSize + gap)
+                sheet.bevelBox(
+                    x = ox,
+                    y = oy,
+                    bw = cellSize,
+                    bh = cellSize,
+                    fill = 0xFF221D16.toInt(),
+                    raised = false
+                )
+                sheet.blit(sprite, toneFn(sprite), ox + 3, oy + 3)
+            }
+        }
+
+        val outFile = File(outDir, "sprites.png")
+        writeScaledPng(sheet, scale = 4, file = outFile)
+        assertTrue("Expected sprites.png to be written", outFile.exists() && outFile.length() > 0)
+    }
+
     companion object {
         fun copySubCanvas(dest: PixelCanvas, ox: Int, oy: Int, src: PixelCanvas) {
             for (y in 0 until src.h) {

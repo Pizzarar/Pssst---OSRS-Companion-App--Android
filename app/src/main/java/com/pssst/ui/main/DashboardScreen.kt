@@ -72,9 +72,12 @@ import com.pssst.theme.art.ArtIcons
 import com.pssst.theme.art.BulletGlyph
 import com.pssst.theme.art.FrameWeight
 import com.pssst.theme.art.GoldLeafText
+import com.pssst.theme.art.PixelIcon
 import com.pssst.theme.art.SectionHeaderPlaque
+import com.pssst.theme.art.SpriteTones
 import com.pssst.theme.art.TitlePlaque
 import com.pssst.theme.art.leatherBoundPanel
+import com.pssst.theme.art.ledgerWellSlot
 import com.pssst.theme.art.oakBeamFrame
 import com.pssst.theme.art.stoneGround
 import com.pssst.theme.art.stoneSillFrame
@@ -445,36 +448,24 @@ fun DashboardScreen(
                             Column(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .background(if (isSelected) OsrsSlotEmpty else Color.Transparent)
-                                    .clickable { selectedTabIndex = index }
-                                    .drawBehind {
-                                        if (index > 0) {
-                                            drawLine(
-                                                color = OsrsOuterFrame,
-                                                start = Offset(0f, 8.dp.toPx()),
-                                                end = Offset(0f, size.height - 8.dp.toPx()),
-                                                strokeWidth = 1.dp.toPx()
-                                            )
-                                        }
+                                    .then(
                                         if (isSelected) {
-                                            val indH = 3.dp.toPx()
-                                            drawRect(
-                                                color = OsrsGold,
-                                                topLeft = Offset(0f, 0f),
-                                                size = Size(size.width, indH)
-                                            )
+                                            Modifier.ledgerWellSlot(empty = true, highlighted = true)
+                                        } else {
+                                            Modifier
                                         }
-                                    }
+                                    )
+                                    .clickable { selectedTabIndex = index }
                                     .padding(vertical = 10.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
                                 when (tab) {
-                                    DashboardTab.OVERVIEW -> ShieldVectorIcon(tint = tint, modifier = Modifier.size(24.dp))
-                                    DashboardTab.STORAGE -> ChestVectorIcon(tint = tint, modifier = Modifier.size(24.dp))
-                                    DashboardTab.GE -> CoinsVectorIcon(tint = tint, modifier = Modifier.size(24.dp))
-                                    DashboardTab.PROGRESSION -> StarVectorIcon(tint = tint, modifier = Modifier.size(24.dp))
-                                    DashboardTab.TIMERS -> HourglassVectorIcon(tint = tint, modifier = Modifier.size(24.dp))
+                                    DashboardTab.OVERVIEW -> ShieldVectorIcon(selected = isSelected, tint = tint)
+                                    DashboardTab.STORAGE -> ChestVectorIcon(selected = isSelected, tint = tint)
+                                    DashboardTab.GE -> CoinsVectorIcon(selected = isSelected, tint = tint)
+                                    DashboardTab.PROGRESSION -> StarVectorIcon(selected = isSelected, tint = tint)
+                                    DashboardTab.TIMERS -> HourglassVectorIcon(selected = isSelected, tint = tint)
                                 }
                                 Spacer(modifier = Modifier.height(3.dp))
                                 Text(
@@ -533,61 +524,55 @@ fun DashboardScreen(
 }
 
 @Composable
-fun HamburgerVectorIcon(tint: Color, modifier: Modifier = Modifier.size(24.dp)) {
-    Icon(
-        imageVector = ArtIcons.DrawerLedgerMenu,
-        contentDescription = null,
-        tint = tint,
+fun HamburgerVectorIcon(tint: Color = OsrsGold, modifier: Modifier = Modifier.size(16.dp)) {
+    PixelIcon(
+        sprite = ArtIcons.DrawerLedgerMenu,
+        tones = SpriteTones.GOLD,
         modifier = modifier
     )
 }
 
 @Composable
-fun ShieldVectorIcon(tint: Color, modifier: Modifier = Modifier.size(24.dp)) {
-    Icon(
-        imageVector = ArtIcons.OverviewShield,
-        contentDescription = null,
-        tint = tint,
+fun ShieldVectorIcon(selected: Boolean = true, tint: Color = OsrsGold, modifier: Modifier = Modifier.size(16.dp)) {
+    PixelIcon(
+        sprite = ArtIcons.OverviewShield,
+        tones = if (selected) SpriteTones.GOLD else SpriteTones.STONE,
         modifier = modifier
     )
 }
 
 @Composable
-fun ChestVectorIcon(tint: Color, modifier: Modifier = Modifier.size(24.dp)) {
-    Icon(
-        imageVector = ArtIcons.StorageChest,
-        contentDescription = null,
-        tint = tint,
+fun ChestVectorIcon(selected: Boolean = true, tint: Color = OsrsGold, modifier: Modifier = Modifier.size(16.dp)) {
+    PixelIcon(
+        sprite = ArtIcons.StorageChest,
+        tones = if (selected) SpriteTones.GOLD else SpriteTones.STONE,
         modifier = modifier
     )
 }
 
 @Composable
-fun CoinsVectorIcon(tint: Color, modifier: Modifier = Modifier.size(24.dp)) {
-    Icon(
-        imageVector = ArtIcons.ExchangeCoins,
-        contentDescription = null,
-        tint = tint,
+fun CoinsVectorIcon(selected: Boolean = true, tint: Color = OsrsGold, modifier: Modifier = Modifier.size(16.dp)) {
+    PixelIcon(
+        sprite = ArtIcons.ExchangeCoins,
+        tones = if (selected) SpriteTones.GOLD else SpriteTones.STONE,
         modifier = modifier
     )
 }
 
 @Composable
-fun StarVectorIcon(tint: Color, modifier: Modifier = Modifier.size(24.dp)) {
-    Icon(
-        imageVector = ArtIcons.ProgressStar,
-        contentDescription = null,
-        tint = tint,
+fun StarVectorIcon(selected: Boolean = true, tint: Color = OsrsGold, modifier: Modifier = Modifier.size(16.dp)) {
+    PixelIcon(
+        sprite = ArtIcons.ProgressStar,
+        tones = if (selected) SpriteTones.GOLD else SpriteTones.STONE,
         modifier = modifier
     )
 }
 
 @Composable
-fun HourglassVectorIcon(tint: Color, modifier: Modifier = Modifier.size(24.dp)) {
-    Icon(
-        imageVector = ArtIcons.TimersHourglass,
-        contentDescription = null,
-        tint = tint,
+fun HourglassVectorIcon(selected: Boolean = true, tint: Color = OsrsGold, modifier: Modifier = Modifier.size(16.dp)) {
+    PixelIcon(
+        sprite = ArtIcons.TimersHourglass,
+        tones = if (selected) SpriteTones.GOLD else SpriteTones.STONE,
         modifier = modifier
     )
 }

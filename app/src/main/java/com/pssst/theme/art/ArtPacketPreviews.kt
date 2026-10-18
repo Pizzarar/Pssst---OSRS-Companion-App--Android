@@ -192,30 +192,30 @@ fun PreviewOrnamentsAndIcons() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                Icon(ArtIcons.OverviewShield, contentDescription = "Overview", tint = OsrsGold, modifier = Modifier.size(26.dp))
-                Icon(ArtIcons.StorageChest, contentDescription = "Storage", tint = OsrsGold, modifier = Modifier.size(26.dp))
-                Icon(ArtIcons.ExchangeCoins, contentDescription = "Exchange", tint = OsrsGold, modifier = Modifier.size(26.dp))
-                Icon(ArtIcons.ProgressStar, contentDescription = "Progress", tint = OsrsGold, modifier = Modifier.size(26.dp))
-                Icon(ArtIcons.TimersHourglass, contentDescription = "Timers", tint = OsrsGold, modifier = Modifier.size(26.dp))
+                PixelIcon(ArtIcons.OverviewShield, SpriteTones.GOLD)
+                PixelIcon(ArtIcons.StorageChest, SpriteTones.GOLD)
+                PixelIcon(ArtIcons.ExchangeCoins, SpriteTones.GOLD)
+                PixelIcon(ArtIcons.ProgressStar, SpriteTones.GOLD)
+                PixelIcon(ArtIcons.TimersHourglass, SpriteTones.GOLD)
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                Icon(ArtIcons.Birdhouse, contentDescription = "Birdhouse", tint = OsrsTextPrimary, modifier = Modifier.size(24.dp))
-                Icon(ArtIcons.HerbSprig, contentDescription = "Herb", tint = OsrsGreen, modifier = Modifier.size(24.dp))
-                Icon(ArtIcons.TreeCrown, contentDescription = "Tree", tint = OsrsGreen, modifier = Modifier.size(24.dp))
-                Icon(ArtIcons.DrawerLedgerMenu, contentDescription = "Menu", tint = OsrsGold, modifier = Modifier.size(24.dp))
-                Icon(ArtIcons.EditQuill, contentDescription = "Edit", tint = OsrsGold, modifier = Modifier.size(24.dp))
+                PixelIcon(ArtIcons.Birdhouse, SpriteTones.WOOD)
+                PixelIcon(ArtIcons.HerbSprig, SpriteTones.HERB)
+                PixelIcon(ArtIcons.TreeCrown, SpriteTones.HERB)
+                PixelIcon(ArtIcons.DrawerLedgerMenu, SpriteTones.GOLD)
+                PixelIcon(ArtIcons.EditQuill, SpriteTones.GOLD)
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                Icon(ArtIcons.BadgeReady, contentDescription = "Ready", tint = OsrsGreen, modifier = Modifier.size(22.dp))
-                Icon(ArtIcons.BadgeGrowing, contentDescription = "Growing", tint = OsrsGold, modifier = Modifier.size(22.dp))
-                Icon(ArtIcons.BadgeEmpty, contentDescription = "Empty", tint = OsrsTextMuted, modifier = Modifier.size(22.dp))
-                Icon(ArtIcons.BadgeWarning, contentDescription = "Warning", tint = OsrsRed, modifier = Modifier.size(22.dp))
+                PixelIcon(ArtIcons.BadgeReady, SpriteTones.HERB)
+                PixelIcon(ArtIcons.BadgeGrowing, SpriteTones.STONE)
+                PixelIcon(ArtIcons.BadgeEmpty, SpriteTones.STONE)
+                PixelIcon(ArtIcons.BadgeWarning, SpriteTones.WARNING)
             }
             Box(
                 modifier = Modifier
