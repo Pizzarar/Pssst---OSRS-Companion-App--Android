@@ -28,7 +28,7 @@ import com.pssst.util.PhoneAddresses
 
 /** The address to type into RuneLite → Pssst Companion → Phone Address, with Copy. Shown in phone mode. */
 @Composable
-fun PhoneAddressCard(state: MainDashboardUiState, modifier: Modifier = Modifier) {
+fun PhoneAddressCard(state: MainDashboardUiState, modifier: Modifier = Modifier, onHelp: () -> Unit = {}) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     var addresses by remember { mutableStateOf(PhoneAddresses.forDisplay(context)) }
@@ -73,6 +73,9 @@ fun PhoneAddressCard(state: MainDashboardUiState, modifier: Modifier = Modifier)
                     Text("Copy", color = OsrsGold)
                 }
             }
+        }
+        TextButton(onClick = onHelp) {
+            Text("Keep it from changing", color = OsrsGold)
         }
     }
 }

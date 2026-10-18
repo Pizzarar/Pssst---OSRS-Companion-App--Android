@@ -72,7 +72,8 @@ object ReceiverHost {
             onSnapshot = { snapshot ->
                 val uuid = prefs.getUuid()
                 if (!uuid.isNullOrBlank()) ingest.ingest(uuid, snapshot)
-            }
+            },
+            onDeliveredTo = { address -> ReceiverPrefs.saveLastDeliveredTo(context, address) }
         )
     }
 }

@@ -16,6 +16,10 @@ import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,6 +59,16 @@ fun OverviewScreen(
     val activeGeCount = state.geOffers.count { !it.isEmpty }
     val completeGeCount = state.geOffers.count { it.isComplete }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val lastDeliveredTo by com.pssst.receiver.ReceiverPrefs.lastDeliveredTo(context).collectAsState()
+    val changedTo = remember(lastDeliveredTo) {
+        com.pssst.util.AddressChange.changedTo(lastDeliveredTo, com.pssst.util.PhoneAddresses.forDisplay(context))
+    }
+    var showAddressHelp by remember { mutableStateOf(false) }
+    if (showAddressHelp) {
+        KeepAddressDialog(onDismiss = { showAddressHelp = false })
+    }
+
     // The player can reorder and hide these cards (Edit list)
     EditableList(
         listId = "overview",
@@ -62,11 +76,19 @@ fun OverviewScreen(
         key = { it.name },
         label = { it.title },
         modifier = modifier.padding(16.dp),
-        spacing = 12.dp
+        spacing = 12.dp,
+        header = {
+            // Not hideable: RuneLite can't reach the phone until this is fixed
+            if (changedTo != null) {
+                item(key = "__address_changed") {
+                    AddressChangedBanner(changedTo, onHelp = { showAddressHelp = true })
+                }
+            }
+        }
     ) { card ->
         when (card) {
             // The address RuneLite needs (it changes if the router hands out a new one)
-            OverviewCard.PHONE -> PhoneAddressCard(state)
+            OverviewCard.PHONE -> PhoneAddressCard(state, onHelp = { showAddressHelp = true })
             OverviewCard.WEALTH -> TotalWealthCard(state)
             OverviewCard.STATUS -> QuickActionsBanner(
                 readyDailies = readyDailiesCount,

@@ -29,6 +29,8 @@ class PhoneReceiver(
     private val port: Int = DEFAULT_PORT,
     private val token: suspend () -> String?,
     private val onSnapshot: suspend (StateResponse) -> Unit,
+    /** The phone's own address the plugin reached it on (to spot a changed address later). */
+    private val onDeliveredTo: (String) -> Unit = {},
     private val now: () -> Long = System::currentTimeMillis
 ) {
     private val gson = Gson()
@@ -96,6 +98,7 @@ class PhoneReceiver(
 
         val data = parseState(body) ?: return respond(out, 400, "Body must be a JSON object")
         onSnapshot(StateResponse(data = data, updatedAt = now()))
+        client.localAddress?.hostAddress?.let(onDeliveredTo)
         respond(out, 200, "{\"ok\":true}", "application/json")
     }
 

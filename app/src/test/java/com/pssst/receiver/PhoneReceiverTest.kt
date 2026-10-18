@@ -28,13 +28,17 @@ class PhoneReceiverTest {
     private val token = "0123456789abcdef0123456789abcdef"
     private val received = CopyOnWriteArrayList<StateResponse>()
     private var savedToken: String? = token
+    private val deliveredTo = CopyOnWriteArrayList<String>()
     private lateinit var receiver: PhoneReceiver
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var serveJob: Job? = null
 
     @Before
     fun setUp() {
-        receiver = PhoneReceiver(port = 0, token = { savedToken }, onSnapshot = { received += it }, now = { 42_000L })
+        receiver = PhoneReceiver(
+            port = 0, token = { savedToken }, onSnapshot = { received += it },
+            onDeliveredTo = { deliveredTo += it }, now = { 42_000L }
+        )
         assertTrue(receiver.bind())
         serveJob = scope.launch { receiver.serve() }
     }
@@ -69,6 +73,7 @@ class PhoneReceiverTest {
         assertEquals(995, received[0].data?.inventory?.first()?.id)
         assertEquals("stamped with when it arrived (ms)", 42_000L, received[0].updatedAt)
         assertEquals("Include Bank off: no bank, not an empty one", null, received[0].data?.bank)
+        assertEquals("the phone address RuneLite reached", listOf("127.0.0.1"), deliveredTo)
     }
 
     @Test
@@ -77,6 +82,7 @@ class PhoneReceiverTest {
         assertEquals(401, send("POST", "/sync", "{}", null))
         assertEquals(401, send("POST", "/sync", "{}", "Basic $token"))
         assertTrue(received.isEmpty())
+        assertTrue("a refused request doesn't count as reaching the phone", deliveredTo.isEmpty())
     }
 
     @Test
