@@ -52,6 +52,13 @@ fun OverviewScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // 0. Phone mode: the address RuneLite needs, always in view (it changes if the router hands out a new one)
+        if (state.serverUrl.isBlank()) {
+            item {
+                PhoneAddressCard(state)
+            }
+        }
+
         // 1. Total Net Wealth Card
         item {
             TotalWealthCard(state)

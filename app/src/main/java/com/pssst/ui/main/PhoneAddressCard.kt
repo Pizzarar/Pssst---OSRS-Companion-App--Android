@@ -1,0 +1,78 @@
+package com.pssst.ui.main
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.pssst.theme.OsrsGold
+import com.pssst.theme.OsrsRed
+import com.pssst.theme.OsrsTextMuted
+import com.pssst.theme.OsrsTextPrimary
+import com.pssst.theme.osrsPanel
+import com.pssst.util.PhoneAddresses
+
+/** The address to type into RuneLite → Pssst Companion → Phone Address, with Copy. Shown in phone mode. */
+@Composable
+fun PhoneAddressCard(state: MainDashboardUiState, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
+    var addresses by remember { mutableStateOf(PhoneAddresses.forDisplay(context)) }
+    val waiting = state.lastSyncedAt <= 0L
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .osrsPanel()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = if (waiting) "Waiting for your PC" else "Phone Address for RuneLite",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = OsrsGold
+        )
+        if (waiting) {
+            Text(
+                text = "In RuneLite → Pssst Companion → Phone, turn on Send to My Phone and type this into Phone Address:",
+                style = MaterialTheme.typography.bodyMedium,
+                color = OsrsTextPrimary
+            )
+        }
+        if (addresses.isEmpty()) {
+            Text(
+                text = "Connect this phone to the same Wi-Fi as your PC (or to Tailscale) to see its address.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = OsrsRed
+            )
+            TextButton(onClick = { addresses = PhoneAddresses.forDisplay(context) }) {
+                Text("Check again", color = OsrsGold)
+            }
+        }
+        addresses.forEach { address ->
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(address.host, style = MaterialTheme.typography.titleLarge, color = OsrsGold, fontWeight = FontWeight.Bold)
+                    Text(address.label, style = MaterialTheme.typography.labelSmall, color = OsrsTextMuted)
+                }
+                TextButton(onClick = { clipboard.setText(AnnotatedString(address.host)) }) {
+                    Text("Copy", color = OsrsGold)
+                }
+            }
+        }
+    }
+}

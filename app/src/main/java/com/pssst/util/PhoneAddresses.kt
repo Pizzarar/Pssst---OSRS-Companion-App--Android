@@ -12,6 +12,20 @@ object PhoneAddresses {
     const val LABEL_HOME = "Home Wi-Fi"
     const val LABEL_TAILSCALE = "Tailscale"
 
+    const val LABEL_EMULATOR = "Emulator: on the PC run adb forward tcp:8789 tcp:8789 first"
+
+    /** What to show the player: the real addresses, or on an emulator the forwarded loopback address. */
+    fun forDisplay(context: Context): List<Address> =
+        if (isEmulator()) listOf(Address("127.0.0.1", LABEL_EMULATOR)) else current(context)
+
+    /** The emulator's own address (10.0.2.x) can't be reached from the PC; it needs adb forward instead. */
+    fun isEmulator(): Boolean {
+        val fingerprint = android.os.Build.FINGERPRINT.orEmpty()
+        val product = android.os.Build.PRODUCT.orEmpty()
+        return fingerprint.startsWith("generic") || fingerprint.contains("emulator") ||
+            product.contains("sdk_gphone") || product.contains("emulator") || product.startsWith("sdk")
+    }
+
     /** Reads the phone's current addresses. Cheap; call it when the screen shows. */
     fun current(context: Context): List<Address> = try {
         val manager = context.getSystemService(ConnectivityManager::class.java)

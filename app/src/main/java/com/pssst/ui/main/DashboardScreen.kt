@@ -178,7 +178,7 @@ fun DashboardScreen(
                                     )
                                 }
                                 if (state.serverUrl.isBlank()) {
-                                    val phoneAddresses = remember { com.pssst.util.PhoneAddresses.current(context) }
+                                    val phoneAddresses = remember { com.pssst.util.PhoneAddresses.forDisplay(context) }
                                     Text(
                                         text = if (phoneAddresses.isEmpty()) "Phone address: connect to Wi-Fi to see it"
                                         else "Phone address for RuneLite: " + phoneAddresses.joinToString(" or ") { it.host },

@@ -73,7 +73,7 @@ fun SetupScreen(
     }
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
-    var phoneAddresses by remember { mutableStateOf(PhoneAddresses.current(context)) }
+    var phoneAddresses by remember { mutableStateOf(PhoneAddresses.forDisplay(context)) }
 
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = OsrsTextPrimary,
@@ -184,7 +184,7 @@ fun SetupScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = OsrsRed
                         )
-                        TextButton(onClick = { phoneAddresses = PhoneAddresses.current(context) }) {
+                        TextButton(onClick = { phoneAddresses = PhoneAddresses.forDisplay(context) }) {
                             Text("Check again", color = OsrsGold)
                         }
                     }
