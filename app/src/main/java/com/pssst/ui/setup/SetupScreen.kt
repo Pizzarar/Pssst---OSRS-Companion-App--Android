@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +38,12 @@ import com.pssst.theme.OsrsTextField
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.OsrsYellow
+import com.pssst.theme.art.FrameWeight
+import com.pssst.theme.art.GoldLeafText
+import com.pssst.theme.art.TitlePlaque
+import com.pssst.theme.art.WaxSealMedallion
+import com.pssst.theme.art.parchmentNotice
+import com.pssst.theme.art.stoneGround
 import com.pssst.theme.osrsPanel
 import com.pssst.theme.osrsSlot
 import com.pssst.ui.main.MainViewModel
@@ -76,42 +83,34 @@ fun SetupScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .stoneGround()
             .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = "Welcome to Pssst",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = OsrsGold
+        TitlePlaque(
+            title = "Welcome to Pssst",
+            subtitle = "Pair with the Pssst Companion plugin in RuneLite. Your PC sends your bank, inventory and timers to this phone."
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "Pair with the Pssst Companion plugin in RuneLite. Your PC sends your bank, inventory and timers to this phone.",
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.bodyMedium,
-            color = OsrsTextMuted
-        )
-
-        Spacer(modifier = Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .osrsPanel(showRivets = true)
+                .osrsPanel(weight = FrameWeight.HEAVY)
                 .padding(16.dp)
         ) {
             Column {
-                Text(
-                    text = "1. Sync Token",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = OsrsGold
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    WaxSealMedallion(label = "1", size = 24.dp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    GoldLeafText(
+                        text = "1. Sync Token",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                }
                 Spacer(modifier = Modifier.height(6.dp))
                 OsrsTextField(
                     value = tokenInput,
@@ -140,12 +139,14 @@ fun SetupScreen(
                 OsrsHeaderDivider()
                 Spacer(modifier = Modifier.height(14.dp))
 
-                Text(
-                    text = "2. Phone Address",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = OsrsGold
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    WaxSealMedallion(label = "2", size = 24.dp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    GoldLeafText(
+                        text = "2. Phone Address",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                }
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = "In RuneLite → Pssst Companion → Phone, turn on Send to My Phone and type this into Phone Address:",
@@ -164,7 +165,14 @@ fun SetupScreen(
                     }
                 }
                 phoneAddresses.forEach { address ->
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 3.dp)
+                            .parchmentNotice()
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(address.host, style = MaterialTheme.typography.titleMedium, color = OsrsGold, fontWeight = FontWeight.Bold)
                             Text(address.label, style = MaterialTheme.typography.labelSmall, color = OsrsTextMuted)
