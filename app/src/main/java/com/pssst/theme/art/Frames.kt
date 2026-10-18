@@ -1,8 +1,12 @@
 package com.pssst.theme.art
 
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalDensity
 import com.pssst.theme.OsrsBorderDark
 import com.pssst.theme.OsrsBorderLight
 import com.pssst.theme.OsrsBorderOutline
@@ -27,7 +31,14 @@ enum class FrameWeight {
     MEDIUM,
 
     /** 1-art-px outline + 2-art-px wrought-iron band + 1-art-px bevel + 4x4 rivets & straps on panel stone. */
-    HEAVY
+    HEAVY;
+
+    /** Art pixels occupied on each edge by the frame border, bevel, inner groove, and corner brackets. */
+    fun insetArtPx(): Int = when (this) {
+        LIGHT -> 2
+        MEDIUM -> 3
+        HEAVY -> 4
+    }
 }
 
 /**
@@ -407,3 +418,17 @@ fun Modifier.leatherBoundPanel(seed: Int = 404): Modifier =
     this.pixelArt(key = Pair("leatherBoundPanel", seed)) {
         Frames.drawLeatherBoundPanel(this, seed = seed)
     }
+
+/**
+ * Pads and clips inner content to the exact integer art-pixel boundary inside a [ledgerPanelFrame]
+ * of [weight], keeping the outer outline, bevel, inner groove, and corner hardware unbroken.
+ */
+@Composable
+fun Modifier.ledgerPanelInset(weight: FrameWeight = FrameWeight.MEDIUM): Modifier {
+    val density = LocalDensity.current
+    val insetDp = with(density) { (weight.insetArtPx() * computeArtPx(density.density)).toDp() }
+    return this
+        .padding(insetDp)
+        .clipToBounds()
+}
+

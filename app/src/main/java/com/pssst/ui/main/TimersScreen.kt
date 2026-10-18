@@ -47,6 +47,7 @@ import com.pssst.theme.art.OsrsTableRow
 import com.pssst.theme.art.OsrsTableRowSeparator
 import com.pssst.theme.art.OsrsTableStatusCell
 import com.pssst.theme.art.TableStatusKind
+import com.pssst.theme.art.ledgerPanelInset
 import com.pssst.theme.art.parchmentNotice
 import com.pssst.theme.osrsPanel
 import com.pssst.util.TimeFormat
@@ -106,7 +107,15 @@ fun TimersScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .then(if (editing) Modifier else Modifier.osrsPanel(weight = FrameWeight.MEDIUM))
+                                .then(
+                                    if (editing) {
+                                        Modifier
+                                    } else {
+                                        Modifier
+                                            .osrsPanel(weight = FrameWeight.MEDIUM)
+                                            .ledgerPanelInset(FrameWeight.MEDIUM)
+                                    }
+                                )
                         ) {
                             EditableList(
                                 listId = "dailies",
@@ -149,7 +158,15 @@ fun TimersScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .then(if (editing) Modifier else Modifier.osrsPanel(weight = FrameWeight.MEDIUM))
+                                .then(
+                                    if (editing) {
+                                        Modifier
+                                    } else {
+                                        Modifier
+                                            .osrsPanel(weight = FrameWeight.MEDIUM)
+                                            .ledgerPanelInset(FrameWeight.MEDIUM)
+                                    }
+                                )
                         ) {
                             EditableList(
                                 listId = "birdhouses",
@@ -196,7 +213,15 @@ fun TimersScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .then(if (editing) Modifier else Modifier.osrsPanel(weight = FrameWeight.MEDIUM))
+                                .then(
+                                    if (editing) {
+                                        Modifier
+                                    } else {
+                                        Modifier
+                                            .osrsPanel(weight = FrameWeight.MEDIUM)
+                                            .ledgerPanelInset(FrameWeight.MEDIUM)
+                                    }
+                                )
                         ) {
                             EditableList(
                                 listId = "farming",
@@ -229,6 +254,7 @@ fun TimersScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .osrsPanel(weight = FrameWeight.MEDIUM)
+                            .ledgerPanelInset(FrameWeight.MEDIUM)
                     ) {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize()
@@ -578,88 +604,90 @@ fun FarmingPatchCard(
     val status = patch.status(nowMs)
     val isGrown = patch.isGrown(nowMs)
 
-    Column(
-        modifier = modifier.fillMaxWidth()
+    OsrsTableRow(
+        index = index,
+        modifier = modifier.fillMaxWidth(),
+        bottomContent = if (status == FarmingStatus.GROWING || status == FarmingStatus.REGROWING) {
+            {
+                OsrsProgressBar(
+                    progress = patch.progress(nowMs),
+                    color = OsrsHerbGreen,
+                    thin = true,
+                    modifier = Modifier
+                        .padding(start = 52.dp, end = 12.dp, bottom = 8.dp)
+                )
+            }
+        } else {
+            null
+        }
     ) {
-        OsrsTableRow(index = index) {
-            // Unboxed Crop Icon
-            Box(
-                modifier = Modifier.size(28.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                if (bitmap != null) {
-                    Image(
-                        bitmap = bitmap,
-                        contentDescription = patch.cropName ?: patch.patchLabel,
-                        filterQuality = FilterQuality.None,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.size(26.dp)
-                    )
-                } else {
-                    Text(
-                        text = itemInitials(patch.cropName ?: patch.patchLabel),
-                        color = OsrsTextMuted,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodySmall.copy(shadow = OsrsHardShadow)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = patch.patchLabel,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (isGrown) OsrsHerbGreen else OsrsTextPrimary
+        // Unboxed Crop Icon
+        Box(
+            modifier = Modifier.size(28.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (bitmap != null) {
+                Image(
+                    bitmap = bitmap,
+                    contentDescription = patch.cropName ?: patch.patchLabel,
+                    filterQuality = FilterQuality.None,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(26.dp)
                 )
+            } else {
                 Text(
-                    text = "${patch.statusText(nowMs)} • Seen ${TimeFormat.formatDuration(nowMs - patch.observedAtMs)} ago",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = OsrsTextMuted
+                    text = itemInitials(patch.cropName ?: patch.patchLabel),
+                    color = OsrsTextMuted,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodySmall.copy(shadow = OsrsHardShadow)
                 )
             }
+        }
 
-            Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
-            val rightText = when {
-                isGrown -> "GROWN"
-                (status == FarmingStatus.GROWING || status == FarmingStatus.REGROWING) && patch.doneAtMs != null ->
-                    "~${TimeFormat.formatDuration(patch.doneAtMs - nowMs)}"
-                status == FarmingStatus.DISEASED -> "DISEASED"
-                status == FarmingStatus.DEAD -> "DEAD"
-                else -> "EMPTY"
-            }
-            val rightColor = when {
-                isGrown -> OsrsHerbGreen
-                status == FarmingStatus.GROWING || status == FarmingStatus.REGROWING -> OsrsTextMuted
-                status == FarmingStatus.DISEASED || status == FarmingStatus.DEAD -> OsrsRed
-                else -> OsrsTextMuted
-            }
-            val statusKind = when {
-                isGrown -> TableStatusKind.READY
-                status == FarmingStatus.GROWING || status == FarmingStatus.REGROWING -> TableStatusKind.GROWING
-                status == FarmingStatus.DISEASED || status == FarmingStatus.DEAD -> TableStatusKind.WARNING
-                else -> TableStatusKind.EMPTY
-            }
-            OsrsTableStatusCell(
-                text = rightText,
-                status = statusKind,
-                colorOverride = rightColor
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = patch.patchLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = if (isGrown) OsrsHerbGreen else OsrsTextPrimary
+            )
+            Text(
+                text = "${patch.statusText(nowMs)} • Seen ${TimeFormat.formatDuration(nowMs - patch.observedAtMs)} ago",
+                style = MaterialTheme.typography.bodySmall,
+                color = OsrsTextMuted
             )
         }
 
-        if (status == FarmingStatus.GROWING || status == FarmingStatus.REGROWING) {
-            OsrsProgressBar(
-                progress = patch.progress(nowMs),
-                color = OsrsHerbGreen,
-                thin = true,
-                modifier = Modifier
-                    .padding(start = 52.dp, end = 12.dp, bottom = 8.dp)
-            )
+        Spacer(modifier = Modifier.width(8.dp))
+
+        val rightText = when {
+            isGrown -> "GROWN"
+            (status == FarmingStatus.GROWING || status == FarmingStatus.REGROWING) && patch.doneAtMs != null ->
+                "~${TimeFormat.formatDuration(patch.doneAtMs - nowMs)}"
+            status == FarmingStatus.DISEASED -> "DISEASED"
+            status == FarmingStatus.DEAD -> "DEAD"
+            else -> "EMPTY"
         }
+        val rightColor = when {
+            isGrown -> OsrsHerbGreen
+            status == FarmingStatus.GROWING || status == FarmingStatus.REGROWING -> OsrsTextMuted
+            status == FarmingStatus.DISEASED || status == FarmingStatus.DEAD -> OsrsRed
+            else -> OsrsTextMuted
+        }
+        val statusKind = when {
+            isGrown -> TableStatusKind.READY
+            status == FarmingStatus.GROWING || status == FarmingStatus.REGROWING -> TableStatusKind.GROWING
+            status == FarmingStatus.DISEASED || status == FarmingStatus.DEAD -> TableStatusKind.WARNING
+            else -> TableStatusKind.EMPTY
+        }
+        OsrsTableStatusCell(
+            text = rightText,
+            status = statusKind,
+            colorOverride = rightColor
+        )
     }
 }
 
@@ -724,7 +752,7 @@ fun BirdHouseCard(
             BirdHouseStatus.READY -> Triple("READY", OsrsHerbGreen, TableStatusKind.READY)
             BirdHouseStatus.SEEDED -> {
                 val readyAt = house.readyAtMs
-                val label = if (readyAt != null && readyAt > nowMs) "~${TimeFormat.formatDuration(readyAt - nowMs)}" else "ACTIVE"
+                val label = if (readyAt != null) "~${TimeFormat.formatDuration(readyAt - nowMs)}" else "ACTIVE"
                 Triple(label, OsrsTextMuted, TableStatusKind.GROWING)
             }
             BirdHouseStatus.BUILT -> Triple("BUILT", OsrsTextPrimary, TableStatusKind.GROWING)

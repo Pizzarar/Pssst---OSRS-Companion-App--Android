@@ -26,7 +26,7 @@ import com.pssst.theme.OsrsBorderLight
 import com.pssst.theme.OsrsBrassMid
 import com.pssst.theme.OsrsHerbGreen
 import com.pssst.theme.OsrsOuterFrame
-import com.pssst.theme.OsrsPanelDark
+import com.pssst.theme.OsrsPanelMid
 import com.pssst.theme.OsrsRed
 import com.pssst.theme.OsrsSlotEmpty
 import com.pssst.theme.OsrsTextMuted
@@ -84,42 +84,65 @@ fun OsrsTableHeaderPlaque(
 }
 
 /**
- * Alternating ledger table row: odd rows use [OsrsPanelDark] (`#2B251D`), keeping
- * >= 4.64:1 contrast with [OsrsRed], >= 5.1:1 with [OsrsTextMuted], and >= 9.2:1 with [com.pssst.theme.OsrsTextPrimary].
+ * Alternating ledger table row: odd rows render as a recessed, darker Bayer-dithered stone band
+ * ([OsrsSlotEmpty] `#221D16` + [OsrsPanelMid] `#27211A` with 1-art-px side/top shadow), keeping
+ * >= 4.67:1 contrast with [OsrsRed], >= 5.49:1 with [OsrsHerbGreen], and >= 12.0:1 with [com.pssst.theme.OsrsTextPrimary].
  */
 @Composable
 fun OsrsTableRow(
     index: Int,
     modifier: Modifier = Modifier,
+    bottomContent: (@Composable () -> Unit)? = null,
     content: @Composable RowScope.() -> Unit
 ) {
     val isAlternate = index % 2 == 1
-    Row(
+    val bandModifier = if (isAlternate) {
+        Modifier.pixelArt(key = "table_row_recessed_band") {
+            val darkTone = OsrsSlotEmpty.toArgb()
+            val midTone = OsrsPanelMid.toArgb()
+            for (py in 0 until h) {
+                for (px in 0 until w) {
+                    val tone = if (PixelNoise.bayer4(px, py) < 11) darkTone else midTone
+                    set(px, py, tone)
+                }
+            }
+            if (w > 2 && h > 1) {
+                val edgeShadow = OsrsBorderDark.toArgb()
+                hLine(0, 0, w, edgeShadow)
+                vLine(0, 0, h, edgeShadow)
+                vLine(w - 1, 0, h, edgeShadow)
+            }
+        }
+    } else {
+        Modifier
+    }
+
+    androidx.compose.foundation.layout.Column(
         modifier = modifier
             .fillMaxWidth()
-            .then(
-                if (isAlternate) {
-                    Modifier.background(OsrsPanelDark)
-                } else {
-                    Modifier
-                }
-            )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-        content = content
-    )
+            .then(bandModifier)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            content = content
+        )
+        bottomContent?.invoke()
+    }
 }
 
 /**
- * Engraved two-pixel-row stone groove separator for Timers tables.
+ * Engraved two-pixel-row stone groove separator for Timers tables, spanning the full inner width
+ * inside [ledgerPanelInset].
  */
 @Composable
 fun OsrsTableRowSeparator(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp)
             .height(4.dp)
             .pixelArt(key = "table_row_sep") {
                 if (w > 0 && h > 0) {
