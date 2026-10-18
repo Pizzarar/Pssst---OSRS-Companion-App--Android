@@ -1,0 +1,22 @@
+<!-- @dsCard group="Components" viewport="700x640" name="Docs" subtitle="Step, SettingChip, Callout, CodeBlock, DocTable, ConnectionFlow, FanFooter" -->
+<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script><script src="../../ds-loader.js"></script>
+<style>body{padding:16px;box-sizing:border-box}.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.col{display:flex;flex-direction:column;gap:12px}.lbl{font:500 11px/16px var(--font-mono);color:var(--text-muted)}</style>
+</head><body><div id="root"></div><script type="text/babel">
+window.__dsReady.then((NSx)=>{
+const { Step, SettingChip, Callout, CodeBlock, DocTable, ConnectionFlow, FanFooter } = NSx;
+function App(){return <div className="col" style={{maxWidth:660}}>
+<Step n={3}>Turn off <SettingChip>This PC Only</SettingChip> and accept the warning.</Step>
+<Step n={5} detail={<CodeBlock label="Command Prompt">ipconfig</CodeBlock>}>Find the PC's IPv4 address.</Step>
+<Callout kind="tip">The app refreshes when opened and about every 15 minutes.</Callout>
+<Callout kind="warning" title="Keep your Sync Token private">It is the password your phone uses to read your data.</Callout>
+<Callout kind="note">Farming timers are estimates and can be up to one growth tick early or late.</Callout>
+<ConnectionFlow nodes={[{label:'Your PC',icon:'monitor',sub:'RuneLite'},{label:'Tailscale',icon:'network'},{label:'Your phone',icon:'smartphone',sub:'Pssst'}]}/>
+<DocTable columns={['Symptom','Likely cause and fix']} rows={[['"Unauthorized"','Token mismatch. Re-copy it with no spaces.'],['Worker returns 503',<span>The <SettingChip>ALLOWED_TOKEN_HASHES</SettingChip> secret isn't set.</span>]]}/>
+<FanFooter/>
+</div>}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+});</script></body></html>

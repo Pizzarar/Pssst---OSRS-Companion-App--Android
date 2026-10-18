@@ -1,0 +1,24 @@
+/* Type scale mirrors PssstAndroid theme/Type.kt (sp → px). Serif bold headings in gold with a hard 1px black shadow. */
+:root{
+  --font-serif:'Alegreya',Georgia,'Noto Serif',serif;
+  --font-sans:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,'Cascadia Mono',Consolas,monospace;
+  --font-pixel:'Silkscreen',var(--font-mono);
+
+  --type-headline-size:24px;--type-headline-lh:30px;--type-headline-weight:700;
+  --type-title-lg-size:20px;--type-title-lg-lh:26px;--type-title-lg-weight:700;
+  --type-title-md-size:17px;--type-title-md-lh:22px;--type-title-md-weight:700;
+  --type-title-sm-size:14px;--type-title-sm-lh:18px;--type-title-sm-weight:600;
+  --type-body-lg-size:15px;--type-body-lg-lh:22px;
+  --type-body-md-size:13px;--type-body-md-lh:18px;
+  --type-body-sm-size:12px;--type-body-sm-lh:16px;
+  --type-label-md-size:13px;--type-label-md-lh:16px;
+  --type-label-sm-size:11px;--type-label-sm-lh:16px;
+  --type-chip-size:11px;
+  --type-nav-size:11px;
+  --type-micro-size:9px;   /* item names / XP under skill tiles */
+  --type-qty-size:11px;    /* stack counts, mono bold */
+
+  --text-shadow-hard:1px 1px 0 #000;
+}
+[data-theme="parchment"]{--text-shadow-hard:none}

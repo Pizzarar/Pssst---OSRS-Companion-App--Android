@@ -1,0 +1,17 @@
+<!-- @dsCard group="Components" viewport="700x260" name="Surfaces" subtitle="Panel (raised) and Slot (recessed)" -->
+<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script><script src="../../ds-loader.js"></script>
+<style>body{padding:16px;box-sizing:border-box}.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.col{display:flex;flex-direction:column;gap:12px}.lbl{font:500 11px/16px var(--font-mono);color:var(--text-muted)}</style>
+</head><body><div id="root"></div><script type="text/babel">
+window.__dsReady.then((NSx)=>{
+const { Panel, Slot } = NSx;
+function App(){return <div className="row" style={{alignItems:'stretch'}}>
+<Panel rivets style={{width:300}}><div style={{font:'700 17px/22px var(--font-serif)',color:'var(--text-heading)',textShadow:'var(--text-shadow-hard)'}}>Total Account Wealth</div><div style={{height:1,background:'var(--outer-frame)',boxShadow:'0 1px 0 var(--bevel-hi)',margin:'8px 0'}}/><div style={{font:'400 13px/18px var(--font-sans)',color:'var(--text-muted)'}}>Panel · padding 14 · radius 4 · double-framed 3D bevel + corner rivets</div></Panel>
+<div className="col"><div className="row"><Slot style={{width:44,height:44}}/><Slot hasItem={false} style={{width:44,height:44}}/><Slot style={{width:72,height:72}}/></div><span className="lbl">Slot · hasItem / empty · radius 3 · 2px inset bevel</span>
+<Slot padding="8px 12px" style={{font:'400 13px/20px var(--font-mono)'}}>http://192.168.1.20:8788</Slot><span className="lbl">Slot as inset / code frame</span></div>
+</div>}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+});</script></body></html>

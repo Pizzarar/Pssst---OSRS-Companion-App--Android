@@ -1,0 +1,19 @@
+<!-- @dsCard group="Components" viewport="700x330" name="Data display" subtitle="StatusChip, ProgressBar, ItemSlot" -->
+<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script><script src="../../ds-loader.js"></script><script src="../../ui_kits/android-app/data.js"></script>
+<style>body{padding:16px;box-sizing:border-box}.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.col{display:flex;flex-direction:column;gap:12px}.lbl{font:500 11px/16px var(--font-mono);color:var(--text-muted)}</style>
+</head><body><div id="root"></div><script type="text/babel">
+window.__dsReady.then((NSx)=>{
+const { StatusChip, ProgressBar, ItemSlot } = NSx;
+const ic = (window.PSSST_DATA && window.PSSST_DATA.icons) || {};
+function App(){return <div className="col">
+<div className="row"><StatusChip tone="ready">READY</StatusChip><StatusChip tone="ready">GROWN</StatusChip><StatusChip tone="done">DONE</StatusChip><StatusChip tone="active">ACTIVE</StatusChip><StatusChip tone="neutral">BUILT</StatusChip><StatusChip tone="gold">BUYING</StatusChip><StatusChip tone="danger">CANCELLED</StatusChip></div>
+<div className="row"><StatusChip tone="ready">Farming: 3</StatusChip><StatusChip tone="done">Birdhouses: 0</StatusChip><StatusChip tone="active">43 remaining</StatusChip></div>
+<div className="col" style={{width:420,gap:8}}><ProgressBar value={.62}/><ProgressBar value={.35} tone="accent"/><ProgressBar value={.58} tone="danger"/><ProgressBar value={.8} tone="accent" thin/></div>
+<div className="row" style={{gap:6}}>{[['Coins',48213907],['Shark',2840],['Rune arrow',152000],['Abyssal whip',1],['Prayer potion(4)',64]].map(([n,q])=><ItemSlot key={n} name={n} quantity={q} iconSrc={ic[n]} size={72}/>)}<ItemSlot empty slotNumber={14} size={72}/></div>
+</div>}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+});</script></body></html>

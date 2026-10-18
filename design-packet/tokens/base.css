@@ -1,0 +1,5 @@
+html,body{background:var(--surface-page);color:var(--text-body);font-family:var(--font-sans);font-size:var(--type-body-lg-size);line-height:var(--type-body-lg-lh);margin:0}
+a{color:var(--link);text-decoration:underline;text-underline-offset:2px}
+a:hover{color:var(--text-body)}
+code,kbd,samp{font-family:var(--font-mono)}
+:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
