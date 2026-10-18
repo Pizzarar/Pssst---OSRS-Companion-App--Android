@@ -29,9 +29,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pssst.theme.OsrsGold
 import com.pssst.theme.OsrsHardShadow
+import com.pssst.theme.OsrsHerbGreen
+import com.pssst.theme.OsrsProgressBar
 import com.pssst.theme.OsrsTextField
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
+import com.pssst.theme.art.EmptyStateKind
+import com.pssst.theme.art.GoldLeafText
+import com.pssst.theme.art.OsrsEmptyState
+import com.pssst.theme.art.chamferedPlaqueFrame
 import com.pssst.theme.osrsPanel
 import com.pssst.theme.osrsSlot
 
@@ -57,9 +63,12 @@ fun PotionStorageScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Potion Summary
+        // Potion Summary Plaque
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .chamferedPlaqueFrame()
+                .padding(horizontal = 14.dp, vertical = 7.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -69,11 +78,10 @@ fun PotionStorageScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = OsrsTextMuted
             )
-            Text(
+            GoldLeafText(
                 text = "Value: ${formatGp(state.totalPotionStorageValue)}",
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = OsrsGold
+                fontWeight = FontWeight.Bold
             )
         }
 
@@ -86,11 +94,9 @@ fun PotionStorageScreen(
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "No potion storage data synced yet.\nIt appears after you open the potion store in your bank with Pssst Companion running.",
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = OsrsTextMuted
+                OsrsEmptyState(
+                    kind = EmptyStateKind.POTION_RACK,
+                    message = "No potion storage data synced yet.\nIt appears after you open the potion store in your bank with Pssst Companion running."
                 )
             }
         } else if (state.filteredPotionStorageItems.isEmpty()) {
@@ -163,7 +169,7 @@ fun PotionStorageCard(item: PotionStorageItemUiModel, modifier: Modifier = Modif
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Details
+            // Details + 4-dose vial gauge
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = item.name,
@@ -177,6 +183,14 @@ fun PotionStorageCard(item: PotionStorageItemUiModel, modifier: Modifier = Modif
                     text = "${item.totalDoses} doses (${item.fourDoseEquivalent} × (4)${if (item.remainingDoses > 0) " + ${item.remainingDoses}d" else ""})",
                     style = MaterialTheme.typography.bodySmall,
                     color = OsrsTextMuted
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                val partialDoseFraction = if (item.remainingDoses > 0) item.remainingDoses / 4f else 1f
+                OsrsProgressBar(
+                    progress = partialDoseFraction,
+                    color = if (item.remainingDoses == 0) OsrsHerbGreen else OsrsGold,
+                    height = 6.dp,
+                    modifier = Modifier.fillMaxWidth(0.75f)
                 )
             }
 
@@ -199,3 +213,4 @@ fun PotionStorageCard(item: PotionStorageItemUiModel, modifier: Modifier = Modif
         }
     }
 }
+

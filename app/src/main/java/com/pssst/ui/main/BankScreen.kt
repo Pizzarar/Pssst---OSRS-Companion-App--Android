@@ -41,6 +41,10 @@ import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.OsrsWhite
 import com.pssst.theme.OsrsYellow
+import com.pssst.theme.art.EmptyStateKind
+import com.pssst.theme.art.GoldLeafText
+import com.pssst.theme.art.OsrsEmptyState
+import com.pssst.theme.art.chamferedPlaqueFrame
 import com.pssst.theme.osrsSlot
 
 @Composable
@@ -84,9 +88,12 @@ fun BankScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Bank Summary
+        // Bank Summary Plaque
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .chamferedPlaqueFrame()
+                .padding(horizontal = 14.dp, vertical = 7.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -95,11 +102,10 @@ fun BankScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = OsrsTextMuted
             )
-            Text(
+            GoldLeafText(
                 text = "Value: ${state.formattedBankValue}",
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = OsrsGold
+                fontWeight = FontWeight.Bold
             )
         }
 
@@ -112,11 +118,9 @@ fun BankScreen(
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "No bank data synced yet.\nIt appears after you open your bank with Pssst Companion running.",
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = OsrsTextMuted
+                OsrsEmptyState(
+                    kind = EmptyStateKind.CLOSED_CHEST,
+                    message = "No bank data synced yet.\nIt appears after you open your bank with Pssst Companion running."
                 )
             }
         } else if (state.filteredBankItems.isEmpty()) {

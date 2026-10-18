@@ -39,6 +39,8 @@ import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.OsrsWhite
 import com.pssst.theme.OsrsYellow
+import com.pssst.theme.art.SectionHeaderPlaque
+import com.pssst.theme.art.leatherBoundPanel
 import com.pssst.theme.osrsSlot
 
 @Composable
@@ -53,42 +55,43 @@ fun InventoryScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // Inventory Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Inventory (4 × 7)",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = OsrsGold
-            )
-            Text(
-                text = "$occupiedCount / 28 Slots",
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (occupiedCount == 28) OsrsRed else OsrsYellow,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
+        // Inventory Header Plaque
+        SectionHeaderPlaque(
+            title = "Inventory (4 × 7)",
+            trailing = {
+                Text(
+                    text = "$occupiedCount / 28 Slots",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (occupiedCount == 28) OsrsRed else OsrsYellow,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // 4x7 Inventory Grid
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(4),
-            contentPadding = PaddingValues(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxSize()
+        // 4x7 Inventory Grid inside a stitched leather pack tray
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .leatherBoundPanel()
+                .padding(10.dp)
         ) {
-            items(state.inventorySlots, key = { it.slotIndex }) { slot ->
-                InventorySlotCard(slot)
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(4),
+                contentPadding = PaddingValues(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(state.inventorySlots, key = { it.slotIndex }) { slot ->
+                    InventorySlotCard(slot)
+                }
             }
         }
     }
 }
+
 
 @Composable
 fun InventorySlotCard(slot: InventorySlotUiModel, modifier: Modifier = Modifier) {

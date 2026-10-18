@@ -26,6 +26,8 @@ import com.pssst.theme.OsrsGold
 import com.pssst.theme.OsrsSegmentedTabs
 import com.pssst.theme.OsrsSlotEmpty
 import com.pssst.theme.OsrsTextMuted
+import com.pssst.theme.art.EmptyStateKind
+import com.pssst.theme.art.OsrsEmptyState
 import com.pssst.theme.osrsPanel
 
 enum class StorageSubTab(val title: String) {
@@ -38,13 +40,13 @@ enum class StorageSubTab(val title: String) {
 @Composable
 private fun BankSharingOff() {
     Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-        Text(
-            text = "Bank sharing is off. Turn on Include Bank in RuneLite \u2192 Pssst Companion \u2192 Phone to see your bank and potion storage here.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = OsrsTextMuted
+        OsrsEmptyState(
+            kind = EmptyStateKind.CLOSED_CHEST,
+            message = "Bank sharing is off. Turn on Include Bank in RuneLite \u2192 Pssst Companion \u2192 Phone to see your bank and potion storage here."
         )
     }
 }
+
 
 @Composable
 fun StorageScreen(
