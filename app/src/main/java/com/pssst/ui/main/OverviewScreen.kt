@@ -29,7 +29,6 @@ import com.pssst.theme.OsrsSlotEmpty
 import com.pssst.theme.OsrsStatusBadge
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
-import com.pssst.theme.OsrsYellow
 import com.pssst.theme.art.BulletGlyph
 import com.pssst.theme.art.FrameWeight
 import com.pssst.theme.art.GoldLeafText
@@ -141,7 +140,7 @@ fun TotalWealthCard(state: MainDashboardUiState, modifier: Modifier = Modifier) 
                     text = state.formattedTotalAccountWealth,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
-                    color = OsrsYellow
+                    color = OsrsGold
                 )
             }
 
@@ -228,7 +227,7 @@ fun QuickActionsBanner(
                 OsrsStatusBadge(
                     text = "GE: $completeGe/$activeGe",
                     containerColor = if (completeGe > 0) OsrsHerbGreen else OsrsSlotEmpty,
-                    contentColor = if (completeGe > 0) Color.Black else OsrsYellow,
+                    contentColor = if (completeGe > 0) Color.Black else OsrsGold,
                     onClick = { onNavigateToTab(DashboardTab.GE) }
                 )
             }

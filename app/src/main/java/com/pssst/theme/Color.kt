@@ -22,7 +22,7 @@ val OsrsRivetDark = Color(0xFF1F1A14)      // Corner stud shadow
 
 // Typography & Highlight Colors
 val OsrsGold = Color(0xFFFF981F)           // Classic OSRS orange/gold title text
-val OsrsYellow = Color(0xFFFFFF00)         // Stack count < 100K & highlights
+val OsrsYellow = Color(0xFFFFFF00)         // Stack count < 100K
 val OsrsWhite = Color(0xFFFFFFFF)          // Stack count 100K - 9.99M
 val OsrsGreen = Color(0xFF00FF80)          // Stack count >= 10M
 val OsrsHerbGreen = Color(0xFF4CAF50)      // Grown patch / success green
@@ -72,13 +72,4 @@ val OsrsRedDark = Color(0xFF8E2626)        // Bottom-right pixel shadow on warni
 val OsrsWaxCrimson = Color(0xFF7A1C1C)     // Melted crimson wax seal body
 val OsrsWaxHighlight = Color(0xFFB83232)   // Wax seal raised rim ridge
 val OsrsWaxShadow = Color(0xFF3D0B0B)      // Stamped wax recess & outer shadow
-
-// Legacy Material aliases
-val Purple80 = OsrsGold
-val PurpleGrey80 = OsrsTextMuted
-val Pink80 = OsrsYellow
-
-val Purple40 = OsrsGold
-val PurpleGrey40 = OsrsTextMuted
-val Pink40 = OsrsYellow
 

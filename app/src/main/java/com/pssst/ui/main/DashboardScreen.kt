@@ -67,7 +67,6 @@ import com.pssst.theme.OsrsSlotEmpty
 import com.pssst.theme.OsrsSwitch
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
-import com.pssst.theme.OsrsYellow
 import com.pssst.theme.art.ArtIcons
 import com.pssst.theme.art.BulletGlyph
 import com.pssst.theme.art.FrameWeight
@@ -336,7 +335,7 @@ fun DashboardScreen(
                                 scope.launch { drawerState.close() }
                             },
                             variant = OsrsButtonVariant.STONE,
-                            textColor = OsrsYellow,
+                            textColor = OsrsGold,
                             modifier = Modifier.fillMaxWidth()
                         )
 

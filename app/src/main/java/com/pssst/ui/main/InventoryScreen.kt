@@ -62,7 +62,7 @@ fun InventoryScreen(
                 Text(
                     text = "$occupiedCount / 28 Slots",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (occupiedCount == 28) OsrsRed else OsrsYellow,
+                    color = if (occupiedCount == 28) OsrsRed else OsrsGold,
                     fontWeight = FontWeight.SemiBold
                 )
             }

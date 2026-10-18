@@ -43,7 +43,6 @@ import com.pssst.theme.OsrsSegmentedTabs
 import com.pssst.theme.OsrsTextField
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
-import com.pssst.theme.OsrsYellow
 import com.pssst.theme.art.ArtIcons
 import com.pssst.theme.art.BulletGlyph
 import com.pssst.theme.art.EmptyStateKind
@@ -190,7 +189,7 @@ fun SkillCard(skill: SkillUiModel, modifier: Modifier = Modifier) {
                         fontFamily = JetBrainsMonoFontFamily,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = if (isMaxed) OsrsHerbGreen else OsrsYellow
+                        color = if (isMaxed) OsrsHerbGreen else OsrsGold
                     )
                     Text(
                         text = formatXp(skill.xp),
@@ -286,7 +285,7 @@ fun TotalSkillCard(
                         fontFamily = JetBrainsMonoFontFamily,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = if (isMaxed) OsrsHerbGreen else OsrsYellow
+                        color = if (isMaxed) OsrsHerbGreen else OsrsGold
                     )
                     Text(
                         text = formatXp(totalXp),
@@ -404,7 +403,7 @@ fun QuestsSubScreen(
 fun QuestCard(quest: QuestUiModel, modifier: Modifier = Modifier) {
     val (statusText, statusColor) = when (quest.state) {
         QuestState.COMPLETED -> Pair("Completed", OsrsHerbGreen)
-        QuestState.IN_PROGRESS -> Pair("In Progress", OsrsYellow)
+        QuestState.IN_PROGRESS -> Pair("In Progress", OsrsGold)
         QuestState.NOT_STARTED -> Pair("Not Started", OsrsRed)
     }
 

@@ -60,7 +60,6 @@ import com.pssst.theme.OsrsSlotRecessed
 import com.pssst.theme.OsrsTextField
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
-import com.pssst.theme.OsrsYellow
 import com.pssst.theme.art.ArtIcons
 import com.pssst.theme.art.BulletGlyph
 import com.pssst.theme.art.EmptyStateKind
@@ -291,7 +290,7 @@ fun GoalCard(
                         style = MaterialTheme.typography.titleMedium,
                         fontFamily = JetBrainsMonoFontFamily,
                         fontWeight = FontWeight.ExtraBold,
-                        color = if (isCompleted) OsrsHerbGreen else OsrsYellow
+                        color = if (isCompleted) OsrsHerbGreen else OsrsGold
                     )
                 }
 
@@ -325,7 +324,7 @@ fun GoalCard(
                         style = MaterialTheme.typography.labelSmall,
                         fontFamily = JetBrainsMonoFontFamily,
                         fontWeight = FontWeight.Bold,
-                        color = if (isCompleted) OsrsHerbGreen else OsrsYellow
+                        color = if (isCompleted) OsrsHerbGreen else OsrsGold
                     )
                 }
 

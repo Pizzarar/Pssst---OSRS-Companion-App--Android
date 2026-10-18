@@ -37,7 +37,6 @@ import com.pssst.theme.OsrsRed
 import com.pssst.theme.OsrsTextField
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
-import com.pssst.theme.OsrsYellow
 import com.pssst.theme.art.FrameWeight
 import com.pssst.theme.art.GoldLeafText
 import com.pssst.theme.art.NumberPlaque
@@ -211,7 +210,7 @@ fun SetupScreen(
                             },
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (isRejectedByTokenMismatch) OsrsRed else OsrsYellow
+                            color = if (isRejectedByTokenMismatch) OsrsRed else OsrsGold
                         )
                         Text(
                             text = if (isRejectedByTokenMismatch) {

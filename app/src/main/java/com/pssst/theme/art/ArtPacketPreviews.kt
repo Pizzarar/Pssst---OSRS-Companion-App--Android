@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.pssst.theme.OsrsGold
-import com.pssst.theme.OsrsGreen
 import com.pssst.theme.OsrsRed
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary

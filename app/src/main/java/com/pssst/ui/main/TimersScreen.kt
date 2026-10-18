@@ -37,7 +37,6 @@ import com.pssst.theme.OsrsSlotEmpty
 import com.pssst.theme.OsrsStatusBadge
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
-import com.pssst.theme.OsrsYellow
 import com.pssst.theme.art.BulletGlyph
 import com.pssst.theme.art.EmptyStateKind
 import com.pssst.theme.art.FrameWeight
@@ -419,7 +418,7 @@ fun MiscellaniaCard(miscellania: MiscellaniaUiModel, modifier: Modifier = Modifi
                 Text(
                     text = miscellania.formattedCoffer,
                     fontWeight = FontWeight.Bold,
-                    color = OsrsYellow
+                    color = OsrsGold
                 )
             }
         }
@@ -476,7 +475,7 @@ fun SlayerTaskCard(slayer: SlayerUiModel, modifier: Modifier = Modifier) {
                 OsrsStatusBadge(
                     text = if (slayer.hasTask) "${slayer.amount} remaining" else "No task",
                     containerColor = OsrsSlotEmpty,
-                    contentColor = if (slayer.hasTask) OsrsYellow else OsrsTextMuted
+                    contentColor = if (slayer.hasTask) OsrsGold else OsrsTextMuted
                 )
             }
 
@@ -545,7 +544,7 @@ fun DailyTaskCard(
                         text = "[Weekly]",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = OsrsYellow
+                        color = OsrsGold
                     )
                 }
             }
@@ -635,7 +634,7 @@ fun FarmingPatchCard(
             }
             val rightColor = when {
                 isGrown -> OsrsHerbGreen
-                status == FarmingStatus.GROWING || status == FarmingStatus.REGROWING -> OsrsYellow
+                status == FarmingStatus.GROWING || status == FarmingStatus.REGROWING -> OsrsTextMuted
                 status == FarmingStatus.DISEASED || status == FarmingStatus.DEAD -> OsrsRed
                 else -> OsrsTextMuted
             }
@@ -726,7 +725,7 @@ fun BirdHouseCard(
             BirdHouseStatus.SEEDED -> {
                 val readyAt = house.readyAtMs
                 val label = if (readyAt != null && readyAt > nowMs) "~${TimeFormat.formatDuration(readyAt - nowMs)}" else "ACTIVE"
-                Triple(label, OsrsYellow, TableStatusKind.GROWING)
+                Triple(label, OsrsTextMuted, TableStatusKind.GROWING)
             }
             BirdHouseStatus.BUILT -> Triple("BUILT", OsrsTextPrimary, TableStatusKind.GROWING)
             BirdHouseStatus.EMPTY -> Triple("EMPTY", OsrsTextMuted, TableStatusKind.EMPTY)

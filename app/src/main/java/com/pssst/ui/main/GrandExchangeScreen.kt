@@ -37,7 +37,6 @@ import com.pssst.theme.OsrsSlotEmpty
 import com.pssst.theme.OsrsStatusBadge
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
-import com.pssst.theme.OsrsYellow
 import com.pssst.theme.art.BulletGlyph
 import com.pssst.theme.art.FrameWeight
 import com.pssst.theme.art.GoldLeafText
@@ -100,7 +99,7 @@ fun GrandExchangeScreen(
                     fontFamily = JetBrainsMonoFontFamily,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = OsrsYellow
+                    color = OsrsGold
                 )
             }
         }
@@ -250,7 +249,7 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
                                 GeOfferState.BOUGHT -> Triple("BOUGHT", OsrsHerbGreen, Color.Black)
                                 GeOfferState.SOLD -> Triple("SOLD", OsrsHerbGreen, Color.Black)
                                 GeOfferState.BUYING -> Triple("BUY", OsrsSlotEmpty, OsrsGold)
-                                GeOfferState.SELLING -> Triple("SELL", OsrsSlotEmpty, OsrsYellow)
+                                GeOfferState.SELLING -> Triple("SELL", OsrsSlotEmpty, OsrsTextPrimary)
                                 GeOfferState.CANCELLED_BUY, GeOfferState.CANCELLED_SELL -> Triple("CANCEL", OsrsSlotEmpty, OsrsRed)
                                 else -> Triple("EMPTY", OsrsSlotEmpty, OsrsTextMuted)
                             }
@@ -316,7 +315,7 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
                             fontFamily = JetBrainsMonoFontFamily,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = OsrsYellow,
+                            color = OsrsGold,
                             maxLines = 1
                         )
                     }
