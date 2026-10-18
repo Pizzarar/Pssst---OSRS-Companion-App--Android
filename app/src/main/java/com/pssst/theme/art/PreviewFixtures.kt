@@ -71,63 +71,105 @@ object PreviewFixtures {
 
     val FIXED_NOW_MS: Long = System.currentTimeMillis()
 
+    private val bundledIcons: Map<Int, String> by lazy {
+        val file = sequenceOf(
+            java.io.File("src/main/assets/items-complete.json"),
+            java.io.File("app/src/main/assets/items-complete.json")
+        ).firstOrNull { it.exists() } ?: return@lazy emptyMap()
+        val result = HashMap<Int, String>(1200)
+        try {
+            com.google.gson.stream.JsonReader(file.bufferedReader(Charsets.UTF_8)).use { reader ->
+                reader.beginObject()
+                while (reader.hasNext()) {
+                    if (reader.nextName() == "items") {
+                        reader.beginArray()
+                        while (reader.hasNext()) {
+                            reader.beginObject()
+                            var id = -1
+                            var icon: String? = null
+                            while (reader.hasNext()) {
+                                when (reader.nextName()) {
+                                    "id" -> id = reader.nextInt()
+                                    "iconBase64" -> icon = reader.nextString()
+                                    else -> reader.skipValue()
+                                }
+                            }
+                            reader.endObject()
+                            if (id != -1 && !icon.isNullOrBlank()) {
+                                result[id] = icon
+                            }
+                        }
+                        reader.endArray()
+                    } else {
+                        reader.skipValue()
+                    }
+                }
+                reader.endObject()
+            }
+        } catch (_: Exception) {
+        }
+        result
+    }
+
+    fun iconFor(itemId: Int): String? = bundledIcons[itemId]
+
     val sampleAddresses = listOf(
         PhoneAddresses.Address("192.168.1.42", PhoneAddresses.LABEL_HOME),
         PhoneAddresses.Address("100.94.18.7", PhoneAddresses.LABEL_TAILSCALE)
     )
 
     val sampleBankItems = listOf(
-        ItemUiModel(id = 995, quantity = 24_500_000, name = "Coins", gePrice = 1L, haPrice = 1L, tab = 0),
-        ItemUiModel(id = 13204, quantity = 350_000, name = "Platinum token", gePrice = 1000L, haPrice = 1000L, tab = 0),
-        ItemUiModel(id = 4151, quantity = 1, name = "Abyssal whip", gePrice = 1_450_000L, haPrice = 72_000L, tab = 1),
-        ItemUiModel(id = 11802, quantity = 1, name = "Armadyl godsword", gePrice = 11_800_000L, haPrice = 750_000L, tab = 1),
-        ItemUiModel(id = 11283, quantity = 1, name = "Dragonfire shield", gePrice = 3_950_000L, haPrice = 1_200_000L, tab = 1),
-        ItemUiModel(id = 560, quantity = 145_200, name = "Death rune", gePrice = 178L, haPrice = 108L, tab = 2),
-        ItemUiModel(id = 565, quantity = 84_500, name = "Blood rune", gePrice = 215L, haPrice = 240L, tab = 2),
-        ItemUiModel(id = 556, quantity = 12_400_000, name = "Air rune", gePrice = 5L, haPrice = 2L, tab = 2),
-        ItemUiModel(id = 257, quantity = 1_840, name = "Ranarr weed", gePrice = 6_400L, haPrice = 19L, tab = 3),
-        ItemUiModel(id = 3000, quantity = 920, name = "Snapdragon", gePrice = 8_200L, haPrice = 39L, tab = 3),
-        ItemUiModel(id = 536, quantity = 640, name = "Dragon bones", gePrice = 2_850L, haPrice = 72L, tab = 4),
-        ItemUiModel(id = 385, quantity = 4_200, name = "Shark", gePrice = 690L, haPrice = 102L, tab = 5),
-        ItemUiModel(id = 12934, quantity = 285_000, name = "Zulrah's scales", gePrice = 148L, haPrice = 12L, tab = 6),
-        ItemUiModel(id = 11840, quantity = 1, name = "Dragon boots", gePrice = 245_000L, haPrice = 12_000L, tab = 1),
-        ItemUiModel(id = 6585, quantity = 1, name = "Amulet of fury", gePrice = 2_180_000L, haPrice = 121_200L, tab = 1),
-        ItemUiModel(id = 21521, quantity = 24, name = "Teak birdhouse", gePrice = 1_120L, haPrice = 120L, tab = 7)
+        ItemUiModel(id = 995, quantity = 24_500_000, name = "Coins", iconBase64 = iconFor(995), gePrice = 1L, haPrice = 1L, tab = 0),
+        ItemUiModel(id = 11832, quantity = 1, name = "Bandos chestplate", iconBase64 = iconFor(11832), gePrice = 28_400_000L, haPrice = 174_006L, tab = 0),
+        ItemUiModel(id = 4151, quantity = 1, name = "Abyssal whip", iconBase64 = iconFor(4151), gePrice = 1_450_000L, haPrice = 72_000L, tab = 1),
+        ItemUiModel(id = 11802, quantity = 1, name = "Armadyl godsword", iconBase64 = iconFor(11802), gePrice = 11_800_000L, haPrice = 750_000L, tab = 1),
+        ItemUiModel(id = 11283, quantity = 1, name = "Dragonfire shield", iconBase64 = iconFor(11283), gePrice = 3_950_000L, haPrice = 1_200_000L, tab = 1),
+        ItemUiModel(id = 560, quantity = 145_200, name = "Death rune", iconBase64 = iconFor(560), gePrice = 178L, haPrice = 108L, tab = 2),
+        ItemUiModel(id = 565, quantity = 84_500, name = "Blood rune", iconBase64 = iconFor(565), gePrice = 215L, haPrice = 240L, tab = 2),
+        ItemUiModel(id = 556, quantity = 12_400_000, name = "Air rune", iconBase64 = iconFor(556), gePrice = 5L, haPrice = 2L, tab = 2),
+        ItemUiModel(id = 257, quantity = 1_840, name = "Ranarr weed", iconBase64 = iconFor(257), gePrice = 6_400L, haPrice = 19L, tab = 3),
+        ItemUiModel(id = 3000, quantity = 920, name = "Snapdragon", iconBase64 = iconFor(3000), gePrice = 8_200L, haPrice = 39L, tab = 3),
+        ItemUiModel(id = 536, quantity = 640, name = "Dragon bones", iconBase64 = iconFor(536), gePrice = 2_850L, haPrice = 72L, tab = 4),
+        ItemUiModel(id = 385, quantity = 4_200, name = "Shark", iconBase64 = iconFor(385), gePrice = 690L, haPrice = 102L, tab = 5),
+        ItemUiModel(id = 12934, quantity = 285_000, name = "Zulrah's scales", iconBase64 = iconFor(12934), gePrice = 148L, haPrice = 12L, tab = 6),
+        ItemUiModel(id = 19553, quantity = 1, name = "Amulet of torture", iconBase64 = iconFor(19553), gePrice = 16_900_000L, haPrice = 120_600L, tab = 1),
+        ItemUiModel(id = 6585, quantity = 1, name = "Amulet of fury", iconBase64 = iconFor(6585), gePrice = 2_180_000L, haPrice = 121_200L, tab = 1),
+        ItemUiModel(id = 21521, quantity = 24, name = "Teak birdhouse", iconBase64 = iconFor(21521), gePrice = 1_120L, haPrice = 120L, tab = 7)
     )
 
     val sampleInventorySlots: List<InventorySlotUiModel> = (0 until 28).map { slot ->
         val item = when (slot) {
-            0 -> ItemUiModel(id = 995, quantity = 14_250_000, name = "Coins", gePrice = 1L)
-            1 -> ItemUiModel(id = 561, quantity = 185_000, name = "Nature rune", gePrice = 94L)
-            2 -> ItemUiModel(id = 554, quantity = 42_000, name = "Fire rune", gePrice = 5L)
-            3 -> ItemUiModel(id = 4151, quantity = 1, name = "Abyssal whip", gePrice = 1_450_000L)
-            4 -> ItemUiModel(id = 12954, quantity = 1, name = "Dragon defender", gePrice = 0L)
-            5 -> ItemUiModel(id = 2434, quantity = 1, name = "Prayer potion(4)", gePrice = 8_900L)
-            6 -> ItemUiModel(id = 2434, quantity = 1, name = "Prayer potion(4)", gePrice = 8_900L)
-            7 -> ItemUiModel(id = 3024, quantity = 1, name = "Super restore(4)", gePrice = 11_400L)
-            8 -> ItemUiModel(id = 5329, quantity = 1, name = "Magic secateurs", gePrice = 40_000L)
-            9 -> ItemUiModel(id = 5343, quantity = 1, name = "Seed dibber", gePrice = 15L)
-            10 -> ItemUiModel(id = 952, quantity = 1, name = "Spade", gePrice = 60L)
-            11 -> ItemUiModel(id = 5295, quantity = 18, name = "Ranarr seed", gePrice = 27_500L)
-            12 -> ItemUiModel(id = 21488, quantity = 6, name = "Ultracompost", gePrice = 1_150L)
-            13 -> ItemUiModel(id = 257, quantity = 8, name = "Ranarr weed", gePrice = 6_400L)
-            14 -> ItemUiModel(id = 385, quantity = 1, name = "Shark", gePrice = 690L)
-            15 -> ItemUiModel(id = 385, quantity = 1, name = "Shark", gePrice = 690L)
-            16 -> ItemUiModel(id = 8013, quantity = 120, name = "Teleport to house", gePrice = 520L)
-            17 -> ItemUiModel(id = 2347, quantity = 1, name = "Hammer", gePrice = 45L)
-            18 -> ItemUiModel(id = 1755, quantity = 1, name = "Chisel", gePrice = 15L)
-            19 -> ItemUiModel(id = 22198, quantity = 4, name = "Yew birdhouse", gePrice = 2_450L)
+            0 -> ItemUiModel(id = 995, quantity = 14_250_000, name = "Coins", iconBase64 = iconFor(995), gePrice = 1L)
+            1 -> ItemUiModel(id = 561, quantity = 185_000, name = "Nature rune", iconBase64 = iconFor(561), gePrice = 94L)
+            2 -> ItemUiModel(id = 554, quantity = 42_000, name = "Fire rune", iconBase64 = iconFor(554), gePrice = 5L)
+            3 -> ItemUiModel(id = 4151, quantity = 1, name = "Abyssal whip", iconBase64 = iconFor(4151), gePrice = 1_450_000L)
+            4 -> ItemUiModel(id = 12954, quantity = 1, name = "Dragon defender", iconBase64 = iconFor(12954), gePrice = 0L)
+            5 -> ItemUiModel(id = 2434, quantity = 1, name = "Prayer potion(4)", iconBase64 = iconFor(2434), gePrice = 8_900L)
+            6 -> ItemUiModel(id = 2434, quantity = 1, name = "Prayer potion(4)", iconBase64 = iconFor(2434), gePrice = 8_900L)
+            7 -> ItemUiModel(id = 3024, quantity = 1, name = "Super restore(4)", iconBase64 = iconFor(3024), gePrice = 11_400L)
+            8 -> ItemUiModel(id = 5329, quantity = 1, name = "Magic secateurs", iconBase64 = iconFor(5329), gePrice = 40_000L)
+            9 -> ItemUiModel(id = 5343, quantity = 1, name = "Seed dibber", iconBase64 = iconFor(5343), gePrice = 15L)
+            10 -> ItemUiModel(id = 952, quantity = 1, name = "Spade", iconBase64 = iconFor(952), gePrice = 60L)
+            11 -> ItemUiModel(id = 5295, quantity = 18, name = "Ranarr seed", iconBase64 = iconFor(5295), gePrice = 27_500L)
+            12 -> ItemUiModel(id = 21488, quantity = 6, name = "Ultracompost", iconBase64 = iconFor(21488), gePrice = 1_150L)
+            13 -> ItemUiModel(id = 257, quantity = 8, name = "Ranarr weed", iconBase64 = iconFor(257), gePrice = 6_400L)
+            14 -> ItemUiModel(id = 385, quantity = 1, name = "Shark", iconBase64 = iconFor(385), gePrice = 690L)
+            15 -> ItemUiModel(id = 385, quantity = 1, name = "Shark", iconBase64 = iconFor(385), gePrice = 690L)
+            16 -> ItemUiModel(id = 8013, quantity = 120, name = "Teleport to house", iconBase64 = iconFor(8013), gePrice = 520L)
+            17 -> ItemUiModel(id = 2347, quantity = 1, name = "Hammer", iconBase64 = iconFor(2347), gePrice = 45L)
+            18 -> ItemUiModel(id = 1755, quantity = 1, name = "Chisel", iconBase64 = iconFor(1755), gePrice = 15L)
+            19 -> ItemUiModel(id = 22198, quantity = 4, name = "Yew birdhouse", iconBase64 = iconFor(22198), gePrice = 2_450L)
             else -> null
         }
         InventorySlotUiModel(slotIndex = slot, item = item)
     }
 
     val samplePotions = listOf(
-        PotionStorageItemUiModel(itemId = 2434, name = "Prayer potion", totalDoses = 486, gePrice = 8_900L),
-        PotionStorageItemUiModel(itemId = 3024, name = "Super restore", totalDoses = 312, gePrice = 11_400L),
-        PotionStorageItemUiModel(itemId = 6685, name = "Saradomin brew", totalDoses = 640, gePrice = 9_600L),
-        PotionStorageItemUiModel(itemId = 12695, name = "Super combat potion", totalDoses = 128, gePrice = 14_200L),
-        PotionStorageItemUiModel(itemId = 2444, name = "Ranging potion", totalDoses = 204, gePrice = 1_850L)
+        PotionStorageItemUiModel(itemId = 2434, name = "Prayer potion", iconBase64 = iconFor(2434), totalDoses = 486, gePrice = 8_900L),
+        PotionStorageItemUiModel(itemId = 3024, name = "Super restore", iconBase64 = iconFor(3024), totalDoses = 312, gePrice = 11_400L),
+        PotionStorageItemUiModel(itemId = 6685, name = "Saradomin brew", iconBase64 = iconFor(6685), totalDoses = 640, gePrice = 9_600L),
+        PotionStorageItemUiModel(itemId = 12695, name = "Super combat potion", iconBase64 = iconFor(12695), totalDoses = 128, gePrice = 14_200L),
+        PotionStorageItemUiModel(itemId = 12625, name = "Stamina potion", iconBase64 = iconFor(12625), totalDoses = 204, gePrice = 1_850L)
     )
 
     val sampleGeOffers = listOf(
@@ -135,6 +177,7 @@ object PreviewFixtures {
             slot = 1,
             itemId = 257,
             itemName = "Ranarr weed",
+            iconBase64 = iconFor(257),
             quantitySold = 500,
             totalQuantity = 500,
             price = 6_400,
@@ -145,6 +188,7 @@ object PreviewFixtures {
             slot = 2,
             itemId = 536,
             itemName = "Dragon bones",
+            iconBase64 = iconFor(536),
             quantitySold = 650,
             totalQuantity = 1_000,
             price = 2_840,
@@ -155,6 +199,7 @@ object PreviewFixtures {
             slot = 3,
             itemId = 12934,
             itemName = "Zulrah's scales",
+            iconBase64 = iconFor(12934),
             quantitySold = 20_000,
             totalQuantity = 50_000,
             price = 150,
@@ -165,6 +210,7 @@ object PreviewFixtures {
             slot = 4,
             itemId = 4151,
             itemName = "Abyssal whip",
+            iconBase64 = iconFor(4151),
             quantitySold = 1,
             totalQuantity = 1,
             price = 1_460_000,
@@ -177,30 +223,43 @@ object PreviewFixtures {
         GeOfferSlotUiModel(slot = 8)
     )
 
+    private fun skill(name: String, level: Int, boostedLevel: Int = level, xp: Long): SkillUiModel {
+        val itemId = SkillUiModel.SKILL_ITEM_IDS[name] ?: 0
+        return SkillUiModel(
+            name = name,
+            level = level,
+            boostedLevel = boostedLevel,
+            xp = xp,
+            itemId = itemId,
+            iconBase64 = iconFor(itemId)
+        )
+    }
+
+    // Canonical OSRS 3-column order matching OsrsXpTable.SKILL_NAMES
     val sampleSkills = listOf(
-        SkillUiModel(name = "Attack", level = 99, boostedLevel = 99, xp = 13_450_210L),
-        SkillUiModel(name = "Strength", level = 99, boostedLevel = 99, xp = 15_820_400L),
-        SkillUiModel(name = "Defence", level = 94, boostedLevel = 94, xp = 8_210_000L),
-        SkillUiModel(name = "Ranged", level = 99, boostedLevel = 99, xp = 18_100_500L),
-        SkillUiModel(name = "Prayer", level = 85, boostedLevel = 85, xp = 3_420_000L),
-        SkillUiModel(name = "Magic", level = 99, boostedLevel = 99, xp = 14_900_120L),
-        SkillUiModel(name = "Runecraft", level = 78, boostedLevel = 78, xp = 1_680_000L),
-        SkillUiModel(name = "Construction", level = 84, boostedLevel = 84, xp = 3_010_000L),
-        SkillUiModel(name = "Hitpoints", level = 99, boostedLevel = 99, xp = 21_400_000L),
-        SkillUiModel(name = "Agility", level = 82, boostedLevel = 82, xp = 2_480_000L),
-        SkillUiModel(name = "Herblore", level = 90, boostedLevel = 90, xp = 5_520_000L),
-        SkillUiModel(name = "Thieving", level = 86, boostedLevel = 86, xp = 3_710_000L),
-        SkillUiModel(name = "Crafting", level = 88, boostedLevel = 88, xp = 4_490_000L),
-        SkillUiModel(name = "Fletching", level = 92, boostedLevel = 92, xp = 6_720_000L),
-        SkillUiModel(name = "Slayer", level = 95, boostedLevel = 95, xp = 9_150_000L),
-        SkillUiModel(name = "Hunter", level = 87, boostedLevel = 87, xp = 4_080_000L),
-        SkillUiModel(name = "Mining", level = 85, boostedLevel = 85, xp = 3_350_000L),
-        SkillUiModel(name = "Smithing", level = 86, boostedLevel = 86, xp = 3_690_000L),
-        SkillUiModel(name = "Fishing", level = 91, boostedLevel = 91, xp = 6_010_000L),
-        SkillUiModel(name = "Cooking", level = 99, boostedLevel = 99, xp = 13_110_000L),
-        SkillUiModel(name = "Firemaking", level = 90, boostedLevel = 90, xp = 5_410_000L),
-        SkillUiModel(name = "Woodcutting", level = 89, boostedLevel = 89, xp = 4_920_000L),
-        SkillUiModel(name = "Farming", level = 99, boostedLevel = 99, xp = 16_250_000L)
+        skill("Attack", level = 99, xp = 13_450_210L),
+        skill("Hitpoints", level = 99, xp = 21_400_000L),
+        skill("Mining", level = 85, xp = 3_350_000L),
+        skill("Strength", level = 99, xp = 15_820_400L),
+        skill("Agility", level = 82, xp = 2_480_000L),
+        skill("Smithing", level = 86, xp = 3_690_000L),
+        skill("Defence", level = 94, xp = 8_210_000L),
+        skill("Herblore", level = 90, boostedLevel = 94, xp = 5_520_000L),
+        skill("Fishing", level = 91, xp = 6_010_000L),
+        skill("Ranged", level = 99, xp = 18_100_500L),
+        skill("Thieving", level = 86, xp = 3_710_000L),
+        skill("Cooking", level = 99, xp = 13_110_000L),
+        skill("Prayer", level = 85, boostedLevel = 72, xp = 3_420_000L),
+        skill("Crafting", level = 88, xp = 4_490_000L),
+        skill("Firemaking", level = 90, xp = 5_410_000L),
+        skill("Magic", level = 99, xp = 14_900_120L),
+        skill("Fletching", level = 92, xp = 6_720_000L),
+        skill("Woodcutting", level = 89, xp = 4_920_000L),
+        skill("Runecraft", level = 78, xp = 1_680_000L),
+        skill("Slayer", level = 95, xp = 9_150_000L),
+        skill("Farming", level = 99, xp = 16_250_000L),
+        skill("Construction", level = 84, xp = 3_010_000L),
+        skill("Hunter", level = 87, xp = 4_080_000L)
     )
 
     val sampleQuests = listOf(
@@ -222,7 +281,8 @@ object PreviewFixtures {
             statusText = "15 available",
             isAvailable = true,
             category = ResetCategory.DAILY,
-            itemId = 11738
+            itemId = 11738,
+            iconBase64 = iconFor(11738)
         ),
         DailyTaskUiModel(
             id = "battlestaves",
@@ -231,7 +291,8 @@ object PreviewFixtures {
             statusText = "Ready to claim",
             isAvailable = true,
             category = ResetCategory.DAILY,
-            itemId = 1391
+            itemId = 1391,
+            iconBase64 = iconFor(1391)
         ),
         DailyTaskUiModel(
             id = "pure_essence",
@@ -240,7 +301,8 @@ object PreviewFixtures {
             statusText = "Claimed today",
             isAvailable = false,
             category = ResetCategory.DAILY,
-            itemId = 7936
+            itemId = 7936,
+            iconBase64 = iconFor(7936)
         ),
         DailyTaskUiModel(
             id = "sand",
@@ -249,7 +311,8 @@ object PreviewFixtures {
             statusText = "Ready",
             isAvailable = true,
             category = ResetCategory.DAILY,
-            itemId = 1783
+            itemId = 1783,
+            iconBase64 = iconFor(1783)
         ),
         DailyTaskUiModel(
             id = "tears",
@@ -258,7 +321,8 @@ object PreviewFixtures {
             statusText = "Eligible now",
             isAvailable = true,
             category = ResetCategory.WEEKLY,
-            itemId = 4471
+            itemId = 2888,
+            iconBase64 = iconFor(2888)
         )
     )
 
@@ -268,6 +332,7 @@ object PreviewFixtures {
             spaceName = "Mushroom Meadow (North)",
             houseType = "Yew birdhouse",
             itemId = 22198,
+            iconBase64 = iconFor(22198),
             state = "SEEDED",
             observedAtMs = FIXED_NOW_MS - 3_600_000L,
             readyAtMs = FIXED_NOW_MS - 600_000L
@@ -277,6 +342,7 @@ object PreviewFixtures {
             spaceName = "Verdant Valley (Northeast)",
             houseType = "Yew birdhouse",
             itemId = 22198,
+            iconBase64 = iconFor(22198),
             state = "SEEDED",
             observedAtMs = FIXED_NOW_MS - 3_600_000L,
             readyAtMs = FIXED_NOW_MS - 600_000L
@@ -286,6 +352,7 @@ object PreviewFixtures {
             spaceName = "Verdant Valley (Southwest)",
             houseType = "Yew birdhouse",
             itemId = 22198,
+            iconBase64 = iconFor(22198),
             state = "SEEDED",
             observedAtMs = FIXED_NOW_MS - 900_000L,
             readyAtMs = FIXED_NOW_MS + 2_100_000L
@@ -295,6 +362,7 @@ object PreviewFixtures {
             spaceName = "Mushroom Meadow (South)",
             houseType = null,
             itemId = 21512,
+            iconBase64 = iconFor(21512),
             state = "EMPTY",
             observedAtMs = FIXED_NOW_MS - 3_600_000L,
             readyAtMs = 0L
@@ -308,6 +376,7 @@ object PreviewFixtures {
             patchLabel = "Hosidius Herb",
             cropName = "Ranarr",
             itemId = 257,
+            iconBase64 = iconFor(257),
             cropState = "HARVESTABLE",
             stage = 4,
             stages = 5,
@@ -321,6 +390,7 @@ object PreviewFixtures {
             patchLabel = "Catherby Herb",
             cropName = "Snapdragon",
             itemId = 3000,
+            iconBase64 = iconFor(3000),
             cropState = "GROWING",
             stage = 2,
             stages = 5,
@@ -334,6 +404,7 @@ object PreviewFixtures {
             patchLabel = "Ardougne Herb",
             cropName = "Ranarr",
             itemId = 257,
+            iconBase64 = iconFor(257),
             cropState = "HARVESTABLE",
             stage = 4,
             stages = 5,
@@ -347,6 +418,7 @@ object PreviewFixtures {
             patchLabel = "Varrock Tree",
             cropName = "Yew tree",
             itemId = 1515,
+            iconBase64 = iconFor(1515),
             cropState = "DISEASED",
             stage = 3,
             stages = 7,
@@ -360,6 +432,7 @@ object PreviewFixtures {
             patchLabel = "Falador Herb",
             cropName = null,
             itemId = 6055,
+            iconBase64 = iconFor(6055),
             cropState = "EMPTY",
             stage = 0,
             stages = 5,
@@ -376,6 +449,7 @@ object PreviewFixtures {
             farmingLevel = 60,
             paymentItemId = 6016,
             paymentItemName = "Cactus spine",
+            paymentIconBase64 = iconFor(6016),
             requiredQuantity = 10,
             ownedInBankAndInv = 84,
             hasEnough = true
@@ -386,6 +460,7 @@ object PreviewFixtures {
             farmingLevel = 75,
             paymentItemId = 5974,
             paymentItemName = "Coconut",
+            paymentIconBase64 = iconFor(5974),
             requiredQuantity = 25,
             ownedInBankAndInv = 112,
             hasEnough = true
@@ -396,6 +471,7 @@ object PreviewFixtures {
             farmingLevel = 81,
             paymentItemId = 5974,
             paymentItemName = "Coconut",
+            paymentIconBase64 = iconFor(5974),
             requiredQuantity = 15,
             ownedInBankAndInv = 112,
             hasEnough = true
@@ -406,6 +482,7 @@ object PreviewFixtures {
             farmingLevel = 90,
             paymentItemId = 22869,
             paymentItemName = "Dragonfruit",
+            paymentIconBase64 = iconFor(22869),
             requiredQuantity = 6,
             ownedInBankAndInv = 2,
             hasEnough = false
@@ -414,12 +491,21 @@ object PreviewFixtures {
             cropName = "Celastrus tree",
             patchCategory = "Special",
             farmingLevel = 85,
-            paymentItemId = 13421,
+            paymentItemId = 3138,
             paymentItemName = "Potato cactus",
+            paymentIconBase64 = iconFor(3138),
             requiredQuantity = 8,
             ownedInBankAndInv = 0,
             hasEnough = false
         )
+    )
+
+    val sampleGoalSearchResults = listOf(
+        ItemUiModel(id = 20997, quantity = 1, name = "Twisted bow", iconBase64 = iconFor(20997), gePrice = 1_620_000_000L, haPrice = 2_400_000L),
+        ItemUiModel(id = 11802, quantity = 1, name = "Armadyl godsword", iconBase64 = iconFor(11802), gePrice = 11_800_000L, haPrice = 750_000L),
+        ItemUiModel(id = 11832, quantity = 1, name = "Bandos chestplate", iconBase64 = iconFor(11832), gePrice = 28_400_000L, haPrice = 174_006L),
+        ItemUiModel(id = 19553, quantity = 1, name = "Amulet of torture", iconBase64 = iconFor(19553), gePrice = 16_900_000L, haPrice = 120_600L),
+        ItemUiModel(id = 11283, quantity = 1, name = "Dragonfire shield", iconBase64 = iconFor(11283), gePrice = 3_950_000L, haPrice = 1_200_000L)
     )
 
     val populatedState = MainDashboardUiState(
@@ -451,6 +537,7 @@ object PreviewFixtures {
         potionStorageItems = samplePotions,
         farmingPayments = sampleFarmingPayments,
         quests = sampleQuests,
+        topBarIcons = listOf(257, 21512, 11738, 995).associateWith { iconFor(it) },
         notificationsEnabled = true,
         pricesAsOfMs = FIXED_NOW_MS - 300_000L,
         goalConfig = GoalConfig(
@@ -463,9 +550,11 @@ object PreviewFixtures {
             id = 20997,
             quantity = 1,
             name = "Twisted bow",
+            iconBase64 = iconFor(20997),
             gePrice = 1_620_000_000L,
             haPrice = 2_400_000L
-        )
+        ),
+        goalItemSearchResults = sampleGoalSearchResults
     )
 
     val emptyState = MainDashboardUiState(

@@ -50,7 +50,7 @@ class ColourDisciplineTest {
     }
 
     @Test
-    fun artContrastAndOddTableRow_useOsrsPanelDarkWithValidContrast() {
+    fun artContrastAndOddTableRow_useRecessedDarkerStoneBandWithValidContrast() {
         val tablesFile = mainJavaDir().resolve("com/pssst/theme/art/Tables.kt")
         assertTrue("Tables.kt must exist", tablesFile.isFile)
         val content = tablesFile.readText()
@@ -60,8 +60,8 @@ class ColourDisciplineTest {
             content.contains("OsrsLedgerRowAlt")
         )
         assertTrue(
-            "Tables.kt odd rows must use OsrsPanelDark",
-            content.contains("OsrsPanelDark")
+            "Tables.kt odd rows must use recessed darker stone band (OsrsSlotEmpty + OsrsPanelMid)",
+            content.contains("OsrsSlotEmpty") && content.contains("OsrsPanelMid")
         )
     }
 }

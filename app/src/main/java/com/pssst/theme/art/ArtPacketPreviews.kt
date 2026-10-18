@@ -504,3 +504,24 @@ fun PreviewScreenEmptyStates() {
         }
     }
 }
+
+@Preview(name = "Screen 15 — Goal Picker Dialog", showBackground = true, backgroundColor = 0xFF191612, widthDp = 380, heightDp = 760)
+@Composable
+fun PreviewScreenGoalDialog() {
+    val state = PreviewFixtures.populatedState
+    PssstTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .stoneGround()
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            com.pssst.ui.main.GoalSettingsDialogContent(
+                state = state,
+                goalModeTab = 0,
+                itemSearchText = "bow"
+            )
+        }
+    }
+}

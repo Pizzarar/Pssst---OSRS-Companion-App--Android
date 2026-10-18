@@ -106,11 +106,17 @@ Every empty state renders a standalone `32×24` art-pixel scene (`EmptyStateVign
 * `EmptyStateKind.SUNDIAL` — Carved stone sundial pedestal with bronze gnomon fin (`TimersScreen` Dailies)
 * `EmptyStateKind.LEDGER_BOOKMARK` — Open leather-bound ledger with forked gold bookmark and coin stack (`GoalCard`)
 
+* **`Modifier.ledgerPanelInset(weight)`**: Insets child content by `(step * (1 + bevel)).toDp()` so full-bleed children (`OsrsTableHeaderPlaque`, `OsrsTableRow`, `OsrsTableRowSeparator`) sit cleanly inside the outer frame and chiseled bevel without overwriting the side border.
+* **`OsrsTableRow` (recessed darker stone band)**: Odd-indexed rows draw a `2-tone` Bayer-dithered recessed band (`OsrsSlotEmpty` `#221D16` + `OsrsPanelMid` `#27211A`) with a `1-art-px` top inner shadow (`OsrsBorderDark`) and `1-art-px` bottom catch-light (`OsrsBorderLight`).
+* **`PixelItemImage` & `computeItemSpriteDrawSize`**: Draws decoded OSRS item `ImageBitmap`s with `FilterQuality.None` at an exact integer multiple when `targetPx >= srcMax * 2` (`1×` native size otherwise, or integer downscale when smaller than the source). Uncached items fall back to a recessed `pixelBevelBox(raised = false)` stone slot with 2-letter gold initials.
+* **`SkillCard` & `TotalSkillCard` (`ProgressionScreen.kt`)**: Dynamic `BoxWithConstraints` recessed icon well (`32–44.dp`), level with boost/drain delta (`+4` / `-13`) or virtual level (`v104`), XP and XP remaining (`-561K` or `MAX`), combat level (`Cmb 124`), and `5.dp` pixel progress bar.
+* **Picker Icons (`IconWishlist.kt` & `GoalCard.kt`)**: `OsrsFilterChip` supports an optional `leading` icon slot so bank-tab source chips show each tab's first item icon (`All Tabs` shows `ArtIcons.StorageChest`), custom GP goals show the Coins sprite (`995`), and `SnapshotIngest.missingIcons` prioritizes `IconWishlist` picker IDs plus a bounded high-value tradeable backfill (`BACKFILL_PER_SYNC = 150` until `countIcons() >= 2,000`).
+
 ---
 
 ## 8. Exporting PNG Sheets & Screen Captures (No Emulator Needed)
 
-Run the JVM unit test suite to verify pixel honesty, tone counts, sprite grid rules, WCAG contrast, and export PNG sheets + 14 full-screen captures:
+Run the JVM unit test suite to verify pixel honesty, tone counts, sprite grid rules, WCAG contrast, and export PNG sheets + 15 full-screen captures:
 
 ```powershell
 .\gradlew.bat :app:testDebugUnitTest
@@ -118,4 +124,4 @@ Run the JVM unit test suite to verify pixel honesty, tone counts, sprite grid ru
 
 Exported PNGs are written to:
 * `app/build/art-sheet/materials.png`, `hardware.png`, `sprites.png`, `scenes.png` (via `ArtSheetExportTest`)
-* `app/build/art-sheet/screens/01_setup.png` … `14_empty_states.png` (via `ScreenCaptureExportTest`)
+* `app/build/art-sheet/screens/01_setup.png` … `15_goal_dialog.png` (via `ScreenCaptureExportTest`)
