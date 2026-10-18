@@ -18,7 +18,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.FilterQuality
@@ -392,8 +395,17 @@ fun FarmingPaymentCard(
     }
 }
 
+private enum class CofferTab(val label: String) {
+    KINGDOM("Kingdom"),
+    BLAST_FURNACE("Furnace"),
+    NMZ("NMZ"),
+    OTHER("POH / LMS")
+}
+
 @Composable
 fun MiscellaniaCard(miscellania: MiscellaniaUiModel, modifier: Modifier = Modifier) {
+    var selectedTab by rememberSaveable { mutableStateOf(CofferTab.KINGDOM) }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -410,42 +422,182 @@ fun MiscellaniaCard(miscellania: MiscellaniaUiModel, modifier: Modifier = Modifi
                     BulletGlyph(size = 7.dp)
                     Spacer(modifier = Modifier.width(6.dp))
                     GoldLeafText(
-                        text = "Kingdom of Miscellania",
+                        text = "Kingdom & Coffers",
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
-                Text(
-                    text = "${miscellania.approvalPercent}% Approval",
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (miscellania.approvalPercent >= 75) OsrsHerbGreen else OsrsRed
-                )
+                when (selectedTab) {
+                    CofferTab.KINGDOM -> Text(
+                        text = "${miscellania.approvalPercent}% Approval",
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (miscellania.approvalPercent >= 75) OsrsHerbGreen else OsrsRed
+                    )
+                    CofferTab.BLAST_FURNACE -> Text(
+                        text = miscellania.blastFurnaceTimeLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (miscellania.blastFurnaceCoffer > 0L) OsrsHerbGreen else OsrsTextMuted
+                    )
+                    CofferTab.NMZ -> Text(
+                        text = "${miscellania.formattedNmzPoints} pts",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = OsrsGold
+                    )
+                    CofferTab.OTHER -> Text(
+                        text = "House & Enclave",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = OsrsTextMuted
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(6.dp))
             OsrsHeaderDivider()
             Spacer(modifier = Modifier.height(8.dp))
 
-            OsrsProgressBar(
-                progress = (miscellania.approvalPercent / 100f).coerceIn(0f, 1f),
-                color = if (miscellania.approvalPercent >= 75) OsrsHerbGreen else OsrsRed
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
+            // Compact 4-tab selector row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Text(
-                    text = "Coffer Funds:",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = OsrsTextMuted
-                )
-                Text(
-                    text = miscellania.formattedCoffer,
-                    fontWeight = FontWeight.Bold,
-                    color = OsrsGold
-                )
+                CofferTab.entries.forEach { tab ->
+                    com.pssst.theme.OsrsFilterChip(
+                        text = tab.label,
+                        selected = selectedTab == tab,
+                        onClick = { selectedTab = tab },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            when (selectedTab) {
+                CofferTab.KINGDOM -> {
+                    OsrsProgressBar(
+                        progress = (miscellania.approvalPercent / 100f).coerceIn(0f, 1f),
+                        color = if (miscellania.approvalPercent >= 75) OsrsHerbGreen else OsrsRed
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Royal Coffer:",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OsrsTextMuted
+                        )
+                        Text(
+                            text = miscellania.formattedCoffer,
+                            fontWeight = FontWeight.Bold,
+                            color = OsrsGold
+                        )
+                    }
+                }
+                CofferTab.BLAST_FURNACE -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Foreman Coffer:",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OsrsTextMuted
+                        )
+                        Text(
+                            text = miscellania.formattedBlastFurnaceCoffer,
+                            fontWeight = FontWeight.Bold,
+                            color = OsrsGold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Operating Time:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = OsrsTextMuted
+                        )
+                        Text(
+                            text = miscellania.blastFurnaceTimeLabel,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (miscellania.blastFurnaceCoffer > 0L) OsrsHerbGreen else OsrsTextMuted
+                        )
+                    }
+                }
+                CofferTab.NMZ -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Dominic's Coffer:",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OsrsTextMuted
+                        )
+                        Text(
+                            text = miscellania.formattedNmzCoffer,
+                            fontWeight = FontWeight.Bold,
+                            color = OsrsGold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Reward Points:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = OsrsTextMuted
+                        )
+                        Text(
+                            text = miscellania.formattedNmzPoints,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = OsrsTextPrimary
+                        )
+                    }
+                }
+                CofferTab.OTHER -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "POH Servant Bag:",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OsrsTextMuted
+                        )
+                        Text(
+                            text = if (miscellania.pohServantUses > 0) "${miscellania.pohServantUses} payments left" else "Empty",
+                            fontWeight = FontWeight.Bold,
+                            color = if (miscellania.pohServantUses > 0) OsrsHerbGreen else OsrsTextMuted
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "LMS Coffer:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = OsrsTextMuted
+                        )
+                        Text(
+                            text = miscellania.formattedLmsCoffer,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = OsrsGold
+                        )
+                    }
+                }
             }
         }
     }

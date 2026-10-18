@@ -520,7 +520,15 @@ object PreviewFixtures {
         lastSyncStatus = "OK • received from 192.168.1.42",
         bankItems = sampleBankItems,
         inventorySlots = sampleInventorySlots,
-        miscellania = MiscellaniaUiModel(approvalPercent = 96, cofferAmount = 3_450_000L),
+        miscellania = MiscellaniaUiModel(
+            approvalPercent = 96,
+            cofferAmount = 3_450_000L,
+            blastFurnaceCoffer = 540_000L,
+            nmzCoffer = 1_250_000L,
+            nmzRewardPoints = 2_450_000,
+            pohServantUses = 24,
+            lmsCoffer = 750_000L
+        ),
         slayer = SlayerUiModel(
             taskName = "Abyssal demons",
             amount = 142,

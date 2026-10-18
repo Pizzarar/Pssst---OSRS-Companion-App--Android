@@ -128,3 +128,24 @@ dependencies {
   // Test Runner & Robolectric
   testImplementation(libs.robolectric)
 }
+
+tasks.matching { it.name == "installDebug" }.configureEach {
+    doLast {
+        val sdkRoot = System.getenv("ANDROID_HOME")
+            ?: System.getenv("ANDROID_SDK_ROOT")
+            ?: System.getenv("LOCALAPPDATA")?.let { "$it/Android/Sdk" }
+        val isWin = System.getProperty("os.name").lowercase().contains("win")
+        val adbPath = if (sdkRoot != null) {
+            "$sdkRoot/platform-tools/" + (if (isWin) "adb.exe" else "adb")
+        } else {
+            "adb"
+        }
+        runCatching {
+            ProcessBuilder(adbPath, "forward", "tcp:8789", "tcp:8789")
+                .redirectErrorStream(true)
+                .start()
+                .waitFor()
+        }
+    }
+}
+

@@ -497,11 +497,26 @@ class MainViewModel(
             emptyMap()
         }
 
-        // Miscellania, as RuneLite's Kingdom plugin reads it: approval is out of 127, the coffer is the raw coin count.
-        // Both are last-seen values (the game only updates them near the kingdom).
+        val varps: Map<String, Int> = payload?.varps.orEmpty()
+
+        // Miscellania & Coffers, as RuneLite's Kingdom / BlastFurnace / NMZ plugins read them.
+        // All are last-seen values updated when the player is near or opens the relevant coffer.
         val approvalPercent = ((varbits["72"] ?: 0) * 100) / 127
         val cofferAmount = (varbits["74"] ?: 0).toLong()
-        val miscellania = MiscellaniaUiModel(approvalPercent, cofferAmount)
+        val blastFurnaceCoffer = (varbits["5357"] ?: 0).toLong()
+        val nmzCoffer = (varbits["3948"] ?: 0).toLong() * 1_000L
+        val nmzRewardPoints = varps["1060"] ?: 0
+        val pohServantUses = varbits["2191"] ?: 0
+        val lmsCoffer = (varbits["5305"] ?: 0).toLong() * 1_000L
+        val miscellania = MiscellaniaUiModel(
+            approvalPercent = approvalPercent,
+            cofferAmount = cofferAmount,
+            blastFurnaceCoffer = blastFurnaceCoffer,
+            nmzCoffer = nmzCoffer,
+            nmzRewardPoints = nmzRewardPoints,
+            pohServantUses = pohServantUses,
+            lmsCoffer = lmsCoffer
+        )
 
         // Slayer: the plugin resolves the task and area names from the game's tables
         val slayerEntry: SlayerEntryDto? = try {
@@ -517,8 +532,6 @@ class MainViewModel(
             points = slayerEntry?.points ?: 0,
             streak = slayerEntry?.streak ?: 0
         )
-
-        val varps: Map<String, Int> = payload?.varps.orEmpty()
 
         // Farming patches come straight from the plugin's per-region observations (stored in the raw payload)
         val farmingPatches: List<FarmingPatchUiModel> = try {

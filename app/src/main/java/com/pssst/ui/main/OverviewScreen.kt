@@ -42,7 +42,7 @@ enum class OverviewCard(val title: String) {
     WEALTH("Total account wealth"),
     STATUS("Ready now"),
     SLAYER("Slayer task"),
-    MISCELLANIA("Kingdom of Miscellania"),
+    MISCELLANIA("Kingdom & Coffers"),
     PHONE("Phone address")
 }
 

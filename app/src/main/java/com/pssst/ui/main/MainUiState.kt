@@ -30,8 +30,26 @@ data class InventorySlotUiModel(
 data class MiscellaniaUiModel(
     val approvalPercent: Int = 0,
     val cofferAmount: Long = 0L,
-    val formattedCoffer: String = formatGp(cofferAmount)
-)
+    val formattedCoffer: String = formatGp(cofferAmount),
+    val blastFurnaceCoffer: Long = 0L,
+    val nmzCoffer: Long = 0L,
+    val nmzRewardPoints: Int = 0,
+    val pohServantUses: Int = 0,
+    val lmsCoffer: Long = 0L
+) {
+    val formattedBlastFurnaceCoffer: String get() = formatGp(blastFurnaceCoffer)
+    val blastFurnaceTimeLabel: String
+        get() {
+            if (blastFurnaceCoffer <= 0L) return "Empty (72k GP/hr)"
+            val totalSeconds = ((blastFurnaceCoffer.toDouble() / 72_000.0) * 3600.0).toLong()
+            val hours = totalSeconds / 3600
+            val minutes = (totalSeconds % 3600) / 60
+            return if (hours > 0) "${hours}h ${minutes}m at 72k/hr" else "${minutes}m at 72k/hr"
+        }
+    val formattedNmzCoffer: String get() = formatGp(nmzCoffer)
+    val formattedNmzPoints: String get() = formatQuantity(nmzRewardPoints)
+    val formattedLmsCoffer: String get() = formatGp(lmsCoffer)
+}
 
 data class SlayerUiModel(
     val taskName: String = "No Active Task",
