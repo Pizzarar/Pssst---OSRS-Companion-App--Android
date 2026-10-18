@@ -26,7 +26,6 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,6 +61,7 @@ fun <T> EditableList(
     key: (T) -> String,
     label: (T) -> String,
     modifier: Modifier = Modifier,
+    editing: Boolean,
     spacing: Dp = 8.dp,
     header: (LazyListScope.() -> Unit)? = null,
     itemContent: @Composable (T) -> Unit
@@ -69,34 +69,16 @@ fun <T> EditableList(
     val context = LocalContext.current
     val layout by ListLayouts.flow(context, listId).collectAsState()
     val arranged = ListLayout.arrange(items, key, layout)
-    var editing by rememberSaveable(listId) { mutableStateOf(false) }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(spacing)
     ) {
         header?.invoke(this)
-        item(key = "__edit_bar") {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                if (editing) {
-                    Text("Tick to show, drag ≡ to move", style = MaterialTheme.typography.labelSmall, color = OsrsTextMuted)
-                } else if (arranged.hidden.isNotEmpty()) {
-                    Text("${arranged.hidden.size} hidden", style = MaterialTheme.typography.labelSmall, color = OsrsTextMuted)
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                if (editing) {
-                    TextButton(onClick = { ListLayouts.update(context, listId) { ListLayout() } }) {
-                        Text("Reset", color = OsrsTextMuted)
-                    }
-                }
-                TextButton(onClick = { editing = !editing }) {
-                    Text(if (editing) "Done" else "Edit list", color = OsrsGold, fontWeight = FontWeight.SemiBold)
-                }
-            }
-        }
         if (editing) {
             item(key = "__editor") {
                 ReorderChecklist(
+                    onReset = { ListLayouts.update(context, listId) { ListLayout() } },
                     rows = arranged.all.map { key(it) to label(it) },
                     hidden = layout.hidden,
                     onShownChanged = { k, shown -> ListLayouts.update(context, listId) { it.setShown(k, shown) } },
@@ -105,11 +87,20 @@ fun <T> EditableList(
             }
         } else {
             items(arranged.visible, key = { "v_" + key(it) }) { entry -> itemContent(entry) }
-            if (arranged.visible.isEmpty()) {
+            if (arranged.visible.isEmpty() && arranged.hidden.isNotEmpty()) {
                 item(key = "__all_hidden") {
                     Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                        Text("Everything here is hidden. Tap Edit list to show rows again.", color = OsrsTextMuted)
+                        Text("Everything here is hidden. Tap the pencil at the top to show rows again.", color = OsrsTextMuted)
                     }
+                }
+            } else if (arranged.hidden.isNotEmpty()) {
+                item(key = "__hidden_note") {
+                    Text(
+                        text = "${arranged.hidden.size} hidden · tap the pencil to change",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = OsrsTextMuted,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    )
                 }
             }
         }
@@ -119,6 +110,7 @@ fun <T> EditableList(
 /** Compact rows: drag handle, checkbox, name. Dragging reorders live and saves when the finger lifts. */
 @Composable
 private fun ReorderChecklist(
+    onReset: () -> Unit,
     rows: List<Pair<String, String>>,
     hidden: Set<String>,
     onShownChanged: (String, Boolean) -> Unit,
@@ -132,6 +124,11 @@ private fun ReorderChecklist(
     val rowPx = with(LocalDensity.current) { EDIT_ROW_HEIGHT.toPx() }
 
     Column(modifier = Modifier.fillMaxWidth().osrsPanel().padding(vertical = 4.dp)) {
+        Row(modifier = Modifier.fillMaxWidth().padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Tick to show, drag ≡ to move", style = MaterialTheme.typography.labelSmall, color = OsrsTextMuted,
+                modifier = Modifier.weight(1f))
+            TextButton(onClick = onReset) { Text("Reset", color = OsrsTextMuted) }
+        }
         order.forEach { k ->
             key(k) {
                 val isDragged = k == dragging

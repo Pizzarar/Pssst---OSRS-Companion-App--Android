@@ -188,8 +188,11 @@ data class BirdHouseUiModel(
 }
 
 enum class BankSortMode(val label: String) {
-    DEFAULT("Slot Order"),
-    VALUE("Value (High)"),
+    DEFAULT("Slot order"),
+    /** Quantity x price: a big stack of cheap runes can outrank one expensive item. */
+    VALUE("Total value"),
+    /** Price of one: the most expensive item first. */
+    PRICE("Price each"),
     QUANTITY("Quantity")
 }
 
@@ -255,7 +258,10 @@ data class FarmingPaymentUiModel(
     val requiredQuantity: Int,
     val ownedInBankAndInv: Int,
     val hasEnough: Boolean = ownedInBankAndInv >= requiredQuantity
-)
+) {
+    /** How many payments what you hold covers. */
+    val paymentsLeft: Int get() = if (requiredQuantity > 0) ownedInBankAndInv / requiredQuantity else 0
+}
 
 enum class QuestState {
     NOT_STARTED,
@@ -286,6 +292,8 @@ data class MainDashboardUiState(
     val gameObservedAt: Long = 0L,
     /** False when the player turned off Include Bank in RuneLite: the snapshot has no bank or potion storage. */
     val bankShared: Boolean = true,
+    /** Base64 icons for the items the app itself shows (top bar, easter egg); null until RuneLite has sent them. */
+    val wishlistIcons: Map<Int, String?> = emptyMap(),
     val lastSyncStatus: String? = null,
     val bankItems: List<ItemUiModel> = emptyList(),
     val inventorySlots: List<InventorySlotUiModel> = (0 until 28).map { InventorySlotUiModel(it) },
@@ -352,6 +360,7 @@ data class MainDashboardUiState(
             return when (bankSortMode) {
                 BankSortMode.DEFAULT -> list
                 BankSortMode.VALUE -> list.sortedByDescending { it.stackValue }
+                BankSortMode.PRICE -> list.sortedByDescending { it.gePrice }
                 BankSortMode.QUANTITY -> list.sortedByDescending { it.quantity }
             }
         }

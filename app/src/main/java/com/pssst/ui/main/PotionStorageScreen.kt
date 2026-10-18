@@ -168,7 +168,7 @@ fun PotionStorageCard(item: PotionStorageItemUiModel, modifier: Modifier = Modif
                     )
                 } else {
                     Text(
-                        text = "#${item.itemId}",
+                        text = itemInitials(item.name),
                         color = OsrsTextPrimary,
                         fontSize = 10.sp,
                         style = MaterialTheme.typography.bodySmall.copy(shadow = OsrsHardShadow)

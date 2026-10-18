@@ -29,6 +29,7 @@ class PhoneReceiverTest {
     private val received = CopyOnWriteArrayList<StateResponse>()
     private var savedToken: String? = token
     private val deliveredTo = CopyOnWriteArrayList<String>()
+    private var needIcons: List<Int> = emptyList()
     private lateinit var receiver: PhoneReceiver
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var serveJob: Job? = null
@@ -36,7 +37,7 @@ class PhoneReceiverTest {
     @Before
     fun setUp() {
         receiver = PhoneReceiver(
-            port = 0, token = { savedToken }, onSnapshot = { received += it },
+            port = 0, token = { savedToken }, onSnapshot = { received += it; needIcons },
             onDeliveredTo = { deliveredTo += it }, now = { 42_000L }
         )
         assertTrue(receiver.bind())

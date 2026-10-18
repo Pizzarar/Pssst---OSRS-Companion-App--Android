@@ -19,6 +19,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -164,7 +166,11 @@ fun BankScreen(
                 )
             }
         } else {
+            // A new sort or search starts at the top: the grid otherwise keeps its scroll position and lands mid-list
+            val gridState = rememberLazyGridState()
+            LaunchedEffect(state.bankSortMode, state.searchQuery) { gridState.scrollToItem(0) }
             LazyVerticalGrid(
+                state = gridState,
                 columns = GridCells.Adaptive(minSize = 72.dp),
                 contentPadding = PaddingValues(bottom = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),

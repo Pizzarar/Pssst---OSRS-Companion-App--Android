@@ -173,6 +173,10 @@ fun SkillsSubScreen(state: MainDashboardUiState, modifier: Modifier = Modifier) 
             items(state.skills, key = { it.name }) { skill ->
                 SkillCard(skill)
             }
+            // 23 skills leave one empty cell in the last row of three
+            if (state.skills.size % 3 != 0) {
+                item(key = "__easter_egg") { EasterEggCell(state) }
+            }
         }
     }
 }

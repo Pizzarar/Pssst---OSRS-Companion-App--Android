@@ -59,6 +59,23 @@ public abstract class ItemManifestDao {
         }
     }
 
+    // --- Icons sent by the player's RuneLite -----------------------------------------------------------------
+
+    @Query("SELECT id FROM item_manifest WHERE id IN (:ids) AND icon_base64 IS NOT NULL AND icon_base64 != ''")
+    public abstract List<Integer> idsWithIcon(List<Integer> ids);
+
+    @Query("UPDATE item_manifest SET icon_base64 = :icon WHERE id = :id AND (icon_base64 IS NULL OR icon_base64 = '')")
+    protected abstract void setIconIfMissing(int id, String icon);
+
+    /** Adds icons the plugin sent: new rows for unknown ids, and the icon for known ids that have none (bundled icons win). */
+    @Transaction
+    public void applyIcons(List<ItemManifestEntity> icons) {
+        for (ItemManifestEntity icon : icons) {
+            insertBakedIfAbsent(icon.getId(), icon.getName(), icon.getIconBase64(), 0L, 0L);
+            setIconIfMissing(icon.getId(), icon.getIconBase64());
+        }
+    }
+
     // --- Price refresh --------------------------------------------------------------------------------------
 
     @Query("UPDATE item_manifest SET ge_price = :price, price_updated_at = :at WHERE id = :id")

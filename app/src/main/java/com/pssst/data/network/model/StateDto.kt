@@ -7,6 +7,11 @@ data class StateResponse(
     @SerializedName("updated_at") val updatedAt: Long = 0L
 )
 
+data class IconDto(
+    @SerializedName("name") val name: String? = null,
+    @SerializedName("png") val png: String? = null
+)
+
 data class StateDataDto(
     /**
      * Epoch ms of the last moment the game itself fed this snapshot (not when the PC served it, and not when this
@@ -15,6 +20,8 @@ data class StateDataDto(
     @SerializedName("observedAt") val observedAt: Long = 0L,
     /** When the bank and potion storage were last read from the open bank (they are carried over between sessions). */
     @SerializedName("bankObservedAt") val bankObservedAt: Long = 0L,
+    /** Item icons the app asked for in its last reply (item id to name and PNG), drawn by the player's RuneLite. */
+    @SerializedName("icons") val icons: Map<String, IconDto>? = null,
     @SerializedName("inventory") val inventory: List<ItemEntryDto> = emptyList(),
     /** Null when the player turned off Include Bank in RuneLite (the plugin then leaves the bank out). */
     @SerializedName("bank") val bank: List<ItemEntryDto>? = null,

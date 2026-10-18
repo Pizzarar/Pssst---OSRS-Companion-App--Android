@@ -44,6 +44,17 @@ class SnapshotIngest(
             return Outcome.OLDER
         }
 
+        // Icons and prices first, so the screens that re-read on the next change see them with the snapshot
+        applyIcons(stateResponse.data?.icons)
+        val data = stateResponse.data
+        val updatedAtMs = stateResponse.updatedAt.let { if (it in 1 until 100_000_000_000L) it * 1000 else it }
+        val prices = data?.prices.orEmpty().mapNotNull { (id, price) -> id.toIntOrNull()?.let { it to price } }.toMap()
+        if (prices.isNotEmpty()) {
+            // Stamped with when the game saw them, not when they arrived
+            val pricesAsOf = if (newObservedAt > 0) newObservedAt else if (updatedAtMs > 0) updatedAtMs else now()
+            database.itemManifestDao().applyPrices(prices, pricesAsOf)
+        }
+
         val notificationsEnabled = preferences.getNotificationsEnabled()
 
         // Detect completed timers and notify if enabled
@@ -67,10 +78,8 @@ class SnapshotIngest(
             notificationsEnabled
         )
 
-        val rawJson = gson.toJson(stateResponse)
-        val data = stateResponse.data
-        // Sources disagree on units: the Worker sends seconds, the phone receiver and the mock use ms
-        val updatedAtMs = stateResponse.updatedAt.let { if (it in 1 until 100_000_000_000L) it * 1000 else it }
+        // The icons are in the manifest now; keeping them in every saved snapshot would only bloat it
+        val rawJson = gson.toJson(stateResponse.copy(data = data?.copy(icons = null)))
         dao.upsert(
             PlayerStateEntity(
                 uuid,
@@ -89,14 +98,6 @@ class SnapshotIngest(
             )
         )
 
-        // Prices come with the snapshot, from the player's own RuneLite client; nobody else is asked
-        val prices = data?.prices.orEmpty().mapNotNull { (id, price) -> id.toIntOrNull()?.let { it to price } }.toMap()
-        if (prices.isNotEmpty()) {
-            // Stamped with when the game saw them, not when they arrived
-            val pricesAsOf = if (newObservedAt > 0) newObservedAt else if (updatedAtMs > 0) updatedAtMs else now()
-            database.itemManifestDao().applyPrices(prices, pricesAsOf)
-        }
-
         val invCount = data?.inventory?.size ?: 0
         val bankCount = data?.bank?.size ?: 0
         val slayerTaskName = data?.slayer?.taskName?.takeIf { it.isNotBlank() } ?: "none"
@@ -107,10 +108,39 @@ class SnapshotIngest(
         return Outcome.SAVED
     }
 
+    private fun applyIcons(icons: Map<String, com.pssst.data.network.model.IconDto>?) {
+        val entities = icons.orEmpty().mapNotNull { (id, icon) ->
+            val itemId = id.toIntOrNull() ?: return@mapNotNull null
+            val png = icon.png?.takeIf { it.isNotBlank() && it.length <= MAX_ICON_BASE64 } ?: return@mapNotNull null
+            com.pssst.data.local.ItemManifestEntity(itemId, icon.name?.takeIf { it.isNotBlank() } ?: "Item $itemId", png, 0L)
+        }
+        if (entities.isNotEmpty()) database.itemManifestDao().applyIcons(entities)
+    }
+
+    /**
+     * The item ids this snapshot (or the app itself) shows that have no icon yet, for the reply to RuneLite, which
+     * draws them from its own client and sends them with the next update. At most [MAX_ICON_REQUESTS].
+     */
+    fun missingIcons(stateResponse: StateResponse): List<Int> {
+        val data = stateResponse.data
+        val wanted = LinkedHashSet<Int>()
+        data?.bank.orEmpty().forEach { wanted += it.id }
+        data?.inventory.orEmpty().forEach { wanted += it.manifestId }
+        data?.potionStorage.orEmpty().forEach { wanted += it.itemId }
+        data?.geOffers.orEmpty().forEach { if (it.itemId > 0) wanted += it.itemId }
+        wanted += com.pssst.util.FarmingPaymentCatalog.ALL_PAYMENT_ITEM_IDS
+        wanted += com.pssst.util.IconWishlist.IDS
+        val have = HashSet<Int>()
+        wanted.toList().chunked(500).forEach { have += database.itemManifestDao().idsWithIcon(it) }
+        return wanted.filter { it > 0 && it !in have }.take(MAX_ICON_REQUESTS)
+    }
+
     private fun observedAtOf(entity: PlayerStateEntity?): Long =
         runCatching { gson.fromJson(entity?.rawJson, StateResponse::class.java)?.data?.observedAt }.getOrNull() ?: 0L
 
     companion object {
         private const val TAG = "SnapshotIngest"
+        const val MAX_ICON_REQUESTS = 100
+        private const val MAX_ICON_BASE64 = 16 * 1024
     }
 }

@@ -65,15 +65,17 @@ enum class TimersSubTab(val title: String) {
 @Composable
 fun TimersScreen(
     state: MainDashboardUiState,
+    selectedTab: TimersSubTab,
+    onSelectedTabChange: (TimersSubTab) -> Unit,
+    editing: Boolean,
     onToggleNotifications: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    var selectedTab by remember { mutableStateOf(TimersSubTab.DAILIES) }
-
-    val readyDailiesCount = state.dailyTasks.count { it.isAvailable }
     val nowMs by rememberNowMs()
-    val readyBirdhousesCount = state.birdHouses.count { it.isReady(nowMs) }
-    val readyFarmingCount = state.farmingPatches.count { it.isGrown(nowMs) }
+    val ready = state.readyCounts(nowMs)
+    val readyDailiesCount = ready.dailies
+    val readyBirdhousesCount = ready.birdhouses
+    val readyFarmingCount = ready.farming
 
     Column(
         modifier = modifier
@@ -84,7 +86,7 @@ fun TimersScreen(
         // Sub-Tab Navigation Bar (pinned cards moved to OverviewScreen for full un-squished height)
         TimersSubTabBar(
             selectedTab = selectedTab,
-            onTabSelected = { selectedTab = it },
+            onTabSelected = onSelectedTabChange,
             readyDailiesCount = readyDailiesCount,
             readyBirdhousesCount = readyBirdhousesCount,
             readyFarmingCount = readyFarmingCount
@@ -110,7 +112,8 @@ fun TimersScreen(
                             listId = "dailies",
                             items = state.dailyTasks,
                             key = { it.id },
-                            label = { it.title }
+                            label = { it.title },
+                            editing = editing
                         ) { task ->
                             DailyTaskCard(task)
                         }
@@ -134,7 +137,8 @@ fun TimersScreen(
                             listId = "birdhouses",
                             items = state.birdHouses,
                             key = { it.varpId },
-                            label = { it.spaceName }
+                            label = { it.spaceName },
+                            editing = editing
                         ) { house ->
                             BirdHouseCard(house, nowMs)
                         }
@@ -162,7 +166,8 @@ fun TimersScreen(
                             listId = "farming",
                             items = ordered,
                             key = { it.patchId },
-                            label = { listOfNotNull(it.regionName, it.cropName).joinToString(" · ") }
+                            label = { listOfNotNull(it.regionName, it.cropName).joinToString(" · ") },
+                            editing = editing
                         ) { patch ->
                             FarmingPatchCard(patch, nowMs)
                         }
@@ -278,7 +283,7 @@ fun FarmingPaymentCard(payment: FarmingPaymentUiModel, modifier: Modifier = Modi
                     )
                 } else {
                     Text(
-                        text = "#${payment.paymentItemId}",
+                        text = itemInitials(payment.paymentItemName),
                         color = OsrsTextPrimary,
                         fontSize = 9.sp,
                         style = MaterialTheme.typography.bodySmall.copy(shadow = OsrsHardShadow)
@@ -306,7 +311,11 @@ fun FarmingPaymentCard(payment: FarmingPaymentUiModel, modifier: Modifier = Modi
             // Owned count chip
             val chipBg = if (payment.hasEnough) OsrsHerbGreen else OsrsSlotEmpty
             val chipFg = if (payment.hasEnough) Color.Black else OsrsRed
-            val chipLabel = if (payment.hasEnough) "Owned: ${payment.ownedInBankAndInv}" else "Short (${payment.ownedInBankAndInv}/${payment.requiredQuantity})"
+            val chipLabel = when {
+                payment.paymentsLeft == 1 -> "1 payment"
+                payment.hasEnough -> "${payment.paymentsLeft} payments"
+                else -> "0 payments · ${payment.ownedInBankAndInv}/${payment.requiredQuantity}"
+            }
 
             SuggestionChip(
                 onClick = {},

@@ -71,7 +71,10 @@ object ReceiverHost {
             token = { prefs.getUuid() },
             onSnapshot = { snapshot ->
                 val uuid = prefs.getUuid()
-                if (!uuid.isNullOrBlank()) ingest.ingest(uuid, snapshot)
+                if (uuid.isNullOrBlank()) emptyList() else {
+                    ingest.ingest(uuid, snapshot)
+                    ingest.missingIcons(snapshot)
+                }
             },
             onDeliveredTo = { address -> ReceiverPrefs.saveLastDeliveredTo(context, address) }
         )

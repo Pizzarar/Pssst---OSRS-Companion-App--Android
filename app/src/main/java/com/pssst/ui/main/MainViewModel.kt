@@ -244,7 +244,8 @@ class MainViewModel(
             inventoryEntries.map { it.manifestId } +
             geOfferEntries.map { it.itemId } +
             potionEntries.map { it.itemId } +
-            FarmingPaymentCatalog.ALL_PAYMENT_ITEM_IDS
+            FarmingPaymentCatalog.ALL_PAYMENT_ITEM_IDS +
+            com.pssst.util.IconWishlist.IDS
         ).distinct().filter { it > 0 }
 
         val dao = itemManifestDao
@@ -373,7 +374,8 @@ class MainViewModel(
             bankAndInvQuantities[item.id] = (bankAndInvQuantities[item.id] ?: 0) + item.quantity
         }
         for (item in inventoryEntries) {
-            bankAndInvQuantities[item.id] = (bankAndInvQuantities[item.id] ?: 0) + item.quantity
+            // Noted items count under the unnoted id that the payment uses
+            bankAndInvQuantities[item.manifestId] = (bankAndInvQuantities[item.manifestId] ?: 0) + item.quantity
         }
 
         val farmingPayments: List<FarmingPaymentUiModel> = FarmingPaymentCatalog.PAYMENTS.map { def ->
@@ -459,6 +461,7 @@ class MainViewModel(
             lastSyncedAt = entity.lastSyncedAt,
             gameObservedAt = payload?.observedAt?.takeIf { it > 0 } ?: entity.updatedAt,
             bankShared = payload == null || payload.bank != null,
+            wishlistIcons = com.pssst.util.IconWishlist.IDS.associateWith { manifestMap[it]?.iconBase64 },
             lastSyncStatus = lastSyncStatus,
             bankItems = bankItems,
             inventorySlots = inventorySlots,

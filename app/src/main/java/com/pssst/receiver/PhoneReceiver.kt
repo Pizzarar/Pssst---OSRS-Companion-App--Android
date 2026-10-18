@@ -28,7 +28,8 @@ import java.util.concurrent.TimeUnit
 class PhoneReceiver(
     private val port: Int = DEFAULT_PORT,
     private val token: suspend () -> String?,
-    private val onSnapshot: suspend (StateResponse) -> Unit,
+    /** Saves the snapshot and returns the item ids the app still lacks icons for (put in the reply). */
+    private val onSnapshot: suspend (StateResponse) -> List<Int>,
     /** The phone's own address the plugin reached it on (to spot a changed address later). */
     private val onDeliveredTo: (String) -> Unit = {},
     private val now: () -> Long = System::currentTimeMillis
@@ -97,9 +98,9 @@ class PhoneReceiver(
         val body = readBody(input, length, deadline) ?: return respond(out, 400, "Body incomplete")
 
         val data = parseState(body) ?: return respond(out, 400, "Body must be a JSON object")
-        onSnapshot(StateResponse(data = data, updatedAt = now()))
+        val needIcons = onSnapshot(StateResponse(data = data, updatedAt = now()))
         client.localAddress?.hostAddress?.let(onDeliveredTo)
-        respond(out, 200, "{\"ok\":true}", "application/json")
+        respond(out, 200, "{\"ok\":true,\"needIcons\":" + needIcons.joinToString(",", "[", "]") + "}", "application/json")
     }
 
     private fun parseState(body: String): StateDataDto? = try {
@@ -185,7 +186,8 @@ class PhoneReceiver(
 
     companion object {
         const val DEFAULT_PORT = 8789
-        const val MAX_BODY_BYTES = 256 * 1024
+        // Room for a full snapshot plus a hundred icons; the body is only read after the token has been checked
+        const val MAX_BODY_BYTES = 1024 * 1024
         private const val MAX_HEADER_BYTES = 8 * 1024
         private const val READ_TIMEOUT_MS = 1000
         private val REQUEST_DEADLINE_NANOS = TimeUnit.SECONDS.toNanos(5)

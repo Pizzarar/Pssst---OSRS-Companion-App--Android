@@ -50,14 +50,16 @@ enum class OverviewCard(val title: String) {
 fun OverviewScreen(
     state: MainDashboardUiState,
     onNavigateToTab: (DashboardTab) -> Unit,
+    editing: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val readyDailiesCount = state.dailyTasks.count { it.isAvailable }
     val nowMs by rememberNowMs()
-    val readyBirdhousesCount = state.birdHouses.count { it.isReady(nowMs) }
-    val readyFarmingCount = state.farmingPatches.count { it.isGrown(nowMs) }
+    val ready = state.readyCounts(nowMs)
+    val readyDailiesCount = ready.dailies
+    val readyBirdhousesCount = ready.birdhouses
+    val readyFarmingCount = ready.farming
     val activeGeCount = state.geOffers.count { !it.isEmpty }
-    val completeGeCount = state.geOffers.count { it.isComplete }
+    val completeGeCount = ready.geDone
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val lastDeliveredTo by com.pssst.receiver.ReceiverPrefs.lastDeliveredTo(context).collectAsState()
@@ -75,6 +77,7 @@ fun OverviewScreen(
         items = OverviewCard.entries.toList(),
         key = { it.name },
         label = { it.title },
+        editing = editing,
         modifier = modifier.padding(16.dp),
         spacing = 12.dp,
         header = {

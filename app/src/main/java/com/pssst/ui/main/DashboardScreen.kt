@@ -44,6 +44,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -106,8 +109,26 @@ fun DashboardScreen(
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
+    var timersSubTab by rememberSaveable { mutableStateOf(TimersSubTab.DAILIES) }
+    var editing by rememberSaveable { mutableStateOf(false) }
     val tabs = DashboardTab.entries
     val currentTab = tabs[selectedTabIndex]
+    // The pencil shows where there is a list to arrange (not on Payments, which has nothing to hide)
+    val canEdit = currentTab == DashboardTab.OVERVIEW ||
+        (currentTab == DashboardTab.TIMERS && timersSubTab != TimersSubTab.PAYMENTS)
+    LaunchedEffect(selectedTabIndex, timersSubTab) { editing = false }
+    val workInfos by androidx.work.WorkManager.getInstance(context)
+        .getWorkInfosForUniqueWorkFlow(SyncScheduler.SYNC_NOW_WORK_NAME).collectAsState(initial = emptyList())
+    val listening = workInfos.any { it.state == androidx.work.WorkInfo.State.RUNNING }
+    val syncTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "sync")
+    val spin by syncTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            androidx.compose.animation.core.tween(1200, easing = androidx.compose.animation.core.LinearEasing)
+        ),
+        label = "sync-spin"
+    )
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -383,20 +404,27 @@ fun DashboardScreen(
                             }
                         },
                         actions = {
-                            TextButton(
-                                onClick = { SyncScheduler.syncNow(context) }
-                            ) {
-                                Text(
-                                    text = "Sync",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = OsrsYellow
-                                )
+                            if (canEdit) {
+                                IconButton(onClick = { editing = !editing }) {
+                                    if (editing) CheckVectorIcon(tint = OsrsHerbGreen) else PencilVectorIcon(tint = OsrsGold)
+                                }
+                            }
+                            IconButton(onClick = { SyncScheduler.syncNow(context) }) {
+                                RefreshVectorIcon(tint = OsrsYellow, rotation = if (listening) spin else 0f)
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
                             containerColor = Color.Transparent
                         )
+                    )
+                    val stripNow by rememberNowMs()
+                    ReadyStrip(
+                        state = state,
+                        nowMs = stripNow,
+                        onOpen = { tab, sub ->
+                            selectedTabIndex = tabs.indexOf(tab)
+                            if (sub != null) timersSubTab = sub
+                        }
                     )
                     HorizontalDivider(color = OsrsBorderOutline, thickness = 1.dp)
                 }
@@ -453,7 +481,8 @@ fun DashboardScreen(
                 when (currentTab) {
                     DashboardTab.OVERVIEW -> OverviewScreen(
                         state = state,
-                        onNavigateToTab = { selectedTabIndex = tabs.indexOf(it) }
+                        onNavigateToTab = { selectedTabIndex = tabs.indexOf(it) },
+                        editing = editing
                     )
                     DashboardTab.STORAGE -> StorageScreen(
                         state = state,
@@ -471,6 +500,9 @@ fun DashboardScreen(
                     )
                     DashboardTab.TIMERS -> TimersScreen(
                         state = state,
+                        selectedTab = timersSubTab,
+                        onSelectedTabChange = { timersSubTab = it },
+                        editing = editing,
                         onToggleNotifications = onToggleNotifications
                     )
                 }

@@ -158,7 +158,7 @@ fun GeOfferCard(offer: GeOfferSlotUiModel, modifier: Modifier = Modifier) {
                             )
                         } else {
                             Text(
-                                text = "#${offer.itemId}",
+                                text = itemInitials(offer.itemName),
                                 color = OsrsTextPrimary,
                                 fontSize = 10.sp,
                                 style = MaterialTheme.typography.bodySmall.copy(shadow = OsrsHardShadow)
