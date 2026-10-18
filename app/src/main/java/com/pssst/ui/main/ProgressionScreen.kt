@@ -97,7 +97,6 @@ fun ProgressionScreen(
 
 @Composable
 fun SkillsSubScreen(state: MainDashboardUiState, modifier: Modifier = Modifier) {
-    val combatLvl = remember(state.skills) { combatLevel(state.skills) }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -130,7 +129,6 @@ fun SkillsSubScreen(state: MainDashboardUiState, modifier: Modifier = Modifier) 
                         TotalSkillCard(
                             totalLevel = state.totalLevel,
                             totalXp = state.totalXp,
-                            combatLevel = combatLvl,
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight()
@@ -165,18 +163,12 @@ fun combatLevel(skills: List<SkillUiModel>): Int {
     return kotlin.math.floor(base + maxOf(melee, range, mage)).toInt().coerceAtLeast(3)
 }
 
-private val TightMonoStyle = androidx.compose.ui.text.TextStyle(
-    fontFamily = JetBrainsMonoFontFamily,
-    platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
-)
-
 @Composable
 fun SkillCard(skill: SkillUiModel, modifier: Modifier = Modifier) {
     val bitmap = remember(skill.itemId, skill.iconBase64) {
         if (skill.itemId > 0) ItemIconCache.getOrCreate(skill.itemId, skill.iconBase64) else null
     }
     val isMaxed = skill.level >= 99
-    val boostDelta = skill.boostedLevel - skill.level
 
     Box(
         modifier = modifier
@@ -187,131 +179,91 @@ fun SkillCard(skill: SkillUiModel, modifier: Modifier = Modifier) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Row 1 takes all remaining vertical space above the name row + progress bar
-            androidx.compose.foundation.layout.BoxWithConstraints(
+            // Row 1: Takes flexible top height so Row 2 descenders ('p', 'g', 'y') and Row 3 (8dp bar) are never clipped
+            Row(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                val wellSize = minOf(maxWidth * 0.44f, maxHeight).coerceIn(30.dp, 46.dp)
-                val iconSize = (wellSize - 4.dp).coerceAtLeast(24.dp)
-
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .osrsSlot(hasItem = bitmap != null, cornerRadius = 2.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(wellSize)
-                            .osrsSlot(hasItem = bitmap != null, cornerRadius = 2.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (bitmap != null) {
-                            com.pssst.theme.art.PixelItemImage(
-                                bitmap = bitmap,
-                                contentDescription = skill.name,
-                                modifier = Modifier.size(iconSize)
-                            )
-                        } else {
-                            Text(
-                                text = itemInitials(skill.name),
-                                color = OsrsTextMuted,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.labelSmall.copy(shadow = com.pssst.theme.OsrsHardShadow)
-                            )
-                        }
-                    }
-                    Column(
-                        modifier = Modifier.padding(start = 4.dp),
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.Bottom,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Text(
-                                text = "${skill.level}",
-                                style = TightMonoStyle,
-                                fontSize = 18.sp,
-                                lineHeight = 18.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = if (isMaxed) OsrsHerbGreen else OsrsGold
-                            )
-                            if (boostDelta != 0) {
-                                Text(
-                                    text = if (boostDelta > 0) "+$boostDelta" else "$boostDelta",
-                                    style = TightMonoStyle,
-                                    fontSize = 9.5.sp,
-                                    lineHeight = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (boostDelta > 0) OsrsHerbGreen else OsrsRed
-                                )
-                            } else if (isMaxed && skill.virtualLevel > 99) {
-                                Text(
-                                    text = "v${skill.virtualLevel}",
-                                    style = TightMonoStyle,
-                                    fontSize = 9.5.sp,
-                                    lineHeight = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = OsrsHerbGreen
-                                )
-                            }
-                        }
-                        Text(
-                            text = "${formatXp(skill.xp)} XP",
-                            style = TightMonoStyle,
-                            fontSize = 9.5.sp,
-                            lineHeight = 11.sp,
-                            color = OsrsTextMuted,
-                            maxLines = 1
+                    if (bitmap != null) {
+                        com.pssst.theme.art.PixelItemImage(
+                            bitmap = bitmap,
+                            contentDescription = skill.name,
+                            modifier = Modifier.size(28.dp)
                         )
                     }
                 }
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "${skill.level}",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
+                        ),
+                        fontFamily = JetBrainsMonoFontFamily,
+                        fontSize = 17.sp,
+                        lineHeight = 17.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (isMaxed) OsrsHerbGreen else OsrsGold
+                    )
+                    Text(
+                        text = formatXp(skill.xp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 10.5.sp,
+                        lineHeight = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = OsrsTextMuted,
+                        maxLines = 1
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(2.dp))
-
-            // Row 2: Skill Name (11.5sp Bold) + XP remaining / MAX (9.5sp mono)
+            // Row 2: Skill Name (12sp Bold with full descender room) + % (11sp sans-serif bold, MAX in green at 99)
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = skill.name,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 11.5.sp,
-                        lineHeight = 13.sp,
-                        platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
-                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontSize = 12.sp,
+                    lineHeight = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = OsrsTextPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false)
                 )
-                Spacer(modifier = Modifier.width(3.dp))
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = if (isMaxed) "MAX" else "-${formatXp(skill.xpRemaining)}",
-                    style = TightMonoStyle,
-                    fontSize = 9.5.sp,
-                    lineHeight = 11.sp,
+                    text = if (isMaxed) "MAX" else "${(skill.progress * 100).toInt()}%",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 11.sp,
+                    lineHeight = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (isMaxed) OsrsHerbGreen else OsrsTextMuted,
                     maxLines = 1
                 )
             }
 
-            Spacer(modifier = Modifier.height(3.dp))
-
-            // Row 3: 5dp pixel progress bar with visible trough, fill, and quarter ticks
+            // Row 3: Unclipped thick 8dp progress bar
             OsrsProgressBar(
                 progress = if (isMaxed) 1f else skill.progress,
                 color = if (isMaxed) OsrsHerbGreen else OsrsGold,
-                height = 5.dp
+                height = 8.dp
             )
         }
     }
@@ -321,8 +273,7 @@ fun SkillCard(skill: SkillUiModel, modifier: Modifier = Modifier) {
 fun TotalSkillCard(
     totalLevel: Int,
     totalXp: Long,
-    modifier: Modifier = Modifier,
-    combatLevel: Int = 3
+    modifier: Modifier = Modifier
 ) {
     val maxTotalLevel = 2277
     val isMaxed = totalLevel >= maxTotalLevel
@@ -334,90 +285,86 @@ fun TotalSkillCard(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            androidx.compose.foundation.layout.BoxWithConstraints(
+            // Row 1: 32dp recessed slot holding star icon, 17sp level + 10.5sp sans-serif XP on right
+            Row(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                val wellSize = minOf(maxWidth * 0.44f, maxHeight).coerceIn(30.dp, 46.dp)
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .osrsSlot(hasItem = true, cornerRadius = 2.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(wellSize)
-                            .osrsSlot(hasItem = true, cornerRadius = 2.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        com.pssst.theme.art.PixelScene(
-                            scene = ArtIcons.ProgressStar,
-                            tones = SpriteTones.GOLD,
-                            scaleMultiplier = 2
-                        )
-                    }
-                    Column(
-                        modifier = Modifier.padding(start = 4.dp),
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "$totalLevel",
-                            style = TightMonoStyle,
-                            fontSize = 18.sp,
-                            lineHeight = 18.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = if (isMaxed) OsrsHerbGreen else OsrsGold
-                        )
-                        Text(
-                            text = "${formatXp(totalXp)} XP",
-                            style = TightMonoStyle,
-                            fontSize = 9.5.sp,
-                            lineHeight = 11.sp,
-                            color = OsrsTextMuted,
-                            maxLines = 1
-                        )
-                    }
+                    PixelIcon(
+                        sprite = ArtIcons.ProgressStar,
+                        tones = SpriteTones.GOLD,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "$totalLevel",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
+                        ),
+                        fontFamily = JetBrainsMonoFontFamily,
+                        fontSize = 17.sp,
+                        lineHeight = 17.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (isMaxed) OsrsHerbGreen else OsrsGold
+                    )
+                    Text(
+                        text = formatXp(totalXp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 10.5.sp,
+                        lineHeight = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = OsrsTextMuted,
+                        maxLines = 1
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(2.dp))
-
-            // Row 2: "Total" on left (never truncates), "Cmb <lvl>" on right
+            // Row 2: "Total" on left, "/ 2277" on right
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 GoldLeafText(
                     text = "Total",
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 11.5.sp,
-                        lineHeight = 13.sp,
-                        platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
+                        fontSize = 12.sp,
+                        lineHeight = 14.sp
                     ),
                     modifier = Modifier.weight(1f, fill = false)
                 )
-                Spacer(modifier = Modifier.width(3.dp))
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "Cmb $combatLevel",
-                    style = TightMonoStyle,
-                    fontSize = 9.5.sp,
-                    lineHeight = 11.sp,
+                    text = "/ $maxTotalLevel",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 11.sp,
+                    lineHeight = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    color = OsrsGold,
+                    color = OsrsTextMuted,
                     maxLines = 1
                 )
             }
 
-            Spacer(modifier = Modifier.height(3.dp))
-
-            // Row 3: 5dp pixel progress bar toward 2277
+            // Row 3: Thick 8dp progress bar toward 2277
             OsrsProgressBar(
                 progress = (totalLevel.toFloat() / maxTotalLevel.toFloat()).coerceIn(0f, 1f),
                 color = if (isMaxed) OsrsHerbGreen else OsrsGold,
-                height = 5.dp
+                height = 8.dp
             )
         }
     }
