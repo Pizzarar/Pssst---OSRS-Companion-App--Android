@@ -1,0 +1,73 @@
+package com.pssst.theme.art
+
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.awt.image.BufferedImage
+import java.io.File
+import javax.imageio.ImageIO
+
+class ArtSheetExportTest {
+
+    @Test
+    fun exportMaterialsSheetPng() {
+        val outDir = File("build/art-sheet")
+        outDir.mkdirs()
+
+        val swatchW = 96
+        val swatchH = 48
+        val scale = 3
+        val gap = 6
+
+        val swatches = listOf<Pair<String, PixelCanvas.() -> Unit>>(
+            "stoneGround" to { Textures.drawStoneGround(this, seed = 101) },
+            "panelStone" to { Textures.drawPanelStone(this, seed = 101) },
+            "oakBeam" to { Textures.drawOakBeam(this, seed = 202, showPlankSeams = true, showEndBands = true) },
+            "hammeredIron" to { Textures.drawHammeredIron(this, seed = 505, withBevel = true) },
+            "parchment" to { Textures.drawParchment(this, seed = 303, showStainVignette = true) },
+            "leather" to { Textures.drawLeather(this, seed = 404, stitched = true) }
+        )
+
+        val cols = 2
+        val rows = (swatches.size + cols - 1) / cols
+        val sheetArtW = cols * swatchW + (cols + 1) * gap
+        val sheetArtH = rows * swatchH + (rows + 1) * gap
+        val sheet = PixelCanvas(sheetArtW, sheetArtH)
+        sheet.clear(0xFF0C0906.toInt())
+
+        swatches.forEachIndexed { idx, (_, drawFn) ->
+            val col = idx % cols
+            val row = idx / cols
+            val ox = gap + col * (swatchW + gap)
+            val oy = gap + row * (swatchH + gap)
+            val sub = PixelCanvas(swatchW, swatchH).apply(drawFn)
+            for (y in 0 until swatchH) {
+                for (x in 0 until swatchW) {
+                    sheet.set(ox + x, oy + y, sub.get(x, y))
+                }
+            }
+        }
+
+        val outFile = File(outDir, "materials.png")
+        writeScaledPng(sheet, scale, outFile)
+        assertTrue("Expected materials.png to be written", outFile.exists() && outFile.length() > 0)
+    }
+
+    companion object {
+        fun writeScaledPng(canvas: PixelCanvas, scale: Int, file: File) {
+            val imgW = canvas.w * scale
+            val imgH = canvas.h * scale
+            val img = BufferedImage(imgW, imgH, BufferedImage.TYPE_INT_ARGB)
+            for (y in 0 until canvas.h) {
+                for (x in 0 until canvas.w) {
+                    val c = canvas.get(x, y)
+                    for (sy in 0 until scale) {
+                        for (sx in 0 until scale) {
+                            img.setRGB(x * scale + sx, y * scale + sy, c)
+                        }
+                    }
+                }
+            }
+            ImageIO.write(img, "PNG", file)
+        }
+    }
+}

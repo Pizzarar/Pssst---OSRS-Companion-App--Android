@@ -2,22 +2,12 @@ package com.pssst.theme.art
 
 import android.graphics.Bitmap
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.ImageShader
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.unit.dp
-import com.pssst.theme.OsrsBorderDark
-import com.pssst.theme.OsrsBorderLight
 import com.pssst.theme.OsrsDarkStone
 import com.pssst.theme.OsrsIronBody
 import com.pssst.theme.OsrsIronEdgeDark
@@ -29,192 +19,461 @@ import com.pssst.theme.OsrsLeatherStitch
 import com.pssst.theme.OsrsOakBase
 import com.pssst.theme.OsrsOakGrainDark
 import com.pssst.theme.OsrsOakGrainLight
+import com.pssst.theme.OsrsOakMid
 import com.pssst.theme.OsrsPanelDark
-import com.pssst.theme.OsrsPanelLight
+import com.pssst.theme.OsrsPanelMid
 import com.pssst.theme.OsrsParchmentDark
 import com.pssst.theme.OsrsParchmentStain
 import com.pssst.theme.OsrsParchmentWarm
-import com.pssst.theme.OsrsStoneFlecks
+import com.pssst.theme.OsrsSlotEmpty
+import com.pssst.theme.OsrsStoneMid
 import com.pssst.theme.OsrsStonePoreDark
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
+import kotlin.math.min
 
 /**
- * Deterministic, tileable, cached procedural material textures for the Pssst art packet.
+ * Low-resolution procedural pixel-art material generators for Pssst.
  *
- * Every material tile is generated once per (kind, seed) into a small seamless [ImageBitmap]
- * (64x64 or 128x64) and wrapped in a repeating [ShaderBrush]. Compatible with minSdk 24 and
- * performs zero allocations during frame rendering or recomposition.
+ * Every material is drawn into a [PixelCanvas] at exact art-pixel dimensions using fixed-point
+ * integer noise ([PixelNoise]) and 4x4 Bayer ordered dithering across a strict 3-to-5-tone ramp
+ * from `Color.kt`.
  */
 object Textures {
 
+    /** 5-tone stone ground ramp (darkest mortar to lightest block top-left edge). */
+    val STONE_GROUND_TONES: IntArray = intArrayOf(
+        OsrsStonePoreDark.toArgb(),
+        OsrsDarkStone.toArgb(),
+        OsrsStoneMid.toArgb(),
+        OsrsSlotEmpty.toArgb(),
+        OsrsPanelDark.toArgb()
+    )
+
+    /** 3-tone carved panel stone ramp (keeps OsrsRed >= 4.64:1 and OsrsHerbGreen >= 5.45:1). */
+    val PANEL_STONE_TONES: IntArray = intArrayOf(
+        OsrsSlotEmpty.toArgb(),
+        OsrsPanelMid.toArgb(),
+        OsrsPanelDark.toArgb()
+    )
+
+    /** 4-tone aged dark oak plank ramp. */
+    val OAK_TONES: IntArray = intArrayOf(
+        OsrsOakGrainDark.toArgb(),
+        OsrsOakBase.toArgb(),
+        OsrsOakMid.toArgb(),
+        OsrsOakGrainLight.toArgb()
+    )
+
+    /** 3-tone forged wrought-iron ramp. */
+    val IRON_TONES: IntArray = intArrayOf(
+        OsrsIronEdgeDark.toArgb(),
+        OsrsIronBody.toArgb(),
+        OsrsIronEdgeLight.toArgb()
+    )
+
+    /** 3-tone dark-UI weathered parchment ramp. */
+    val PARCHMENT_TONES: IntArray = intArrayOf(
+        OsrsParchmentStain.toArgb(),
+        OsrsParchmentDark.toArgb(),
+        OsrsParchmentWarm.toArgb()
+    )
+
+    /** 3-tone cellular pebble-grain leather hide ramp (plus stitch thread when stitched). */
+    val LEATHER_TONES: IntArray = intArrayOf(
+        OsrsLeatherCrease.toArgb(),
+        OsrsLeatherBase.toArgb(),
+        OsrsLeatherHighlight.toArgb()
+    )
+
+    val LEATHER_STITCH_TONES: IntArray = intArrayOf(
+        OsrsLeatherCrease.toArgb(),
+        OsrsLeatherBase.toArgb(),
+        OsrsLeatherHighlight.toArgb(),
+        OsrsLeatherStitch.toArgb()
+    )
+
+    /**
+     * Draws irregular coursed stone blocks into [canvas]:
+     * - Courses 6–10 art-px high with 1-art-px dark mortar ([OsrsStonePoreDark]).
+     * - Randomised block widths 10–22 art-px, offset per course.
+     * - No two adjacent blocks (left or upper) share the same base tone.
+     * - 1-art-px top/left light edge and 1-art-px bottom/right shadow edge on each block.
+     * - Bayer-dithered value noise inside each block.
+     */
+    fun drawStoneGround(canvas: PixelCanvas, seed: Int = 101) {
+        val w = canvas.w
+        val h = canvas.h
+        if (w <= 0 || h <= 0) return
+
+        val mortar = STONE_GROUND_TONES[0]
+        val baseTones = intArrayOf(
+            STONE_GROUND_TONES[1],
+            STONE_GROUND_TONES[2],
+            STONE_GROUND_TONES[3]
+        )
+
+        var y = 0
+        var courseIdx = 0
+        // Track upper course block spans and their chosen tone index (0..2) so vertical neighbors differ
+        var prevCourseEnds = IntArray(0)
+        var prevCourseTones = IntArray(0)
+
+        while (y < h) {
+            val courseH = 6 + (PixelNoise.hash(courseIdx, 0, seed) % 5) // 6..10 art px
+            val yEnd = min(h, y + courseH)
+            val mortarY = y + courseH - 1
+
+            var x = -(PixelNoise.hash(courseIdx, 1, seed + 7) % 9)
+            var blockIdx = 0
+            var leftToneIdx = -1
+
+            val curEnds = ArrayList<Int>()
+            val curTones = ArrayList<Int>()
+
+            while (x < w) {
+                val blockW = 10 + (PixelNoise.hash(blockIdx, courseIdx, seed + 19) % 13) // 10..22 art px
+                val xEnd = x + blockW
+                val midX = (x.coerceAtLeast(0) + xEnd.coerceAtMost(w)) / 2
+
+                // Find upper neighbor tone index at midX
+                var upperToneIdx = -1
+                for (i in prevCourseEnds.indices) {
+                    if (midX < prevCourseEnds[i]) {
+                        upperToneIdx = prevCourseTones[i]
+                        break
+                    }
+                }
+
+                // Pick a tone index in 0..2 that differs from both leftToneIdx and upperToneIdx
+                val rawPick = PixelNoise.hash(blockIdx, courseIdx, seed + 37) % 3
+                var toneIdx = rawPick
+                for (attempt in 0 until 3) {
+                    val candidate = (rawPick + attempt) % 3
+                    if (candidate != leftToneIdx && candidate != upperToneIdx) {
+                        toneIdx = candidate
+                        break
+                    }
+                }
+                leftToneIdx = toneIdx
+                curEnds.add(xEnd)
+                curTones.add(toneIdx)
+
+                // Pair of tones for block interior dithering
+                val blockPair = intArrayOf(
+                    STONE_GROUND_TONES[toneIdx + 1],
+                    STONE_GROUND_TONES[(toneIdx + 2).coerceAtMost(3)]
+                )
+                val topLeftEdgeTone = STONE_GROUND_TONES[(toneIdx + 2).coerceAtMost(4)]
+                val bottomRightEdgeTone = STONE_GROUND_TONES[toneIdx]
+
+                val bx0 = x.coerceIn(0, w)
+                val bx1 = xEnd.coerceIn(0, w)
+                for (py in y until yEnd) {
+                    for (px in bx0 until bx1) {
+                        val color = when {
+                            py == mortarY || px == xEnd - 1 -> mortar
+                            py == y || px == x -> {
+                                // 1-art-px top/left chiseled catch-light with occasional nick
+                                if (PixelNoise.hash(px, py, seed + 53) < 28) baseTones[toneIdx] else topLeftEdgeTone
+                            }
+                            py == mortarY - 1 || px == xEnd - 2 -> bottomRightEdgeTone
+                            else -> {
+                                val n = PixelNoise.value(px, py, 5, seed + 71)
+                                val jitter = (PixelNoise.hash(px, py, seed + 89) - 128) / 3
+                                PixelNoise.quantise(n + jitter, blockPair, px, py)
+                            }
+                        }
+                        canvas.set(px, py, color)
+                    }
+                }
+
+                x = xEnd
+                blockIdx++
+            }
+
+            prevCourseEnds = curEnds.toIntArray()
+            prevCourseTones = curTones.toIntArray()
+            y += courseH
+            courseIdx++
+        }
+    }
+
+    /**
+     * Draws low-contrast carved stone mottling into [canvas] for panel interiors behind text.
+     * Uses only [PANEL_STONE_TONES] (`#221D16`, `#27211A`, `#2B251D`) with Bayer 4x4 dithering.
+     */
+    fun drawPanelStone(canvas: PixelCanvas, seed: Int = 101) {
+        val w = canvas.w
+        val h = canvas.h
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                val coarse = PixelNoise.value(x, y, 7, seed)
+                val fine = PixelNoise.value(x, y, 3, seed + 29)
+                val jitter = (PixelNoise.hash(x, y, seed + 61) - 128) / 4
+                val v = ((coarse * 3 + fine) / 4) + jitter
+                canvas.set(x, y, PixelNoise.quantise(v, PANEL_STONE_TONES, x, y))
+            }
+        }
+    }
+
+    /**
+     * Draws horizontal dark-oak planks of varying height (5–9 art px) with stretched 8:1 grain,
+     * dark plank seams, occasional small pixel knots, and optional wrought-iron end straps.
+     */
+    fun drawOakBeam(
+        canvas: PixelCanvas,
+        seed: Int = 202,
+        showPlankSeams: Boolean = true,
+        showEndBands: Boolean = false
+    ) {
+        val w = canvas.w
+        val h = canvas.h
+        if (w <= 0 || h <= 0) return
+
+        val seamTone = OAK_TONES[0]
+        val knotRingTone = OAK_TONES[3]
+        val grainPair = intArrayOf(OAK_TONES[1], OAK_TONES[2], OAK_TONES[3])
+
+        var y = 0
+        var plankIdx = 0
+        while (y < h) {
+            val plankH = if (showPlankSeams) {
+                5 + (PixelNoise.hash(plankIdx, 0, seed) % 5) // 5..9 art px
+            } else {
+                h
+            }
+            val yEnd = min(h, y + plankH)
+            val seamY = y + plankH - 1
+
+            // Optional butt-joint seam on wider beams
+            val hasButtJoint = showPlankSeams && w > 48 && (PixelNoise.hash(plankIdx, 1, seed) % 2 == 0)
+            val buttJointX = if (hasButtJoint) {
+                18 + (PixelNoise.hash(plankIdx, 2, seed + 13) % (w - 36).coerceAtLeast(1))
+            } else {
+                -10
+            }
+
+            // Optional knot every ~120 art px of plank
+            val hasKnot = w >= 24 && (PixelNoise.hash(plankIdx, 3, seed + 31) % 2 == 0)
+            val knotX = if (hasKnot) {
+                10 + (PixelNoise.hash(plankIdx, 4, seed + 47) % (w - 20).coerceAtLeast(1))
+            } else {
+                -100
+            }
+            val knotY = y + plankH / 2
+
+            for (py in y until yEnd) {
+                for (px in 0 until w) {
+                    if (showPlankSeams && (py == seamY && yEnd < h || px == buttJointX)) {
+                        canvas.set(px, py, seamTone)
+                        continue
+                    }
+
+                    // Check knot (small 5x3 pixel ellipse)
+                    val dx = px - knotX
+                    val dy = py - knotY
+                    val knotDist = dx * dx + dy * dy * 4
+                    if (hasKnot && knotDist <= 4) {
+                        canvas.set(px, py, seamTone)
+                        continue
+                    } else if (hasKnot && knotDist in 5..9) {
+                        canvas.set(px, py, knotRingTone)
+                        continue
+                    }
+
+                    // 8:1 horizontally stretched wood grain noise
+                    val stretched = PixelNoise.value(px / 8, py * 2 + plankIdx * 11, 2, seed + 59)
+                    val streak = (PixelNoise.hash(px / 4, py + plankIdx * 7, seed + 83) - 128) / 3
+                    val v = stretched + streak
+                    val tone = if (v < 42) {
+                        seamTone
+                    } else {
+                        PixelNoise.quantise(v, grainPair, px, py)
+                    }
+                    canvas.set(px, py, tone)
+                }
+            }
+
+            y += plankH
+            plankIdx++
+        }
+
+        if (showEndBands && w >= 12) {
+            val bandW = 3
+            fillIronBand(canvas, 0, 0, bandW, h, seed + 91)
+            fillIronBand(canvas, w - bandW, 0, bandW, h, seed + 97)
+        }
+    }
+
+    private fun fillIronBand(canvas: PixelCanvas, x: Int, y: Int, bw: Int, bh: Int, seed: Int) {
+        val dark = IRON_TONES[0]
+        val body = IRON_TONES[1]
+        val light = IRON_TONES[2]
+        canvas.fill(x, y, bw, bh, body)
+        canvas.vLine(x, y, bh, light)
+        canvas.vLine(x + bw - 1, y, bh, dark)
+        for (py in y + 1 until y + bh - 1) {
+            if (PixelNoise.hash(x, py, seed) < 24) {
+                canvas.set(x + 1, py, light)
+            }
+        }
+    }
+
+    /**
+     * Draws hammered wrought iron: flat [OsrsIronBody] with sparse (~3%) irregular light/dark
+     * hammer-mark pixel pairs and no regular dot grid.
+     */
+    fun drawHammeredIron(canvas: PixelCanvas, seed: Int = 505, withBevel: Boolean = true) {
+        val w = canvas.w
+        val h = canvas.h
+        if (w <= 0 || h <= 0) return
+
+        val dark = IRON_TONES[0]
+        val body = IRON_TONES[1]
+        val light = IRON_TONES[2]
+
+        canvas.clear(body)
+
+        // Sparse irregular hammer dimples (~3% of interior pixels)
+        for (y in 1 until h - 2) {
+            for (x in 1 until w - 2) {
+                val hVal = PixelNoise.hash(x, y, seed)
+                if (hVal < 8) {
+                    canvas.set(x, y, light)
+                    canvas.set(x + 1, y + 1, dark)
+                } else if (hVal == 8) {
+                    canvas.set(x, y, dark)
+                }
+            }
+        }
+
+        if (withBevel && w >= 2 && h >= 2) {
+            canvas.hLine(0, 0, w, light)
+            canvas.vLine(0, 0, h, light)
+            canvas.hLine(0, h - 1, w, dark)
+            canvas.vLine(w - 1, 0, h, dark)
+        }
+    }
+
+    /**
+     * Draws dark aged vellum parchment with horizontal linen fibre streaks and edge foxing
+     * quantised strictly to [PARCHMENT_TONES].
+     */
+    fun drawParchment(canvas: PixelCanvas, seed: Int = 303, showStainVignette: Boolean = true) {
+        val w = canvas.w
+        val h = canvas.h
+        if (w <= 0 || h <= 0) return
+
+        val foxingZone = min(min(w, h) / 3, 8).coerceAtLeast(2)
+
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                // Short horizontal fibre streaks + vertical weave
+                val warp = PixelNoise.value(x / 5, y, 2, seed)
+                val weft = PixelNoise.value(x, y / 4, 2, seed + 17)
+                val mottle = PixelNoise.value(x, y, 6, seed + 33)
+                var v = (warp * 2 + weft + mottle) / 4
+
+                if (showStainVignette) {
+                    val edgeDist = min(min(x, w - 1 - x), min(y, h - 1 - y))
+                    if (edgeDist < foxingZone) {
+                        val foxBias = ((foxingZone - edgeDist) * 110) / foxingZone
+                        val stainPatch = (PixelNoise.value(x, y, 5, seed + 51) - 128) / 2
+                        v = (v - foxBias + stainPatch).coerceIn(0, 255)
+                    }
+                }
+
+                canvas.set(x, y, PixelNoise.quantise(v, PARCHMENT_TONES, x, y))
+            }
+        }
+    }
+
+    /**
+     * Draws worn binding leather with cellular (Worley) pebble grain quantised to [LEATHER_TONES]
+     * and an optional 2-on/2-off single-art-px stitch line of [OsrsLeatherStitch] inset 3 art px.
+     */
+    fun drawLeather(canvas: PixelCanvas, seed: Int = 404, stitched: Boolean = true) {
+        val w = canvas.w
+        val h = canvas.h
+        if (w <= 0 || h <= 0) return
+
+        val crease = LEATHER_TONES[0]
+        val stitch = OsrsLeatherStitch.toArgb()
+
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                val cellVal = PixelNoise.cellular(x, y, 4, seed)
+                val jitter = (PixelNoise.hash(x, y, seed + 23) - 128) / 5
+                // Bias slightly dark so highlight only hits pebble crowns
+                val v = ((cellVal * 210) / 255) + jitter
+                canvas.set(x, y, PixelNoise.quantise(v, LEATHER_TONES, x, y))
+            }
+        }
+
+        if (stitched && w > 10 && h > 10) {
+            val inset = 3
+            val x0 = inset
+            val y0 = inset
+            val x1 = w - 1 - inset
+            val y1 = h - 1 - inset
+
+            for (px in x0..x1) {
+                val on = ((px - x0) and 3) < 2
+                val c = if (on) stitch else crease
+                canvas.set(px, y0, c)
+                canvas.set(px, y1, c)
+            }
+            for (py in y0..y1) {
+                val on = ((py - y0) and 3) < 2
+                val c = if (on) stitch else crease
+                canvas.set(x0, py, c)
+                canvas.set(x1, py, c)
+            }
+        }
+    }
+
+    // Temporary bridge brushes for files updated in Units 3, 4, and 6; removed once those units complete.
     private val brushCache = ConcurrentHashMap<Int, ShaderBrush>()
 
-    /**
-     * Seamless carved-stone texture brush: mineral flecks, subtle pores, and weathered grain.
-     */
-    fun stoneBrush(seed: Int = 101, darkGround: Boolean = false): ShaderBrush {
+    internal fun stoneBrush(seed: Int = 101, darkGround: Boolean = false): ShaderBrush {
         val key = (seed * 31) xor (if (darkGround) 0x11A1 else 0x22B2)
         return brushCache.getOrPut(key) {
-            val size = 64
-            val pixels = IntArray(size * size)
-            val base = if (darkGround) OsrsDarkStone else OsrsPanelDark
-            val pore = OsrsStonePoreDark
-            val fleck = OsrsStoneFlecks
-
-            for (y in 0 until size) {
-                for (x in 0 until size) {
-                    val n1 = tileableValueNoise(x, y, size, size, periodX = 8, periodY = 8, seed = seed)
-                    val n2 = tileableValueNoise(x, y, size, size, periodX = 16, periodY = 16, seed = seed + 17)
-                    val h = hash2D(x, y, seed + 53)
-                    val baseMix = (n1 * 0.65f + n2 * 0.35f) // 0..1
-
-                    var color = lerpColor(pore, base, 0.55f + baseMix * 0.45f)
-                    if (h > 0.91f) {
-                        // Warm mineral fleck
-                        color = lerpColor(color, fleck, 0.32f)
-                    } else if (h < 0.09f) {
-                        // Tiny chisel pore
-                        color = lerpColor(color, pore, 0.42f)
-                    }
-                    pixels[y * size + x] = color.toArgb()
-                }
+            val c = PixelCanvas(64, 64).also {
+                if (darkGround) drawStoneGround(it, seed) else drawPanelStone(it, seed)
             }
-            createRepeatedBrush(pixels, size, size)
+            createRepeatedBrush(c.px, c.w, c.h)
         }
     }
 
-    /**
-     * Seamless aged dark oak wood-grain brush: horizontal cathedral heartwood grain and planed ridges.
-     */
-    fun oakBrush(seed: Int = 202): ShaderBrush {
+    internal fun oakBrush(seed: Int = 202): ShaderBrush {
         val key = (seed * 31) xor 0x33C3
         return brushCache.getOrPut(key) {
-            val width = 128
-            val height = 64
-            val pixels = IntArray(width * height)
-
-            for (y in 0 until height) {
-                for (x in 0 until width) {
-                    // Stretched horizontal noise + ring wave
-                    val coarse = tileableValueNoise(x, y, width, height, periodX = 4, periodY = 16, seed = seed)
-                    val fine = tileableValueNoise(x, y, width, height, periodX = 16, periodY = 32, seed = seed + 29)
-                    val ringArg = (y.toFloat() / height.toFloat()) * 6f * Math.PI.toFloat() + coarse * 4.2f
-                    val ring = (sin(ringArg) * 0.5f + 0.5f)
-                    val fiber = hash2D(x / 2, y, seed + 71) * 0.14f
-                    val t = (ring * 0.55f + fine * 0.31f + fiber).coerceIn(0f, 1f)
-
-                    val color = if (t < 0.45f) {
-                        lerpColor(OsrsOakGrainDark, OsrsOakBase, t / 0.45f)
-                    } else {
-                        lerpColor(OsrsOakBase, OsrsOakGrainLight, (t - 0.45f) / 0.55f * 0.65f)
-                    }
-                    pixels[y * width + x] = color.toArgb()
-                }
-            }
-            createRepeatedBrush(pixels, width, height)
+            val c = PixelCanvas(128, 64).also { drawOakBeam(it, seed, showPlankSeams = true) }
+            createRepeatedBrush(c.px, c.w, c.h)
         }
     }
 
-    /**
-     * Seamless dark-mode weathered parchment brush: cross-woven linen fibers and subtle vellum mottling.
-     * Keeps high contrast (>9:1 with OsrsTextPrimary, >5:1 with OsrsTextMuted).
-     */
-    fun parchmentBrush(seed: Int = 303): ShaderBrush {
+    internal fun parchmentBrush(seed: Int = 303): ShaderBrush {
         val key = (seed * 31) xor 0x44D4
         return brushCache.getOrPut(key) {
-            val size = 64
-            val pixels = IntArray(size * size)
-
-            for (y in 0 until size) {
-                for (x in 0 until size) {
-                    val mottle = tileableValueNoise(x, y, size, size, periodX = 6, periodY = 6, seed = seed)
-                    // Subtle linen cross-weave
-                    val warp = sin((x.toFloat() / size) * 32f * Math.PI.toFloat()) * 0.5f + 0.5f
-                    val weft = cos((y.toFloat() / size) * 32f * Math.PI.toFloat()) * 0.5f + 0.5f
-                    val weave = (warp * 0.5f + weft * 0.5f) * 0.16f
-                    val speck = if (hash2D(x, y, seed + 99) > 0.95f) -0.10f else 0f
-                    val t = (mottle * 0.84f + weave + speck).coerceIn(0f, 1f)
-
-                    val color = if (t < 0.5f) {
-                        lerpColor(OsrsParchmentStain, OsrsParchmentDark, 0.45f + t * 1.1f)
-                    } else {
-                        lerpColor(OsrsParchmentDark, OsrsParchmentWarm, (t - 0.5f) * 0.9f)
-                    }
-                    pixels[y * size + x] = color.toArgb()
-                }
-            }
-            createRepeatedBrush(pixels, size, size)
+            val c = PixelCanvas(64, 64).also { drawParchment(it, seed, showStainVignette = false) }
+            createRepeatedBrush(c.px, c.w, c.h)
         }
     }
 
-    /**
-     * Seamless worn binding leather brush: cellular pebble-grain hide with warm worn crowns.
-     */
-    fun leatherBrush(seed: Int = 404): ShaderBrush {
+    internal fun leatherBrush(seed: Int = 404): ShaderBrush {
         val key = (seed * 31) xor 0x55E5
         return brushCache.getOrPut(key) {
-            val size = 64
-            val pixels = IntArray(size * size)
-            val grid = 8
-            val cellSize = size / grid
-
-            for (y in 0 until size) {
-                for (x in 0 until size) {
-                    // Tileable cellular Voronoi distance for pebble hide
-                    val gx = x / cellSize
-                    val gy = y / cellSize
-                    var minDist = 999f
-                    for (dy in -1..1) {
-                        for (dx in -1..1) {
-                            val nx = (gx + dx + grid) % grid
-                            val ny = (gy + dy + grid) % grid
-                            val px = (gx + dx) * cellSize + hash2D(nx, ny, seed) * cellSize * 0.8f
-                            val py = (gy + dy) * cellSize + hash2D(nx, ny, seed + 13) * cellSize * 0.8f
-                            val ddx = (x - px) / cellSize
-                            val ddy = (y - py) / cellSize
-                            val dist = sqrt(ddx * ddx + ddy * ddy)
-                            if (dist < minDist) minDist = dist
-                        }
-                    }
-                    // Pebble crown is low distance, crease is high distance
-                    val crown = (1f - (minDist / 0.85f).coerceIn(0f, 1f))
-                    val color = when {
-                        crown < 0.25f -> lerpColor(OsrsLeatherCrease, OsrsLeatherBase, crown / 0.25f)
-                        else -> lerpColor(OsrsLeatherBase, OsrsLeatherHighlight, (crown - 0.25f) * 0.55f)
-                    }
-                    pixels[y * size + x] = color.toArgb()
-                }
-            }
-            createRepeatedBrush(pixels, size, size)
+            val c = PixelCanvas(64, 64).also { drawLeather(it, seed, stitched = false) }
+            createRepeatedBrush(c.px, c.w, c.h)
         }
     }
 
-    /**
-     * Seamless hammered wrought-iron brush: shallow forge-hammer dimples on dark iron.
-     */
-    fun ironBrush(seed: Int = 505): ShaderBrush {
+    internal fun ironBrush(seed: Int = 505): ShaderBrush {
         val key = (seed * 31) xor 0x66F6
         return brushCache.getOrPut(key) {
-            val size = 64
-            val pixels = IntArray(size * size)
-
-            for (y in 0 until size) {
-                for (x in 0 until size) {
-                    val n = tileableValueNoise(x, y, size, size, periodX = 8, periodY = 8, seed = seed)
-                    val micro = hash2D(x, y, seed + 37) * 0.12f
-                    val t = (n * 0.88f + micro).coerceIn(0f, 1f)
-                    val color = if (t < 0.5f) {
-                        lerpColor(OsrsIronEdgeDark, OsrsIronBody, 0.5f + t)
-                    } else {
-                        lerpColor(OsrsIronBody, OsrsIronEdgeLight, (t - 0.5f) * 0.55f)
-                    }
-                    pixels[y * size + x] = color.toArgb()
-                }
-            }
-            createRepeatedBrush(pixels, size, size)
+            val c = PixelCanvas(64, 64).also { drawHammeredIron(it, seed, withBevel = false) }
+            createRepeatedBrush(c.px, c.w, c.h)
         }
     }
 
@@ -227,204 +486,52 @@ object Textures {
         ).asImageBitmap()
         return ShaderBrush(ImageShader(bitmap, TileMode.Repeated, TileMode.Repeated))
     }
-
-    private fun hash2D(x: Int, y: Int, seed: Int): Float {
-        var h = x * 374761393 + y * 668265263 + seed * 1442695041
-        h = (h xor (h ushr 13)) * 1274126177
-        h = h xor (h ushr 16)
-        return (h and 0x7FFFFFFF).toFloat() / Int.MAX_VALUE.toFloat()
-    }
-
-    private fun tileableValueNoise(
-        x: Int,
-        y: Int,
-        width: Int,
-        height: Int,
-        periodX: Int,
-        periodY: Int,
-        seed: Int
-    ): Float {
-        val fx = (x.toFloat() / width.toFloat()) * periodX
-        val fy = (y.toFloat() / height.toFloat()) * periodY
-        val ix0 = fx.toInt() % periodX
-        val iy0 = fy.toInt() % periodY
-        val ix1 = (ix0 + 1) % periodX
-        val iy1 = (iy0 + 1) % periodY
-        val tx = smoothStep(fx - fx.toInt())
-        val ty = smoothStep(fy - fy.toInt())
-
-        val v00 = hash2D(ix0, iy0, seed)
-        val v10 = hash2D(ix1, iy0, seed)
-        val v01 = hash2D(ix0, iy1, seed)
-        val v11 = hash2D(ix1, iy1, seed)
-
-        val nx0 = v00 + (v10 - v00) * tx
-        val nx1 = v01 + (v11 - v01) * tx
-        return nx0 + (nx1 - nx0) * ty
-    }
-
-    private fun smoothStep(t: Float): Float = t * t * (3f - 2f * t)
-
-    internal fun lerpColor(a: Color, b: Color, t: Float): Color {
-        val clamped = t.coerceIn(0f, 1f)
-        return Color(
-            red = a.red + (b.red - a.red) * clamped,
-            green = a.green + (b.green - a.green) * clamped,
-            blue = a.blue + (b.blue - a.blue) * clamped,
-            alpha = a.alpha + (b.alpha - a.alpha) * clamped
-        )
-    }
 }
 
 /**
- * Full-screen or container ground in dark carved stone with subtle top-down lantern falloff.
+ * Full-screen or container ground in coursed stone blocks rendered at integer art-pixel resolution.
  */
-fun Modifier.stoneGround(seed: Int = 101): Modifier = this.drawWithCache {
-    val brush = Textures.stoneBrush(seed = seed, darkGround = true)
-    val vignette = Brush.verticalGradient(
-        colors = listOf(
-            OsrsPanelLight.copy(alpha = 0.08f),
-            Color.Transparent,
-            OsrsBorderDark.copy(alpha = 0.25f)
-        )
-    )
-    onDrawBehind {
-        drawRect(color = OsrsDarkStone)
-        drawRect(brush = brush, alpha = 0.85f)
-        drawRect(brush = vignette)
+fun Modifier.stoneGround(seed: Int = 101): Modifier =
+    this.pixelArt(key = Pair("stoneGround", seed)) {
+        Textures.drawStoneGround(this, seed)
     }
-}
 
 /**
- * Carved stone panel interior texture with subtle top-lit sheen.
+ * Carved stone panel interior texture with low-contrast 3-tone Bayer-dithered mottling.
  */
-fun Modifier.carvedStone(seed: Int = 101): Modifier = this.drawWithCache {
-    val stone = Textures.stoneBrush(seed = seed, darkGround = false)
-    val sheen = Brush.verticalGradient(
-        colors = listOf(
-            OsrsPanelLight.copy(alpha = 0.35f),
-            Color.Transparent,
-            OsrsBorderDark.copy(alpha = 0.28f)
-        )
-    )
-    onDrawBehind {
-        drawRect(color = OsrsPanelDark)
-        drawRect(brush = stone, alpha = 0.75f)
-        drawRect(brush = sheen)
+fun Modifier.carvedStone(seed: Int = 101): Modifier =
+    this.pixelArt(key = Pair("carvedStone", seed)) {
+        Textures.drawPanelStone(this, seed)
     }
-}
 
 /**
- * Aged dark oak beam texture with optional horizontal plank seams.
+ * Aged dark oak beam texture with horizontal planks, stretched grain, knots, and optional seams.
  */
-fun Modifier.oakBeam(seed: Int = 202, showPlankSeams: Boolean = true): Modifier = this.drawWithCache {
-    val oak = Textures.oakBrush(seed = seed)
-    val sheen = Brush.verticalGradient(
-        colors = listOf(
-            OsrsOakGrainLight.copy(alpha = 0.28f),
-            Color.Transparent,
-            OsrsOakGrainDark.copy(alpha = 0.45f)
-        )
-    )
-    val strokePx = 1.dp.toPx()
-    onDrawBehind {
-        drawRect(color = OsrsOakBase)
-        drawRect(brush = oak, alpha = 0.9f)
-        drawRect(brush = sheen)
-        if (showPlankSeams && size.height > 28.dp.toPx()) {
-            val seamY = size.height * 0.5f
-            drawLine(
-                color = OsrsOakGrainDark.copy(alpha = 0.65f),
-                start = Offset(0f, seamY),
-                end = Offset(size.width, seamY),
-                strokeWidth = strokePx
-            )
-            drawLine(
-                color = OsrsOakGrainLight.copy(alpha = 0.35f),
-                start = Offset(0f, seamY + strokePx),
-                end = Offset(size.width, seamY + strokePx),
-                strokeWidth = strokePx
-            )
-        }
+fun Modifier.oakBeam(seed: Int = 202, showPlankSeams: Boolean = true): Modifier =
+    this.pixelArt(key = Triple("oakBeam", seed, showPlankSeams)) {
+        Textures.drawOakBeam(this, seed = seed, showPlankSeams = showPlankSeams, showEndBands = false)
     }
-}
 
 /**
- * Dark-mode weathered parchment surface with optional radial edge stain vignette.
- * Keeps contrast >= 9:1 for primary text and >= 5:1 for muted text.
+ * Dark-mode weathered parchment surface with horizontal linen fibre streaks and edge foxing.
  */
-fun Modifier.parchment(seed: Int = 303, showStainVignette: Boolean = true): Modifier = this.drawWithCache {
-    val vellum = Textures.parchmentBrush(seed = seed)
-    val maxDim = maxOf(size.width, size.height, 1f)
-    val edgeStain = Brush.radialGradient(
-        colors = listOf(
-            Color.Transparent,
-            OsrsParchmentStain.copy(alpha = 0.45f)
-        ),
-        center = Offset(size.width * 0.5f, size.height * 0.5f),
-        radius = maxDim * 0.72f
-    )
-    onDrawBehind {
-        drawRect(color = OsrsParchmentDark)
-        drawRect(brush = vellum, alpha = 0.8f)
-        if (showStainVignette) {
-            drawRect(brush = edgeStain)
-        }
+fun Modifier.parchment(seed: Int = 303, showStainVignette: Boolean = true): Modifier =
+    this.pixelArt(key = Triple("parchment", seed, showStainVignette)) {
+        Textures.drawParchment(this, seed = seed, showStainVignette = showStainVignette)
     }
-}
 
 /**
- * Worn oxblood-brown binding leather surface with optional inset waxed-thread saddle stitching.
+ * Worn oxblood-brown binding leather surface with cellular pebble grain and single-art-px stitching.
  */
-fun Modifier.leather(seed: Int = 404, stitched: Boolean = true): Modifier = this.drawWithCache {
-    val hide = Textures.leatherBrush(seed = seed)
-    val sheen = Brush.verticalGradient(
-        colors = listOf(
-            OsrsLeatherHighlight.copy(alpha = 0.25f),
-            Color.Transparent,
-            OsrsLeatherCrease.copy(alpha = 0.45f)
-        )
-    )
-    val inset = 4.dp.toPx()
-    val stitchStroke = Stroke(
-        width = 1.dp.toPx(),
-        pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()), 0f)
-    )
-    onDrawBehind {
-        drawRect(color = OsrsLeatherBase)
-        drawRect(brush = hide, alpha = 0.85f)
-        drawRect(brush = sheen)
-        if (stitched && size.width > inset * 3 && size.height > inset * 3) {
-            // Recessed stitch channel
-            drawRect(
-                color = OsrsLeatherCrease,
-                topLeft = Offset(inset, inset),
-                size = Size(size.width - inset * 2, size.height - inset * 2),
-                style = Stroke(width = 1.5.dp.toPx())
-            )
-            // Waxed thread dashes
-            drawRect(
-                color = OsrsLeatherStitch.copy(alpha = 0.75f),
-                topLeft = Offset(inset, inset),
-                size = Size(size.width - inset * 2, size.height - inset * 2),
-                style = stitchStroke
-            )
-        }
+fun Modifier.leather(seed: Int = 404, stitched: Boolean = true): Modifier =
+    this.pixelArt(key = Triple("leather", seed, stitched)) {
+        Textures.drawLeather(this, seed = seed, stitched = stitched)
     }
-}
 
 /**
- * Hammered wrought-iron surface with top/left bevel glint.
+ * Hammered wrought-iron surface with sparse forge dimples and 1-art-px bevel.
  */
-fun Modifier.hammeredIron(seed: Int = 505): Modifier = this.drawWithCache {
-    val iron = Textures.ironBrush(seed = seed)
-    val strokePx = 1.dp.toPx()
-    onDrawBehind {
-        drawRect(color = OsrsIronBody)
-        drawRect(brush = iron, alpha = 0.9f)
-        drawLine(OsrsIronEdgeLight, Offset(0f, 0f), Offset(size.width, 0f), strokePx)
-        drawLine(OsrsIronEdgeLight, Offset(0f, 0f), Offset(0f, size.height), strokePx)
-        drawLine(OsrsIronEdgeDark, Offset(0f, size.height - strokePx), Offset(size.width, size.height - strokePx), strokePx)
-        drawLine(OsrsIronEdgeDark, Offset(size.width - strokePx, 0f), Offset(size.width - strokePx, size.height), strokePx)
+fun Modifier.hammeredIron(seed: Int = 505): Modifier =
+    this.pixelArt(key = Pair("hammeredIron", seed)) {
+        Textures.drawHammeredIron(this, seed = seed, withBevel = true)
     }
-}
