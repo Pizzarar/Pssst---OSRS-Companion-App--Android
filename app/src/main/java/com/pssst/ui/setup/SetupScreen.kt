@@ -79,6 +79,60 @@ fun SetupScreen(
     val syncStatus = uiState.lastSyncStatus.orEmpty()
     val isRejectedByTokenMismatch = syncStatus.startsWith("Rejected")
 
+    SetupContent(
+        tokenInput = tokenInput,
+        onTokenInputChange = {
+            tokenInput = it
+            errorMessage = null
+            if (isWaitingForHandshake) {
+                viewModel.clearUuid()
+            }
+        },
+        rememberMe = rememberMe,
+        onRememberMeChange = { rememberMe = it },
+        errorMessage = errorMessage,
+        phoneAddresses = phoneAddresses,
+        onRefreshAddresses = { phoneAddresses = PhoneAddresses.forDisplay(context) },
+        onCopyAddress = { copyText(it) },
+        isWaitingForHandshake = isWaitingForHandshake,
+        isRejectedByTokenMismatch = isRejectedByTokenMismatch,
+        activeToken = uiState.uuid,
+        onConnect = {
+            val trimmedToken = tokenInput.trim()
+            if (trimmedToken.isEmpty()) {
+                errorMessage = "Enter a Sync Token (e.g. Goblin or goblin-whip)"
+            } else {
+                errorMessage = null
+                viewModel.saveSetup("", trimmedToken, rememberUuid = rememberMe)
+                SyncScheduler.schedulePeriodicSync(context)
+                SyncScheduler.syncNow(context)
+            }
+        },
+        onCancelHandshake = {
+            SyncScheduler.cancelAll(context)
+            viewModel.clearUuid()
+        },
+        modifier = modifier
+    )
+}
+
+@Composable
+fun SetupContent(
+    tokenInput: String,
+    onTokenInputChange: (String) -> Unit,
+    rememberMe: Boolean,
+    onRememberMeChange: (Boolean) -> Unit,
+    errorMessage: String?,
+    phoneAddresses: List<PhoneAddresses.Address>,
+    onRefreshAddresses: () -> Unit,
+    onCopyAddress: (String) -> Unit,
+    isWaitingForHandshake: Boolean,
+    isRejectedByTokenMismatch: Boolean,
+    activeToken: String,
+    onConnect: () -> Unit,
+    onCancelHandshake: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -113,13 +167,7 @@ fun SetupScreen(
                 Spacer(modifier = Modifier.height(6.dp))
                 OsrsTextField(
                     value = tokenInput,
-                    onValueChange = {
-                        tokenInput = it
-                        errorMessage = null
-                        if (isWaitingForHandshake) {
-                            viewModel.clearUuid()
-                        }
-                    },
+                    onValueChange = onTokenInputChange,
                     label = "Sync Token",
                     placeholder = "e.g. Goblin or goblin-whip (from RuneLite)",
                     isError = errorMessage != null || isRejectedByTokenMismatch,
@@ -130,7 +178,7 @@ fun SetupScreen(
                 Spacer(modifier = Modifier.height(6.dp))
                 OsrsCheckbox(
                     checked = rememberMe,
-                    onCheckedChange = { rememberMe = it },
+                    onCheckedChange = onRememberMeChange,
                     label = "Remember this Sync Token on this device"
                 )
 
@@ -159,7 +207,7 @@ fun SetupScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = OsrsRed
                     )
-                    TextButton(onClick = { phoneAddresses = PhoneAddresses.forDisplay(context) }) {
+                    TextButton(onClick = onRefreshAddresses) {
                         Text("Check again", color = OsrsGold)
                     }
                 }
@@ -176,7 +224,7 @@ fun SetupScreen(
                             Text(address.host, style = MaterialTheme.typography.titleMedium, color = OsrsGold, fontWeight = FontWeight.Bold)
                             Text(address.label, style = MaterialTheme.typography.labelSmall, color = OsrsTextMuted)
                         }
-                        TextButton(onClick = { copyText(address.host) }) {
+                        TextButton(onClick = { onCopyAddress(address.host) }) {
                             Text("Copy", color = OsrsGold)
                         }
                     }
@@ -206,7 +254,7 @@ fun SetupScreen(
                             text = if (isRejectedByTokenMismatch) {
                                 "Sync Token Mismatch"
                             } else {
-                                "Listening for RuneLite (${uiState.uuid})…"
+                                "Listening for RuneLite ($activeToken)…"
                             },
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
@@ -214,7 +262,7 @@ fun SetupScreen(
                         )
                         Text(
                             text = if (isRejectedByTokenMismatch) {
-                                "Your PC reached this phone, but its Sync Token did not match '${uiState.uuid}'. Match the Sync Token in both places and click Save or Send Now in RuneLite."
+                                "Your PC reached this phone, but its Sync Token did not match '$activeToken'. Match the Sync Token in both places and click Save or Send Now in RuneLite."
                             } else {
                                 "Waiting for your first snapshot from RuneLite. Make sure you are logged in (or have logged in once) and click Save or Send Now in the RuneLite Pssst panel."
                             },
@@ -225,27 +273,14 @@ fun SetupScreen(
                     Spacer(modifier = Modifier.height(10.dp))
                     OsrsButton(
                         text = "Cancel / Change Token",
-                        onClick = {
-                            SyncScheduler.cancelAll(context)
-                            viewModel.clearUuid()
-                        },
+                        onClick = onCancelHandshake,
                         variant = OsrsButtonVariant.STONE,
                         modifier = Modifier.fillMaxWidth()
                     )
                 } else {
                     OsrsButton(
                         text = "Connect",
-                        onClick = {
-                            val trimmedToken = tokenInput.trim()
-                            if (trimmedToken.isEmpty()) {
-                                errorMessage = "Enter a Sync Token (e.g. Goblin or goblin-whip)"
-                            } else {
-                                errorMessage = null
-                                viewModel.saveSetup("", trimmedToken, rememberUuid = rememberMe)
-                                SyncScheduler.schedulePeriodicSync(context)
-                                SyncScheduler.syncNow(context)
-                            }
-                        },
+                        onClick = onConnect,
                         variant = OsrsButtonVariant.GOLD,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -263,3 +298,4 @@ fun SetupScreen(
         )
     }
 }
+
