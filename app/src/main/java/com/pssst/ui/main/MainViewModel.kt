@@ -318,6 +318,14 @@ class MainViewModel(
         val farmingItemIds = payload?.farming.orEmpty().map { if (it.itemId > 0) it.itemId else 6055 }
         val birdhouseItemIds = payload?.birdhouses.orEmpty().map { BirdHouseUiModel.itemIdForType(it.houseType) }
 
+        val slayerEntry: SlayerEntryDto? = try {
+            gson.fromJson(entity.slayerJson, SlayerEntryDto::class.java)
+        } catch (e: Exception) {
+            null
+        } ?: payload?.slayer
+        val slayerItemId = SlayerUiModel.itemIdForTask(slayerEntry?.taskName, slayerEntry?.itemId ?: 0)
+        val slayerStoredItemId = SlayerUiModel.itemIdForTask(slayerEntry?.storedTaskName, slayerEntry?.storedItemId ?: 0)
+
         val topBarIconIds = listOf(257, 21512, 11738, 995)
 
         // Query manifest names and icons from Room on Dispatchers.IO
@@ -333,6 +341,7 @@ class MainViewModel(
             topBarIconIds +
             farmingItemIds +
             birdhouseItemIds +
+            listOf(slayerItemId, slayerStoredItemId, SlayerUiModel.ENCHANTED_GEM_ITEM_ID) +
             listOfNotNull(goalConfig.targetItemId)
         ).distinct().filter { it > 0 }
 
@@ -519,18 +528,21 @@ class MainViewModel(
         )
 
         // Slayer: the plugin resolves the task and area names from the game's tables
-        val slayerEntry: SlayerEntryDto? = try {
-            gson.fromJson(entity.slayerJson, SlayerEntryDto::class.java)
-        } catch (e: Exception) {
-            null
-        }
+        val slayerStorageUnlocked = (slayerEntry?.storageUnlocked == true) || ((varbits["12442"] ?: 0) == 1)
         val slayer = SlayerUiModel(
             taskName = slayerEntry?.taskName?.takeIf { it.isNotBlank() } ?: "No Active Task",
             amount = slayerEntry?.amount ?: 0,
             taskLocation = slayerEntry?.taskLocation.orEmpty(),
             initialAmount = slayerEntry?.initialAmount ?: 0,
             points = slayerEntry?.points ?: 0,
-            streak = slayerEntry?.streak ?: 0
+            streak = slayerEntry?.streak ?: 0,
+            itemId = slayerItemId,
+            iconBase64 = manifestMap[slayerItemId]?.iconBase64 ?: manifestMap[SlayerUiModel.ENCHANTED_GEM_ITEM_ID]?.iconBase64,
+            storageUnlocked = slayerStorageUnlocked,
+            storedTaskName = slayerEntry?.storedTaskName.orEmpty(),
+            storedAmount = slayerEntry?.storedAmount ?: 0,
+            storedItemId = slayerStoredItemId,
+            storedIconBase64 = manifestMap[slayerStoredItemId]?.iconBase64 ?: manifestMap[SlayerUiModel.ENCHANTED_GEM_ITEM_ID]?.iconBase64
         )
 
         // Farming patches come straight from the plugin's per-region observations (stored in the raw payload)

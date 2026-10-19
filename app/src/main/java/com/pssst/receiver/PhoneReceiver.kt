@@ -37,6 +37,10 @@ class PhoneReceiver(
     private val now: () -> Long = System::currentTimeMillis
 ) {
     private val gson = Gson()
+    private val authLock = Any()
+    private var consecutiveAuthFailures = 0
+    private var throttledUntilMs = 0L
+    private var lastExpectedToken = ""
     @Volatile private var socket: ServerSocket? = null
 
     val isRunning: Boolean get() = socket?.isClosed == false
@@ -61,7 +65,18 @@ class PhoneReceiver(
         val server = socket ?: return
         while (!server.isClosed) {
             try {
-                server.accept().use { handle(it) }
+                server.accept().use { client ->
+                    try {
+                        handle(client)
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Error handling request: ${e.message}")
+                        runCatching { respond(client.getOutputStream(), 500, "Internal error") }
+                    }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: IOException) {
                 if (!server.isClosed) Log.d(TAG, "Connection error: ${e.message}")
             }
@@ -87,16 +102,57 @@ class PhoneReceiver(
 
         val head = readHead(input, deadline) ?: return respond(out, 431, "Request too large or too slow")
         val lines = head.split("\r\n")
+        if (lines.size > MAX_HEADER_LINES) return respond(out, 431, "Request too large or too slow")
         val requestLine = lines[0].split(" ")
         if (requestLine.size < 2) return respond(out, 400, "Bad request")
 
         val expected = token()?.trim().orEmpty()
+        val currentMs = now()
+        synchronized(authLock) {
+            if (expected != lastExpectedToken) {
+                lastExpectedToken = expected
+                consecutiveAuthFailures = 0
+                throttledUntilMs = 0L
+            }
+            if (currentMs < throttledUntilMs) {
+                return respond(
+                    out,
+                    429,
+                    "Too many failed attempts",
+                    extraHeaders = "Retry-After: $AUTH_LOCKOUT_SECONDS\r\n"
+                )
+            }
+        }
+
         if (expected.isEmpty() || !isAuthorized(lines, expected)) {
+            var nowThrottled = false
             if (expected.isNotEmpty() && header(lines, "authorization") != null) {
+                synchronized(authLock) {
+                    consecutiveAuthFailures++
+                    if (consecutiveAuthFailures >= MAX_AUTH_FAILURES) {
+                        throttledUntilMs = currentMs + AUTH_LOCKOUT_SECONDS * 1000L
+                        consecutiveAuthFailures = 0
+                        nowThrottled = true
+                    }
+                }
                 onRejected()
             }
-            return respond(out, 401, "Unauthorized")
+            return if (nowThrottled) {
+                respond(
+                    out,
+                    429,
+                    "Too many failed attempts",
+                    extraHeaders = "Retry-After: $AUTH_LOCKOUT_SECONDS\r\n"
+                )
+            } else {
+                respond(out, 401, "Unauthorized")
+            }
         }
+        synchronized(authLock) {
+            consecutiveAuthFailures = 0
+            throttledUntilMs = 0L
+        }
+
         if (requestLine[0] != "POST") return respond(out, 405, "Method not allowed")
         if (requestLine[1].substringBefore('?') != "/sync") return respond(out, 404, "Not found")
 
@@ -167,10 +223,16 @@ class PhoneReceiver(
         return if (read == length) String(bytes, Charsets.UTF_8) else null
     }
 
-    private fun respond(out: OutputStream, status: Int, body: String, type: String = "text/plain") {
+    private fun respond(
+        out: OutputStream,
+        status: Int,
+        body: String,
+        type: String = "text/plain",
+        extraHeaders: String = ""
+    ) {
         val bytes = body.toByteArray(Charsets.UTF_8)
         val head = "HTTP/1.1 $status ${reason(status)}\r\nContent-Type: $type; charset=utf-8\r\n" +
-            "Content-Length: ${bytes.size}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n"
+            "Content-Length: ${bytes.size}\r\nCache-Control: no-store\r\n${extraHeaders}Connection: close\r\n\r\n"
         try {
             out.write(head.toByteArray(Charsets.ISO_8859_1))
             out.write(bytes)
@@ -187,7 +249,9 @@ class PhoneReceiver(
         405 -> "Method Not Allowed"
         411 -> "Length Required"
         413 -> "Payload Too Large"
+        429 -> "Too Many Requests"
         431 -> "Request Header Fields Too Large"
+        500 -> "Internal Server Error"
         else -> "Error"
     }
 
@@ -195,7 +259,10 @@ class PhoneReceiver(
         const val DEFAULT_PORT = 8789
         // Room for a full snapshot plus a hundred icons; the body is only read after the token has been checked
         const val MAX_BODY_BYTES = 1024 * 1024
+        const val MAX_AUTH_FAILURES = 5
+        const val AUTH_LOCKOUT_SECONDS = 30
         private const val MAX_HEADER_BYTES = 8 * 1024
+        private const val MAX_HEADER_LINES = 64
         private const val READ_TIMEOUT_MS = 1000
         private val REQUEST_DEADLINE_NANOS = TimeUnit.SECONDS.toNanos(5)
         private const val TAG = "PhoneReceiver"

@@ -30,6 +30,8 @@ class PhoneReceiverTest {
     private var savedToken: String? = token
     private val deliveredTo = CopyOnWriteArrayList<String>()
     private var needIcons: List<Int> = emptyList()
+    private var nowMs: Long = 42_000L
+    private var throwInSnapshot: Boolean = false
     private lateinit var receiver: PhoneReceiver
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var serveJob: Job? = null
@@ -37,8 +39,15 @@ class PhoneReceiverTest {
     @Before
     fun setUp() {
         receiver = PhoneReceiver(
-            port = 0, token = { savedToken }, onSnapshot = { received += it; needIcons },
-            onDeliveredTo = { deliveredTo += it }, now = { 42_000L }
+            port = 0,
+            token = { savedToken },
+            onSnapshot = {
+                if (throwInSnapshot) throw IllegalStateException("simulated db error")
+                received += it
+                needIcons
+            },
+            onDeliveredTo = { deliveredTo += it },
+            now = { nowMs }
         )
         assertTrue(receiver.bind())
         serveJob = scope.launch { receiver.serve() }
@@ -87,6 +96,40 @@ class PhoneReceiverTest {
     }
 
     @Test
+    fun repeatedWrongTokensAreRateLimitedWith429UntilWindowExpiresOrTokenChanges() {
+        repeat(PhoneReceiver.MAX_AUTH_FAILURES - 1) {
+            assertEquals(401, send("POST", "/sync", "{}", "Bearer wrong-$it"))
+        }
+        // 5th consecutive failure triggers 429 lockout
+        assertEquals(429, send("POST", "/sync", "{}", "Bearer wrong-final"))
+        // Subsequent attempts during the lockout window are rejected with 429 before checking token
+        assertEquals(429, send("POST", "/sync", "{}", "Bearer $token"))
+
+        // Advancing past the lockout window allows valid requests again
+        nowMs += PhoneReceiver.AUTH_LOCKOUT_SECONDS * 1000L + 1L
+        assertEquals(200, send("POST", "/sync", "{}", "Bearer $token"))
+        assertEquals(1, received.size)
+
+        // Trigger lockout again, then verify changing savedToken in the app clears the lockout immediately
+        repeat(PhoneReceiver.MAX_AUTH_FAILURES) {
+            send("POST", "/sync", "{}", "Bearer wrong-$it")
+        }
+        assertEquals(429, send("POST", "/sync", "{}", "Bearer $token"))
+        savedToken = "goblin-whip"
+        assertEquals(200, send("POST", "/sync", "{}", "Bearer goblin-whip"))
+        assertEquals(2, received.size)
+    }
+
+    @Test
+    fun anExceptionInSnapshotHandlerReturns500AndKeepsServerAlive() {
+        throwInSnapshot = true
+        assertEquals(500, send("POST", "/sync", "{}", "Bearer $token"))
+        throwInSnapshot = false
+        assertEquals(200, send("POST", "/sync", "{}", "Bearer $token"))
+        assertEquals(1, received.size)
+    }
+
+    @Test
     fun withNoTokenSavedNothingIsAccepted() {
         savedToken = null
         assertEquals(401, send("POST", "/sync", "{}", "Bearer $token"))
@@ -96,7 +139,7 @@ class PhoneReceiverTest {
     @Test
     fun onlyPostSyncExists() {
         assertEquals(405, send("GET", "/sync", null, "Bearer $token"))
-        assertEquals(404, send("POST", "/state", "{}", "Bearer $token"))
+        assertEquals(404, send("POST", "/sync-other", "{}", "Bearer $token"))
         assertTrue(received.isEmpty())
     }
 

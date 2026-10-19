@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Cleartext is allowed because LAN / Tailscale / other VPN sync targets are plain http://<ip>:port
-  and Android cannot whitelist arbitrary IPs. The previous config blocked every physical-device
-  LAN connection. The hosted endpoint is https, so it is unaffected.
+  The app makes no outbound HTTP requests in production (it only receives pushes via ServerSocket on LAN/Tailscale).
+  Disallow outbound cleartext by default to satisfy Play Store security checks, permitting loopback only for local tests.
 -->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="true" />
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
 </network-security-config>

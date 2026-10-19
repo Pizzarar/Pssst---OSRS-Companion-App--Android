@@ -29,6 +29,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pssst.theme.JetBrainsMonoFontFamily
 import com.pssst.theme.OsrsGold
 import com.pssst.theme.OsrsHardShadow
 import com.pssst.theme.OsrsHeaderDivider
@@ -53,7 +54,9 @@ import com.pssst.theme.art.TableStatusKind
 import com.pssst.theme.art.ledgerPanelInset
 import com.pssst.theme.art.parchmentNotice
 import com.pssst.theme.osrsPanel
+import com.pssst.theme.osrsSlot
 import com.pssst.util.TimeFormat
+import androidx.compose.ui.text.style.TextOverflow
 
 enum class TimersSubTab(val title: String) {
     DAILIES("Dailies"),
@@ -611,59 +614,166 @@ fun SlayerTaskCard(slayer: SlayerUiModel, modifier: Modifier = Modifier) {
             .osrsPanel(weight = FrameWeight.MEDIUM)
             .padding(14.dp)
     ) {
-        Column {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Header Row: Slayer Assignment on left, Points & Streak on right
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    BulletGlyph(size = 7.dp)
+                    BulletGlyph(size = 7.dp, color = OsrsGold)
                     Spacer(modifier = Modifier.width(6.dp))
                     GoldLeafText(
-                        text = "Active Slayer Task",
-                        style = MaterialTheme.typography.titleMedium
+                        text = "Slayer Assignment",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                     )
                 }
-                if (slayer.taskLocation.isNotBlank()) {
-                    Text(
-                        text = slayer.taskLocation,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = OsrsTextMuted
-                    )
-                }
+                Text(
+                    text = "${slayer.points} pts \u2022 ${slayer.streak} streak",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = JetBrainsMonoFontFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    color = OsrsGold
+                )
             }
 
             Spacer(modifier = Modifier.height(6.dp))
             OsrsHeaderDivider()
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
+            // Main Assignment Row: Monster Icon Slot + Name/Location + Remaining Count
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(
-                    text = slayer.taskName,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = OsrsTextPrimary
-                )
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .osrsSlot(hasItem = slayer.hasTask, cornerRadius = 2.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ItemIcon(
+                        id = slayer.itemId,
+                        base64 = slayer.iconBase64,
+                        name = slayer.taskName,
+                        size = 36.dp
+                    )
+                }
 
-                OsrsStatusBadge(
-                    text = if (slayer.hasTask) "${slayer.amount} remaining" else "No task",
-                    containerColor = OsrsSlotEmpty,
-                    contentColor = if (slayer.hasTask) OsrsGold else OsrsTextMuted
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = slayer.taskName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (slayer.hasTask) OsrsTextPrimary else OsrsTextMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    val locationSubtitle = when {
+                        !slayer.hasTask -> "Visit a Slayer Master"
+                        slayer.taskLocation.isNotBlank() -> slayer.taskLocation
+                        else -> "Any location"
+                    }
+                    Text(
+                        text = locationSubtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = OsrsTextMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                if (slayer.hasTask) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = if (slayer.initialAmount > 0) {
+                                "${slayer.amount} / ${slayer.initialAmount}"
+                            } else {
+                                "${slayer.amount}"
+                            },
+                            style = MaterialTheme.typography.titleMedium,
+                            fontFamily = JetBrainsMonoFontFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = OsrsGold
+                        )
+                        Text(
+                            text = if (slayer.initialAmount > 0) {
+                                val killed = (slayer.initialAmount - slayer.amount).coerceAtLeast(0)
+                                "$killed slain"
+                            } else {
+                                "remaining"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            fontFamily = JetBrainsMonoFontFamily,
+                            color = OsrsTextMuted
+                        )
+                    }
+                } else {
+                    OsrsStatusBadge(
+                        text = "None",
+                        containerColor = OsrsSlotEmpty,
+                        contentColor = OsrsTextMuted
+                    )
+                }
+            }
+
+            if (slayer.hasTask) {
+                Spacer(modifier = Modifier.height(10.dp))
+                OsrsProgressBar(
+                    progress = slayer.progress,
+                    color = OsrsGold,
+                    height = 8.dp
                 )
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
-            val progress = if (slayer.hasTask && slayer.initialAmount > 0) "of ${slayer.initialAmount} \u2022 " else ""
-            Text(
-                text = "${progress}${slayer.points} points \u2022 ${slayer.streak} streak",
-                style = MaterialTheme.typography.labelSmall,
-                color = OsrsTextMuted
-            )
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Banked / Stored Task Footer Slot
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .osrsSlot(hasItem = slayer.hasStoredTask, cornerRadius = 2.dp)
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ItemIcon(
+                    id = slayer.storedItemId,
+                    base64 = slayer.storedIconBase64,
+                    name = slayer.storedTaskName.ifBlank { "Banked Task" },
+                    size = 22.dp
+                )
+
+                Text(
+                    text = "Banked Task",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = OsrsTextMuted
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                val storedText = when {
+                    slayer.hasStoredTask -> "${slayer.storedAmount} \u00D7 ${slayer.storedTaskName}"
+                    slayer.storageUnlocked -> "Empty"
+                    else -> "None"
+                }
+                Text(
+                    text = storedText,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = JetBrainsMonoFontFamily,
+                    fontWeight = if (slayer.hasStoredTask) FontWeight.Bold else FontWeight.Normal,
+                    color = if (slayer.hasStoredTask) OsrsTextPrimary else OsrsTextMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }

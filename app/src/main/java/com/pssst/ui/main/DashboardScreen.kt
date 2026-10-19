@@ -49,6 +49,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -347,6 +348,16 @@ fun DashboardScreen(
                             },
                             variant = OsrsButtonVariant.DANGER,
                             modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Text(
+                            text = "Unofficial fan app. Old School RuneScape is a trademark of Jagex Ltd; Pssst is not affiliated with or endorsed by Jagex.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = OsrsTextMuted.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp)
                         )
                     }
                 }

@@ -23,7 +23,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -114,12 +115,7 @@ dependencies {
   annotationProcessor(libs.androidx.room.compiler)
   testImplementation(libs.androidx.room.testing)
 
-  // Network (Retrofit, OkHttp, Gson)
-  implementation(libs.retrofit)
-  implementation(libs.retrofit.converter.gson)
-  implementation(libs.okhttp)
-  implementation(libs.okhttp.logging)
-  testImplementation(libs.okhttp.mockwebserver)
+  // Serialization (Gson)
   implementation(libs.gson)
 
   // Datastore

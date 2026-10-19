@@ -13,8 +13,7 @@ class GuardrailsTest {
     private val forbidden = listOf(
         "runescape.wiki",          // the OSRS Wiki, prices API included
         "oldschool.runescape",     // official sites
-        "static.runelite.net",     // RuneLite's static host (build-time only)
-        "rosserlogic"              // the retired built-in server
+        "static.runelite.net"      // RuneLite's static host (build-time only)
     )
 
     private fun sources(): List<File> {

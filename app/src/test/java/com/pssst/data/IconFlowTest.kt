@@ -91,9 +91,28 @@ class IconFlowTest {
 
     @Test
     fun anOversizedOrBlankIconIsIgnored() = runBlocking {
-        ingest.ingest(uuid, snapshot("""{"observedAt":1,"icons":{"7":{"name":"big","png":"${"A".repeat(20_000)}"},"8":{"name":"blank","png":""}}}"""))
+        // Construct a synthetic 24-byte PNG header with 10000x10000 IHDR dimensions (0x00002710)
+        val pngBombBytes = byteArrayOf(
+            0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+            0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+            0x00, 0x00, 0x27, 0x10, // width = 10000
+            0x00, 0x00, 0x27, 0x10  // height = 10000
+        )
+        val pngBombBase64 = android.util.Base64.encodeToString(pngBombBytes, android.util.Base64.NO_WRAP)
+
+        ingest.ingest(
+            uuid,
+            snapshot(
+                """{"observedAt":1,"icons":{
+                    "7":{"name":"big","png":"${"A".repeat(20_000)}"},
+                    "8":{"name":"blank","png":""},
+                    "9":{"name":"bomb","png":"$pngBombBase64"}
+                }}"""
+            )
+        )
         assertNull(database.itemManifestDao().getItemById(7))
         assertNull(database.itemManifestDao().getItemById(8))
+        assertNull(database.itemManifestDao().getItemById(9))
     }
 
     @Test

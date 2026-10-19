@@ -296,6 +296,15 @@ fun SetupContent(
             color = OsrsTextMuted,
             textAlign = TextAlign.Center
         )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "Unofficial fan app. Old School RuneScape is a trademark of Jagex Ltd; Pssst is not affiliated with or endorsed by Jagex.",
+            style = MaterialTheme.typography.labelSmall,
+            color = OsrsTextMuted.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center
+        )
     }
 }
 

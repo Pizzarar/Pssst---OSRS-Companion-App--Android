@@ -19,3 +19,7 @@ local.properties
 .idea/
 node_modules/
 pssst-mock-server/node_modules/
+pssst-mock-server/state.json
+*.zip
+.claude/
+.agents/

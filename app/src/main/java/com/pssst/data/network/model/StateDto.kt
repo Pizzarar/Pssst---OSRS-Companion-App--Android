@@ -124,5 +124,10 @@ data class SlayerEntryDto(
     @SerializedName("amount") val amount: Int = 0,
     @SerializedName("initialAmount") val initialAmount: Int = 0,
     @SerializedName("points") val points: Int = 0,
-    @SerializedName("streak") val streak: Int = 0
+    @SerializedName("streak") val streak: Int = 0,
+    @SerializedName("itemId") val itemId: Int = 0,
+    @SerializedName("storageUnlocked") val storageUnlocked: Boolean = false,
+    @SerializedName("storedTaskName") val storedTaskName: String? = null,
+    @SerializedName("storedAmount") val storedAmount: Int = 0,
+    @SerializedName("storedItemId") val storedItemId: Int = 0
 )

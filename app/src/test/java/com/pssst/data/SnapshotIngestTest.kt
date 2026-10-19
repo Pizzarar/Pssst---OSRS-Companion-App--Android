@@ -104,4 +104,22 @@ class SnapshotIngestTest {
         ingest.ingest(uuid, snapshot("""{"observedAt":1000,"inventory":[]}"""))
         assertEquals("[]", database.playerStateDao().getStateByUuid(uuid)!!.bankJson)
     }
+
+    @Test
+    fun farFutureObservedAtIsClampedToNowSoSubsequentSnapshotsAreNotLockedOut() = runBlocking {
+        var currentTime = 1_800_000_000_000L
+        val clockIngest = SnapshotIngest(context, database, prefs, now = { currentTime })
+
+        assertEquals(
+            SnapshotIngest.Outcome.SAVED,
+            clockIngest.ingest(uuid, snapshot("""{"observedAt":9999999999999,"inventory":[{"id":995,"quantity":1}]}""", updatedAt = 9_999_999_999_999L))
+        )
+
+        currentTime += 1_000L
+        val nextOutcome = clockIngest.ingest(
+            uuid,
+            snapshot("""{"observedAt":$currentTime,"inventory":[{"id":995,"quantity":2}]}""", updatedAt = currentTime)
+        )
+        assertEquals(SnapshotIngest.Outcome.SAVED, nextOutcome)
+    }
 }

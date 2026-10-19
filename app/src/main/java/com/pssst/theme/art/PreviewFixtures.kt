@@ -535,7 +535,14 @@ object PreviewFixtures {
             taskLocation = "Catacombs of Kourend",
             initialAmount = 200,
             points = 840,
-            streak = 175
+            streak = 175,
+            itemId = 4149,
+            iconBase64 = iconFor(4149) ?: iconFor(4155),
+            storageUnlocked = true,
+            storedTaskName = "Hydras",
+            storedAmount = 170,
+            storedItemId = 23042,
+            storedIconBase64 = iconFor(23042) ?: iconFor(4155)
         ),
         farmingPatches = sampleFarmingPatches,
         birdHouses = sampleBirdHouses,
