@@ -5,12 +5,12 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import java.net.Inet4Address
 
-/** The addresses to type into RuneLite's "Phone Address": this phone's home Wi-Fi address and its Tailscale address. */
+/** The addresses to type into RuneLite's "Phone Address": this phone's home Wi-Fi address and any mesh VPN address. */
 object PhoneAddresses {
     data class Address(val host: String, val label: String)
 
     const val LABEL_HOME = "Home Wi-Fi"
-    const val LABEL_TAILSCALE = "Tailscale"
+    const val LABEL_MESH = "Mesh / VPN"
 
     const val LABEL_EMULATOR = "Emulator: on the PC run adb forward tcp:8789 tcp:8789 first"
 
@@ -46,7 +46,7 @@ object PhoneAddresses {
         emptyList()
     }
 
-    /** Home-network IPv4 first (192.168, then 10.x, then 172.16-31), then Tailscale's 100.64.0.0/10. Others are dropped. */
+    /** Home-network IPv4 first (192.168, then 10.x, then 172.16-31), then 100.64.0.0/10. Others are dropped. */
     fun rank(hosts: List<String>): List<Address> =
         hosts.distinct().mapNotNull { host ->
             val o = host.split('.').mapNotNull { it.toIntOrNull() }
@@ -55,7 +55,7 @@ object PhoneAddresses {
                 o[0] == 192 && o[1] == 168 -> Triple(0, host, LABEL_HOME)
                 o[0] == 10 -> Triple(1, host, LABEL_HOME)
                 o[0] == 172 && o[1] in 16..31 -> Triple(2, host, LABEL_HOME)
-                o[0] == 100 && o[1] in 64..127 -> Triple(3, host, LABEL_TAILSCALE)
+                o[0] == 100 && o[1] in 64..127 -> Triple(3, host, LABEL_MESH)
                 else -> null
             }
         }.sortedBy { it.first }.map { Address(it.second, it.third) }

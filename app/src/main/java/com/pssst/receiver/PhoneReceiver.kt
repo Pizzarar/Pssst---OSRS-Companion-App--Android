@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit
  * same JSON body the Worker accepts. The plugin only sends, so the listening happens here, on the phone, and only while
  * the app is open or in a short background window ([ReceiverHost]).
  *
- * Deliberately small: one route, POST only, header-only token compared in constant time, home-network and Tailscale
+ * Deliberately small: one route, POST only, header-only token compared in constant time, home-network and mesh VPN
  * peers only, bounded header and body size, a deadline per request, one connection at a time.
  */
 class PhoneReceiver(
@@ -267,7 +267,7 @@ class PhoneReceiver(
         private val REQUEST_DEADLINE_NANOS = TimeUnit.SECONDS.toNanos(5)
         private const val TAG = "PhoneReceiver"
 
-        /** Home networks and Tailscale: loopback, link-local, RFC 1918, unique-local, and 100.64.0.0/10. */
+        /** Home networks and mesh VPNs: loopback, link-local, RFC 1918, unique-local, and 100.64.0.0/10. */
         fun isPrivatePeer(peer: InetAddress?): Boolean {
             if (peer == null) return false
             if (peer.isLoopbackAddress || peer.isLinkLocalAddress || peer.isSiteLocalAddress) return true

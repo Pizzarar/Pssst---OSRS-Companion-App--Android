@@ -78,19 +78,13 @@ fun KeepAddressDialog(onDismiss: () -> Unit) {
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Option(
-                    "1. Tailscale (easiest)",
-                    "Install Tailscale (free) on this phone and on your PC and sign in on both. Your phone gets a 100.x " +
-                        "address that never changes, and it works away from home too. Pssst shows it here once Tailscale " +
-                        "is on. You can also type the phone's Tailscale name into Phone Address."
-                )
-                Option(
-                    "2. Reserve the address on your router",
+                    "1. Reserve the address on your router",
                     "In your router's settings, look for \"DHCP reservation\", \"address reservation\" or \"static lease\", " +
                         "and reserve the address this phone has now. Every router is different; its manual or label says " +
                         "how to open the settings."
                 )
                 Option(
-                    "3. Set a fixed address on this phone",
+                    "2. Set a fixed address on this phone",
                     "In Wi-Fi settings, edit your home network and change IP settings from DHCP to Static. Pick an " +
                         "address outside your router's automatic range, or it can clash with another device."
                 )

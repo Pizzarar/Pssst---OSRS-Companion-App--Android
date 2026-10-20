@@ -165,7 +165,7 @@ class PhoneReceiverTest {
     }
 
     @Test
-    fun onlyHomeNetworkAndTailscalePeersAreServed() {
+    fun onlyHomeNetworkAndMeshVpnPeersAreServed() {
         for (ok in listOf("127.0.0.1", "192.168.1.20", "10.1.2.3", "172.16.0.1", "100.64.0.1", "169.254.3.4", "fd7a:115c:a1e0::1")) {
             assertTrue(ok, PhoneReceiver.isPrivatePeer(InetAddress.getByName(ok)))
         }

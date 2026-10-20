@@ -8,7 +8,7 @@ import android.util.Log
 
 /**
  * Decides when a change in the phone's connection is worth one sync: a new, validated network (joining the home Wi-Fi,
- * switching to Tailscale), not the constant signal-strength updates of one network. Rate-limited so flapping Wi-Fi
+ * switching networks), not the constant signal-strength updates of one network. Rate-limited so flapping Wi-Fi
  * cannot cause a burst. Pure logic, so it is tested without Android.
  */
 class NetworkChangeGate(

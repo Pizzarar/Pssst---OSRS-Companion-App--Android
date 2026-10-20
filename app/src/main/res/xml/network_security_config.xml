@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The app makes no outbound HTTP requests in production (it only receives pushes via ServerSocket on LAN/Tailscale).
+  The app makes no outbound HTTP requests in production (it only receives pushes via ServerSocket on the local network).
   Disallow outbound cleartext by default to satisfy Play Store security checks, permitting loopback only for local tests.
 -->
 <network-security-config>

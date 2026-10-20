@@ -203,7 +203,7 @@ fun SetupContent(
                 Spacer(modifier = Modifier.height(6.dp))
                 if (phoneAddresses.isEmpty()) {
                     Text(
-                        text = "Connect this phone to the same Wi-Fi as your PC (or to Tailscale) to see its address.",
+                        text = "Connect this phone to the same Wi-Fi as your PC to see its address.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = OsrsRed
                     )
@@ -229,12 +229,6 @@ fun SetupContent(
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "The Tailscale address never changes and also works at home.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = OsrsTextMuted
-                )
 
                 Spacer(modifier = Modifier.height(18.dp))
 
@@ -291,7 +285,7 @@ fun SetupContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Your PC sends while this app is open, and every so often in the background, whenever this phone is on the same Wi-Fi (or Tailscale). Your last data and timers stay on the phone when you are away.",
+            text = "Your PC sends while this app is open, and every so often in the background, whenever this phone is on the same Wi-Fi. Your last data and timers stay on the phone when you are away.",
             style = MaterialTheme.typography.bodySmall,
             color = OsrsTextMuted,
             textAlign = TextAlign.Center
@@ -307,4 +301,3 @@ fun SetupContent(
         )
     }
 }
-

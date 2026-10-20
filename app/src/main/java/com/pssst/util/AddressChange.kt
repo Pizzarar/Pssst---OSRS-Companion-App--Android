@@ -4,7 +4,7 @@ package com.pssst.util
 object AddressChange {
     /**
      * @return the phone's new home address when RuneLite last delivered to a different home address that this phone no
-     * longer has; null otherwise (nothing delivered yet, delivered over Tailscale or the emulator, or unchanged)
+     * longer has; null otherwise (nothing delivered yet, delivered over a mesh VPN or the emulator, or unchanged)
      */
     fun changedTo(lastDeliveredTo: String?, current: List<PhoneAddresses.Address>): String? {
         if (lastDeliveredTo == null) return null

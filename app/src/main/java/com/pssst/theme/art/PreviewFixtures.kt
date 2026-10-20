@@ -115,7 +115,7 @@ object PreviewFixtures {
 
     val sampleAddresses = listOf(
         PhoneAddresses.Address("192.168.1.42", PhoneAddresses.LABEL_HOME),
-        PhoneAddresses.Address("100.94.18.7", PhoneAddresses.LABEL_TAILSCALE)
+        PhoneAddresses.Address("100.94.18.7", PhoneAddresses.LABEL_MESH)
     )
 
     val sampleBankItems = listOf(

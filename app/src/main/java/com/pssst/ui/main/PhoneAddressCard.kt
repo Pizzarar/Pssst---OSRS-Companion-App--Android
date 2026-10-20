@@ -70,7 +70,7 @@ fun PhoneAddressCard(state: MainDashboardUiState, modifier: Modifier = Modifier,
         }
         if (addresses.isEmpty()) {
             Text(
-                text = "Connect this phone to the same Wi-Fi as your PC (or to Tailscale) to see its address.",
+                text = "Connect this phone to the same Wi-Fi as your PC to see its address.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = OsrsRed
             )
