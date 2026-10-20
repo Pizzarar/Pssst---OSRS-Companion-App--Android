@@ -18,8 +18,11 @@ local.properties
 .kotlin
 .idea/
 node_modules/
-pssst-mock-server/node_modules/
-pssst-mock-server/state.json
+pssst-mock-server/
 *.zip
 .claude/
 .agents/
+CLAUDE.md
+keystore.properties
+*.jks
+*.keystore
