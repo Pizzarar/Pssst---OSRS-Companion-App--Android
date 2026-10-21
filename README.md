@@ -16,6 +16,19 @@ Check your bank, GE offers and skills from the couch. Get a ping when your herbs
 | **Progress** | Skills (level, XP to next level, combat level, total) and quests |
 | **Timers** | Dailies, Fossil Island birdhouses, farming patches (crop, stage, time left, diseased) and farmer payments |
 
+
+## Why this exists
+
+Built for myself after watching the Mistix scam. This is vibecoded to life, zero monetization ever, just a cool companion app I wanted to make sense it doesnt seem we can ever have nice things. 
+
+I asked Antigravity to vectorcode the graphics but it seems some GenImages still made it in. If someone wants to donate the time to make something real please have at it. Otherwise, I'm even less an artist than a coder (I'm only fluent in powreshell).
+
+## Issues and requests
+
+Found a bug or have an idea? [Open an issue](https://github.com/Pizzarar/Pssst---OSRS-Companion-App--RL/issues). Screenshots and the steps to reproduce it help a lot.
+
+I'll get to things when I can and when I feel like it. No timelines, no promises. At the end of the day I'm doing this because I thought I could, and I wanted to give it a shot.
+
 ### Notifications
 
 Reminders are scheduled on the phone from the last snapshot, so they still fire when your PC is off.
@@ -95,22 +108,6 @@ Pssst is built to follow RuneLite's [Plugin Hub rules](https://github.com/runeli
 - **No third-party traffic.** No OSRS Wiki scraping or image hotlinking, no price APIs, no analytics. The app calls no one.
 - **Shows, doesn't tell.** Pssst shows your state and timers. It doesn't give gear, profit or "go do this" advice.
 - **Sourced, not guessed.** Farming, birdhouse, Slayer and daily logic is ported from RuneLite's own plugins and checked against them. Anything that can't be verified is shown raw or marked as unverified in the app.
-
----
-
-## Why this exists
-
-I made Pssst for me. I watched a companion plugin get pulled from the Plugin Hub after people found out what it was doing, and my reaction was: people are using these tools to churn out something for a quick buck, when they could be used to actually make something. So I decided to make something.
-
-It's free and it's staying free. No ads, no accounts, no premium tier, no paywalled features. I have no intention of ever monetizing it.
-
-I plan to keep it working as RuneLite and the game update, but above all I built this for myself. I'm just letting others enjoy it too.
-
-## Issues and requests
-
-Found a bug or have an idea? [Open an issue](https://github.com/Pizzarar/Pssst---OSRS-Companion-App--RL/issues). Screenshots and the steps to reproduce it help a lot.
-
-I'll get to things when I can and when I feel like it. No timelines, no promises. At the end of the day I'm doing this because I thought I could, and I wanted to give it a shot.
 
 ---
 
