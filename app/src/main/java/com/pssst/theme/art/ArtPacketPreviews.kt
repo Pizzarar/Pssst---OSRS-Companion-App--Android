@@ -25,10 +25,14 @@ import com.pssst.ui.main.BankScreen
 import com.pssst.ui.main.DashboardTab
 import com.pssst.ui.main.GrandExchangeScreen
 import com.pssst.ui.main.InventoryScreen
+import com.pssst.ui.main.MiscellaniaCard
+import com.pssst.ui.main.MiscellaniaUiModel
 import com.pssst.ui.main.OverviewScreen
 import com.pssst.ui.main.PotionStorageScreen
 import com.pssst.ui.main.QuestsSubScreen
 import com.pssst.ui.main.SkillsSubScreen
+import com.pssst.ui.main.SlayerTaskCard
+import com.pssst.ui.main.SlayerUiModel
 import com.pssst.ui.main.TimersScreen
 import com.pssst.ui.main.TimersSubTab
 import com.pssst.ui.setup.SetupContent
@@ -91,7 +95,7 @@ fun PreviewFramesAndHardware() {
                 Text("FrameWeight.HEAVY — Spearhead Hinge Straps", color = OsrsTextPrimary)
             }
             Box(modifier = Modifier.fillMaxWidth().oakBeamFrame().padding(12.dp)) {
-                GoldLeafText("oakBeamFrame — Top Bar Timber & Straps")
+                GoldLeafText("oakBeamFrame — Top Bar Carved Stone Header")
             }
             Box(modifier = Modifier.fillMaxWidth().parchmentNotice().padding(12.dp)) {
                 Text("parchmentNotice — Pinned Notice Strip", color = OsrsTextPrimary)
@@ -242,34 +246,55 @@ fun PreviewOrnamentsAndIcons() {
     }
 }
 
-@Preview(name = "6. Empty State Vignettes", showBackground = true, backgroundColor = 0xFF191612, widthDp = 380)
+@Preview(name = "6. Empty State Vignettes", showBackground = true, backgroundColor = 0xFF191612, widthDp = 380, heightDp = 760)
 @Composable
 fun PreviewEmptyStateVignettes() {
     PssstTheme {
         Column(
             modifier = Modifier
+                .fillMaxSize()
                 .stoneGround()
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                EmptyStateVignette(EmptyStateKind.CLOSED_CHEST)
-                EmptyStateVignette(EmptyStateKind.FALLOW_PATCH)
-                EmptyStateVignette(EmptyStateKind.EMPTY_BIRDHOUSE)
-                EmptyStateVignette(EmptyStateKind.POTION_RACK)
+            EmptyStateKind.entries.chunked(2).forEach { pair ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    pair.forEach { kind ->
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            EmptyStateVignette(kind)
+                            Text(
+                                text = kind.name,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = OsrsTextMuted
+                            )
+                        }
+                    }
+                }
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                EmptyStateVignette(EmptyStateKind.QUEST_SCROLL)
-                EmptyStateVignette(EmptyStateKind.SUNDIAL)
-                EmptyStateVignette(EmptyStateKind.LEDGER_BOOKMARK)
-            }
+        }
+    }
+}
+
+@Preview(name = "7. Overview Vignette States", showBackground = true, backgroundColor = 0xFF191612, widthDp = 380, heightDp = 760)
+@Composable
+fun PreviewOverviewVignetteStates() {
+    val healthy = PreviewFixtures.populatedState.miscellania
+    val active = PreviewFixtures.populatedState.slayer
+    PssstTheme {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .stoneGround()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            MiscellaniaCard(healthy)
+            MiscellaniaCard(MiscellaniaUiModel(approvalPercent = 72, cofferAmount = 410_000L))
+            SlayerTaskCard(active)
+            SlayerTaskCard(SlayerUiModel(points = 840, streak = 176, storageUnlocked = true))
         }
     }
 }

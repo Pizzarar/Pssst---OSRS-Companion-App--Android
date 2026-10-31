@@ -50,25 +50,25 @@ object Ornaments {
     )
 
     /**
-     * 16x16 pixel sprite of a merchant's balance scale for empty Grand Exchange slots.
+     * 16x16 balance scale for empty Grand Exchange slots: finial post, beam, chains and two pans.
      */
     val WatermarkScaleSprite = Sprite(
         ".......oo.......",
+        "..ooooohbooooo..",
+        ".ohhhhhhbbbbbso.",
+        ".ohoooohbooooso.",
+        ".oho..ohbo..oso.",
+        ".oho..ohbo..oso.",
+        "ohbso.ohbo.ohbso",
+        "ossso.ohbo.ossso",
+        ".ooo..ohbo..ooo.",
         "......ohbo......",
-        "..oooooooooooo..",
-        ".ohbbbbhhbbbbso.",
-        "..o..o.oo.o..o..",
-        "..o..o.oo.o..o..",
-        ".o...o.oo.o...o.",
-        ".o...o.oo.o...o.",
-        "ooooooo..ooooooo",
-        ".ohbsbo..ohbsbo.",
-        "..oooo....oooo..",
-        ".......oo.......",
-        ".......oo.......",
-        ".....oooooo.....",
-        "....ohbbbbso....",
-        "....oooooooo...."
+        "......ohbo......",
+        ".....oohboo.....",
+        "....ohhbbsso....",
+        "...ohbbbbbbso...",
+        "....oooooooo....",
+        "................"
     )
 
     /**
@@ -76,9 +76,9 @@ object Ornaments {
      */
     val BulletDiamondSprite = Sprite(
         "..o..",
-        ".ohb.",
+        ".oho.",
         "ohbso",
-        ".obs.",
+        ".oso.",
         "..o.."
     )
 

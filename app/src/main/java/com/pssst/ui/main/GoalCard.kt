@@ -210,7 +210,7 @@ fun GoalCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        EmptyStateVignette(kind = EmptyStateKind.LEDGER_BOOKMARK, size = 64.dp)
+                        EmptyStateVignette(kind = EmptyStateKind.LEDGER_BOOKMARK, size = 48.dp)
                         Text(
                             text = "Track your bank value against an item or GP target.",
                             style = MaterialTheme.typography.bodyMedium,

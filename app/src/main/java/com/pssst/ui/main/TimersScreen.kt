@@ -45,16 +45,20 @@ import com.pssst.theme.art.BulletGlyph
 import com.pssst.theme.art.EmptyStateKind
 import com.pssst.theme.art.FrameWeight
 import com.pssst.theme.art.GoldLeafText
+import com.pssst.theme.art.KingdomStatusVignette
 import com.pssst.theme.art.OsrsEmptyState
 import com.pssst.theme.art.OsrsTableHeaderPlaque
 import com.pssst.theme.art.OsrsTableRow
 import com.pssst.theme.art.OsrsTableRowSeparator
 import com.pssst.theme.art.OsrsTableStatusCell
+import com.pssst.theme.art.SlayerEmblemVignette
 import com.pssst.theme.art.TableStatusKind
 import com.pssst.theme.art.ledgerPanelInset
 import com.pssst.theme.art.parchmentNotice
+import com.pssst.theme.art.pixelBevelBox
 import com.pssst.theme.osrsPanel
 import com.pssst.theme.osrsSlot
+import com.pssst.util.MiscellaniaThresholds
 import com.pssst.util.TimeFormat
 import androidx.compose.ui.text.style.TextOverflow
 
@@ -433,7 +437,7 @@ fun MiscellaniaCard(miscellania: MiscellaniaUiModel, modifier: Modifier = Modifi
                     CofferTab.KINGDOM -> Text(
                         text = "${miscellania.approvalPercent}% Approval",
                         fontWeight = FontWeight.SemiBold,
-                        color = if (miscellania.approvalPercent >= 75) OsrsHerbGreen else OsrsRed
+                        color = if (miscellania.approvalPercent >= MiscellaniaThresholds.APPROVAL_WARN_PERCENT) OsrsHerbGreen else OsrsRed
                     )
                     CofferTab.BLAST_FURNACE -> Text(
                         text = miscellania.blastFurnaceTimeLabel,
@@ -478,25 +482,45 @@ fun MiscellaniaCard(miscellania: MiscellaniaUiModel, modifier: Modifier = Modifi
 
             when (selectedTab) {
                 CofferTab.KINGDOM -> {
-                    OsrsProgressBar(
-                        progress = (miscellania.approvalPercent / 100f).coerceIn(0f, 1f),
-                        color = if (miscellania.approvalPercent >= 75) OsrsHerbGreen else OsrsRed
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Text(
-                            text = "Royal Coffer:",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = OsrsTextMuted
-                        )
-                        Text(
-                            text = miscellania.formattedCoffer,
-                            fontWeight = FontWeight.Bold,
-                            color = OsrsGold
-                        )
+                        Box(
+                            modifier = Modifier
+                                .pixelBevelBox(fill = OsrsSlotEmpty, raised = false)
+                                .padding(4.dp)
+                        ) {
+                            KingdomStatusVignette(
+                                isWarning = MiscellaniaThresholds.isWarning(
+                                    miscellania.approvalPercent,
+                                    miscellania.cofferAmount
+                                )
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            OsrsProgressBar(
+                                progress = (miscellania.approvalPercent / 100f).coerceIn(0f, 1f),
+                                color = if (miscellania.approvalPercent >= MiscellaniaThresholds.APPROVAL_WARN_PERCENT) OsrsHerbGreen else OsrsRed
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Royal Coffer:",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = OsrsTextMuted
+                                )
+                                Text(
+                                    text = miscellania.formattedCoffer,
+                                    fontWeight = FontWeight.Bold,
+                                    color = OsrsGold
+                                )
+                            }
+                        }
                     }
                 }
                 CofferTab.BLAST_FURNACE -> {
@@ -622,7 +646,7 @@ fun SlayerTaskCard(slayer: SlayerUiModel, modifier: Modifier = Modifier) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    BulletGlyph(size = 7.dp, color = OsrsGold)
+                    SlayerEmblemVignette(isGilded = slayer.isEmblemGilded)
                     Spacer(modifier = Modifier.width(6.dp))
                     GoldLeafText(
                         text = "Slayer Assignment",
@@ -655,12 +679,16 @@ fun SlayerTaskCard(slayer: SlayerUiModel, modifier: Modifier = Modifier) {
                         .osrsSlot(hasItem = slayer.hasTask, cornerRadius = 2.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    ItemIcon(
-                        id = slayer.itemId,
-                        base64 = slayer.iconBase64,
-                        name = slayer.taskName,
-                        size = 36.dp
-                    )
+                    if (slayer.hasTask) {
+                        ItemIcon(
+                            id = slayer.itemId,
+                            base64 = slayer.iconBase64,
+                            name = slayer.taskName,
+                            size = 36.dp
+                        )
+                    } else {
+                        SlayerEmblemVignette(isGilded = slayer.isEmblemGilded)
+                    }
                 }
 
                 Column(

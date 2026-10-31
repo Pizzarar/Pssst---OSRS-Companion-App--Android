@@ -65,3 +65,14 @@ val OsrsWoodLight = Color(0xFF9A6B3A)      // Top-left pixel highlight on wooden
 val OsrsWoodBase = Color(0xFF6B4826)       // Mid-tone wood fill on natural sprites and empty-state scenes
 val OsrsWoodDark = Color(0xFF3F2A16)       // Bottom-right pixel shadow on wooden sprite hardware
 val OsrsRedDark = Color(0xFF8E2626)        // Bottom-right pixel shadow on warning badges and danger plaques
+
+// OSRS login-screen cool slate dungeon stone (app background, top/bottom bars, title plaque)
+val OsrsSlateMortar = Color(0xFF111315)     // Deep mortar channel between slate blocks
+val OsrsSlateUndercut = Color(0xFF1B1E21)   // Bottom/right undercut shadow, recessed tab wells
+val OsrsSlateDark = Color(0xFF262A2E)       // Dark slate block face
+val OsrsSlateMid = Color(0xFF31363B)        // Mid slate block face
+val OsrsSlateLit = Color(0xFF393F45)        // Torchlit slate block face (keeps muted text >= 4.5:1)
+val OsrsSlateBevel = Color(0xFF4E565E)      // Inner chiselled bevel step
+val OsrsSlateCatchLight = Color(0xFF636C75) // Outer chiselled catch-light
+val OsrsMossDark = Color(0xFF2E472D)        // Moss in cracks and mortar corners
+val OsrsMossLight = Color(0xFF3E613B)       // Moss fleck highlight

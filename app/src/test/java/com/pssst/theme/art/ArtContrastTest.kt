@@ -16,7 +16,7 @@ import kotlin.math.pow
 class ArtContrastTest {
 
     @Test
-    fun stoneGround_andPanelStone_meet45To1ForAllTextIncludingRedAndHerbGreen() {
+    fun panelStone_meets45To1ForAllTextIncludingRedAndHerbGreen() {
         val allText = listOf(
             "OsrsTextPrimary" to OsrsTextPrimary,
             "OsrsTextMuted" to OsrsTextMuted,
@@ -24,13 +24,38 @@ class ArtContrastTest {
             "OsrsHerbGreen" to OsrsHerbGreen,
             "OsrsRed" to OsrsRed
         )
-        for (bg in Textures.STONE_GROUND_TONES + Textures.PANEL_STONE_TONES) {
+        for (bg in Textures.PANEL_STONE_TONES) {
             for ((name, fg) in allText) {
                 val ratio = contrastRatio(fg.toArgb(), bg)
                 assertTrue(
-                    "$name on #${Integer.toHexString(bg)} is ${"%.2f".format(ratio)}:1 (< 4.5:1)",
+                    "$name on panel #${Integer.toHexString(bg)} is ${"%.2f".format(ratio)}:1 (< 4.5:1)",
                     ratio >= 4.5
                 )
+            }
+        }
+    }
+
+    /**
+     * Copy that sits straight on the slate ground (empty states, setup notes, section labels) uses
+     * primary, muted or gold text and must clear 4.5:1 on every block face. Red and herb green only
+     * appear as large status text or inside panels and badges there, so they need 3:1.
+     */
+    @Test
+    fun slateGroundFaces_meetTextContrast() {
+        val bodyText = listOf(
+            "OsrsTextPrimary" to OsrsTextPrimary,
+            "OsrsTextMuted" to OsrsTextMuted,
+            "OsrsGold" to OsrsGold
+        )
+        val statusText = listOf("OsrsHerbGreen" to OsrsHerbGreen, "OsrsRed" to OsrsRed)
+        for (bg in Textures.STONE_GROUND_BASE_TONES) {
+            for ((name, fg) in bodyText) {
+                val ratio = contrastRatio(fg.toArgb(), bg)
+                assertTrue("$name on slate #${Integer.toHexString(bg)} is ${"%.2f".format(ratio)}:1 (< 4.5:1)", ratio >= 4.5)
+            }
+            for ((name, fg) in statusText) {
+                val ratio = contrastRatio(fg.toArgb(), bg)
+                assertTrue("$name on slate #${Integer.toHexString(bg)} is ${"%.2f".format(ratio)}:1 (< 3:1)", ratio >= 3.0)
             }
         }
     }

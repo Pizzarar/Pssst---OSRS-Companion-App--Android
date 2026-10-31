@@ -672,14 +672,8 @@ fun PhoneScreenShell(
                         Column(
                             modifier = Modifier
                                 .weight(1f)
-                                .then(
-                                    if (isSelected) {
-                                        Modifier.ledgerWellSlot(empty = true, highlighted = true)
-                                    } else {
-                                        Modifier
-                                    }
-                                )
-                                .padding(vertical = 10.dp),
+                                .stoneTabSlot(selected = isSelected)
+                                .padding(vertical = 6.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {

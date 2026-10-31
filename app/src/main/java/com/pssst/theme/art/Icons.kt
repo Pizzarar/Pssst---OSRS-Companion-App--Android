@@ -4,192 +4,200 @@ package com.pssst.theme.art
  * 16x16 low-resolution pixel-art sprites for navigation, status chips, headers, and table badges.
  *
  * Every sprite is drawn on a 16x16 art-pixel grid with a 1-art-px dark outline (`'o'`),
- * top-left highlight (`'h'`), flat base fill (`'b'`), bottom-right shadow (`'s'`), and
- * secondary hardware/material accents (`'a'`, `'d'`).
+ * top-left highlight (`'h'`), flat base fill (`'b'`), bottom-right shadow (`'s'`),
+ * secondary hardware/material accents (`'a'`, `'d'`), and optional second-material / glint
+ * roles (`'l'`, `'m'`, `'k'`, `'g'`, see [SpriteTones]).
+ *
+ * Nav, top-bar and chip sprites are retinted [SpriteTones.GOLD] / [SpriteTones.STONE] at their
+ * call sites, so their materials separate by value and `'o'` seams rather than hue. The four
+ * status badges render in their natural tones.
+ *
+ * Authored in `tools/art/sprites.py` (fill-only grids, outline added automatically) and written
+ * back here by `python tools/art/sprites.py`.
  */
 object ArtIcons {
 
     /**
-     * Overview nav icon: Heraldic kite shield with iron boss and chevron.
+     * Overview nav icon: quartered heraldic kite shield with a raised central boss.
      */
     val OverviewShield = Sprite(
-        ".oooooooooooooo.",
-        "ohhhhhhaabbbbbso",
-        "ohbbbbaaaabbbbso",
-        "ohbbbaadddabbbso",
-        "ohbbaadddddabbso",
-        "ohbaaddhhhddabso",
-        "ohbaddhhhhhddaso",
-        ".obbbhhhhhhbbso.",
-        ".ohbbbbbbbbbbso.",
-        "..ohbbbbbbbbso..",
-        "..ohbbbbbbbbso..",
-        "...ohbbbbbbso...",
-        "....ohbbbbso....",
-        ".....ohbbso.....",
-        "......ohso......",
+        ".oooooo.ooooooo.",
+        "ohhhhhhobbbbbbso",
+        "ohbbbbbobsssssgo",
+        "ohbbbbbobsssssso",
+        "ohbbbbbobsssssso",
+        "ohbbbbbobsssssso",
+        "ohbbbbohobssssso",
+        ".ooooohgsoooooo.",
+        ".obbbbosohhhhso.",
+        ".obsssohbbbbso..",
+        "..obssohbbbso...",
+        "...obsohbbso....",
+        "....obohbso.....",
+        ".....oohso......",
         ".......oo.......",
+        "................",
         naturalTones = SpriteTones.GOLD
     )
 
     /**
-     * Storage nav icon: Iron-bound oak coffer chest with bevelled lid and lock plate.
+     * Storage nav icon: domed oak bank chest with iron straps and a padlock hasp.
      */
     val StorageChest = Sprite(
         "................",
-        "..oooooooooooo..",
-        ".ohhhhaaaahhhbo.",
-        "ohbbbbaaaabbbbso",
-        "ohbbbbaaaabbbbso",
-        "oooooooooooooooo",
-        "ohbaabooooabbaao",
-        "ohbaabohhbabbaao",
-        "ohbaabohsbabbaao",
-        "ohbaabooooabbaao",
-        "ohbaabbbbbabbaao",
-        "ohbaabbbbbabbaao",
-        "osbaabssssabbaao",
-        "osbaabssssabbaao",
+        "...ooooooooooo..",
+        "..ohhhhhhhhhhbo.",
+        ".ohhbabbbbbabbso",
+        "ohbbbabbbbbabbso",
+        "ohbbbabbbbbabbso",
+        ".oooooogggooooo.",
+        "ohbbbabgggbabbso",
+        "ohbbbaboogbabbso",
+        "ohbbbabggggabbso",
+        "ohbbbabbbbbabbso",
+        "ohbbbabbbbbabbso",
+        "osssssasssssasso",
         ".oooooooooooooo.",
+        "................",
         "................",
         naturalTones = SpriteTones.WOOD
     )
 
     /**
-     * Exchange nav icon: Twin stacked GP coin columns with ridged rims.
+     * Exchange nav icon: a tall and a short stack of GP coins with a glint.
      */
     val ExchangeCoins = Sprite(
-        ".......oooooooo.",
-        "......ohhhhhhbso",
-        "......osssssssso",
-        "......ohhhhhhbso",
-        ".ooooooooossssso",
-        "ohhhhhhbsohhhhso",
-        "ossssssssossssso",
-        "ohhhhhhbsohhhhso",
-        "ossssssssossssso",
-        "ohhhhhhbsohhhhso",
-        "ossssssssossssso",
-        "ohhhhhhbsooooooo",
-        "osssssssso......",
-        "ohhhhhhbso......",
-        "osssssssso......",
-        ".oooooooo.......",
+        "................",
+        "..ooooooo...o...",
+        ".ohhhhhhbo.ogo..",
+        ".ossssssso..o...",
+        ".ohhhhhhbo......",
+        ".osssssssooooo..",
+        ".ohhhhhhbohhhbo.",
+        ".osssssssosssso.",
+        ".ohhhhhhbohhhbo.",
+        ".osssssssosssso.",
+        ".ohhhhhhbohhhbo.",
+        ".osssssssosssso.",
+        ".ohhhhhhbohhhbo.",
+        ".osssssssosssso.",
+        "..ooooooo.oooo..",
+        "................",
         naturalTones = SpriteTones.GOLD
     )
 
     /**
-     * Progression nav icon: 8-point faceted compass star crest.
+     * Progression nav icon: eight-point quest star with gold centre facets.
      */
     val ProgressStar = Sprite(
         ".......oo.......",
         "......ohbo......",
-        ".....ohhhbo.....",
-        "..oo.ohbbbo.oo..",
-        ".ohboohbbboobso.",
-        ".ohhhhhhhhhbbso.",
-        ".oohhhhaabbbsoo.",
-        "ohhhhhhaabbbbbso",
-        "obbbbbbaaddsssso",
-        ".oossbbaaddssso.",
-        ".ohbbbbbbbbbbso.",
-        ".obsoosbbboobso.",
-        "..oo.osbbbo.oo..",
-        ".....osssso.....",
-        "......osso......",
+        "...o..ohbo..o...",
+        "..oho.ohbo.obo..",
+        "...ohohhbbobo...",
+        "....ohhhbbbo....",
+        ".ooohhhaabbbooo.",
+        "ohhhhhagddbbbbbo",
+        "obbbbbadddssssso",
+        ".ooobbbddsssooo.",
+        "....obbbssso....",
+        "...obobbssoso...",
+        "..obo.obso.oso..",
+        "...o..obso..o...",
+        "......obso......",
         ".......oo.......",
-        naturalTones = SpriteTones.GOLD
+        naturalTones = SpriteTones.QUEST_BLUE
     )
 
     /**
-     * Timers nav icon: Wooden-framed sandglass with upper and lower bulbs.
+     * Timers nav icon: framed hourglass with sand trickling through the neck.
      */
     val TimersHourglass = Sprite(
         ".oooooooooooooo.",
-        ".oaaaaaaaaaaaao.",
-        ".oooooooooooooo.",
-        "..ohbbbbbbbbso..",
-        "...ohbaaaabso...",
-        "...ohbaddabso...",
-        "....ohaddaso....",
-        ".....oohsoo.....",
-        ".....oohsoo.....",
-        "....ohbaabso....",
-        "...ohbbaabbso...",
-        "...ohbaaaabso...",
-        "..ohbaaaaaabso..",
-        ".oooooooooooooo.",
-        ".oaaaaaaaaaaaao.",
+        "oaaaaaaaaaaaaaao",
+        "oddddddddddddddo",
+        ".oaobsssssssoao.",
+        ".oaoobhhhhsooao.",
+        ".oaoobshhssooao.",
+        ".oao.obhsoo.oao.",
+        ".oao..obso..oao.",
+        ".oao..ohso..oao.",
+        ".oao.obhsso.oao.",
+        ".oaoobsshssooao.",
+        ".oaoobhhhhsooao.",
+        ".oaobhhhhhhsoao.",
+        "oaaaaaaaaaaaaaao",
+        "oddddddddddddddo",
         ".oooooooooooooo.",
         naturalTones = SpriteTones.GOLD
     )
 
     /**
-     * Top-bar drawer button icon: Three riveted ledger clasp bars.
+     * Top-bar drawer button: three brass clasp bars across a dark ledger (reads as a menu).
      */
     val DrawerLedgerMenu = Sprite(
-        "................",
+        "..oooooooooooo..",
+        ".oadddddddddddo.",
+        ".oadddddddddddo.",
+        "oahhhhhhhhhhhhao",
+        "oabbbbbbbbbbbbao",
         ".oooooooooooooo.",
-        "ohahhhhhhhhhhaso",
-        "odssssssssssssdo",
+        ".oadddddddddddo.",
+        "oahhhhhhhhhhhhao",
+        "oabbbbbbbbbbbbao",
         ".oooooooooooooo.",
-        "................",
+        ".oadddddddddddo.",
+        "oahhhhhhhhhhhhao",
+        "oabbbbbbbbbbbbao",
         ".oooooooooooooo.",
-        "ohahhhhhhhhhhaso",
-        "odssssssssssssdo",
-        ".oooooooooooooo.",
-        "................",
-        ".oooooooooooooo.",
-        "ohahhhhhhhhhhaso",
-        "odssssssssssssdo",
-        ".oooooooooooooo.",
-        "................",
+        ".oadddddddddddo.",
+        "..oooooooooooo..",
         naturalTones = SpriteTones.GOLD
     )
 
     /**
-     * Top-bar edit icon: Scribe's feather quill and brass nib.
+     * Top-bar edit icon: sweeping feather quill with a metal nib.
      */
     val EditQuill = Sprite(
-        "..........ooooo.",
-        ".........ohhhbbo",
-        "........ohhhbbbo",
-        ".......ohhhbbbso",
-        "......ohhhbbbso.",
-        ".....ohhhbbbso..",
-        "....ohhhbbbso...",
-        "....ohhbbbso....",
-        "...ohbbbbso.....",
-        "...ohbbboo......",
-        "..ooaaoo........",
-        "..oaddo.........",
-        ".ooado..........",
-        ".oaoo...........",
-        "ooo.............",
-        "................",
+        "...........ooo..",
+        ".........oohhbo.",
+        "........ohhhbbso",
+        ".......ohhhbbso.",
+        "......ohhhbbso..",
+        ".....ohhbbbso...",
+        "....ohhbbsso....",
+        "....ohbbsso.....",
+        "...ohbbsoo......",
+        "...ohbso........",
+        "..ohbso.........",
+        "..oaso..........",
+        ".oado...........",
+        "oado............",
+        "odo.............",
+        ".o..............",
         naturalTones = SpriteTones.GOLD
     )
 
     /**
-     * Goal card settings icon: 8-tooth forged iron cogwheel.
+     * Goal card settings icon: eight-tooth cogwheel with an iron hub and open axle.
      */
     val Gear = Sprite(
-        "......oooo......",
-        ".....ohhhbo.....",
-        "..oo.ohbbbo.oo..",
-        ".ohboohbbboobso.",
-        ".ohhhhhhhhhbbso.",
-        "..ohbbaaaabbso..",
-        "ooohbaooooabsooo",
-        "ohbbbaooooabbbso",
-        "ohbbbaooooabbbso",
-        "ooosbaooooabssoo",
-        "..osbbadddbbso..",
-        ".osbbbbbbbbbsso.",
-        ".obsoosbbboobso.",
-        "..oo.osbbbo.oo..",
-        ".....osssso.....",
-        "......oooo......",
+        ".......oo.......",
+        "......ohho......",
+        "...oooohhoooo...",
+        "..ohhhhbbhhbbo..",
+        "..ohbbbbbbbbbo..",
+        "..ohbbbaabbbso..",
+        ".oohbbaoodbbsoo.",
+        "ohhbbao..odbbsso",
+        "ohhbbao..odbbsso",
+        ".oohbbdoodbbsoo.",
+        "..ohbbbddbbbso..",
+        "..obbbbbbbbbso..",
+        "..obbssbbsssso..",
+        "...oooossoooo...",
+        "......osso......",
+        ".......oo.......",
         naturalTones = SpriteTones.GOLD
     )
 
@@ -217,164 +225,164 @@ object ArtIcons {
     )
 
     /**
-     * Birdhouse chip & timer icon: Pitched-roof wooden birdhouse on a post.
+     * Birdhouse chip and timer icon: pitched-roof birdhouse with entrance hole and perch on a post.
      */
     val Birdhouse = Sprite(
         ".......oo.......",
         "......ohbo......",
-        "....oohhhboo....",
-        "...ohhhhhhbso...",
-        "..ohhhhhhhhbso..",
-        ".oooooooooooooo.",
-        "..ohbbbbbbbbso..",
-        "..ohbbaaaabbso..",
-        "..ohbaooooabso..",
-        "..ohbaooooabso..",
-        "..ohbbadddbbso..",
-        "..osbbbbbbbbso..",
-        ".oooooooooooooo.",
+        ".....ohhbso.....",
+        "....ohhhbbso....",
+        "..oohhhhbbssoo..",
+        ".ohhhhhhbbsssso.",
+        "..oooooooooooo..",
+        "...ohbbbbbbso...",
+        "...ohbboobbso...",
+        "...ohbboobbso...",
+        "...ohbbaabbso...",
+        "...osssssssso...",
+        "....ooohsooo....",
         "......ohso......",
-        "......ohso......",
+        ".....ohbbso.....",
         "......oooo......",
         naturalTones = SpriteTones.WOOD
     )
 
     /**
-     * Herb patch chip & timer icon: Three-leaf herb sprig with stem.
+     * Herb patch chip and timer icon: three-leaf herb sprig on a wooden stem.
      */
     val HerbSprig = Sprite(
-        ".......ooo......",
-        "......ohbbo.....",
-        ".....ohhhbso....",
-        ".....ohbbbso....",
-        "..ooo.ohbso.ooo.",
-        ".ohbboohbsoohbbo",
-        "ohhhbbohbsohhbso",
-        "ohbbbbshbsobbbso",
-        ".osbbbshbsobbso.",
-        "..ooooohbsoooo..",
-        "......ohbso.....",
-        "......oaado.....",
-        ".....oaaadoo....",
-        ".....oaddo......",
-        ".....oooo.......",
+        "......oo........",
+        ".....ohbo.......",
+        "....ohhbso......",
+        ".oo.ohbbso..oo..",
+        "ohbo.ohbso.ohso.",
+        "ohhboohbsoohbso.",
+        ".ohbbohbsohbso..",
+        "..ohbbabsbbso...",
+        "...obsabssoo....",
+        "....ooadoo......",
+        ".....oado.......",
+        "....oaado.......",
+        "....oaddo.......",
+        ".....odo........",
+        "......o.........",
         "................",
         naturalTones = SpriteTones.HERB
     )
 
     /**
-     * Tree patch icon: Leafy tree crown over a wooden trunk.
+     * Tree patch icon: leafy oak canopy over a flared trunk.
      */
     val TreeCrown = Sprite(
-        "....oooooooo....",
-        "..oohhhhhhhboo..",
-        ".ohhhhhhhhhbbso.",
-        ".ohhhbbbbbbbbso.",
-        "ohhhbbbbbbbbbbso",
-        "ohhhbbbbbbbbbbso",
-        "ohbbbbbbbbbbbbso",
-        "osbbbbbbbbbbbbso",
-        ".osbbbbbbbbbbso.",
-        "..oossbbbbssoo..",
-        "....ooaaddoo....",
+        "....ooooooo.....",
+        "..oohhhhhhboo...",
+        ".ohhhhhhhbbbso..",
+        "ohhhhbbbbbbbbso.",
+        "ohhbbbbhbbbbbso.",
+        "ohbbbbhhhbbbbsso",
+        "ohbbbbbbbbbbbsso",
+        ".osbbbbbbbbbsso.",
+        "..ossbbbbbssso..",
+        "...oossaassoo...",
         ".....oaaddo.....",
         ".....oaaddo.....",
-        "....ooaaddoo....",
-        "...oaaadddddo...",
-        "...oooooooooo...",
+        ".....oaaddo.....",
+        "....oaaadddo....",
+        "...oaadddddo....",
+        "....ooooooo.....",
         naturalTones = SpriteTones.HERB
     )
 
     /**
-     * Timers READY status badge: Stepped stone seal with grown-green pixel check.
+     * READY status badge: upright three-lobed herb fan with a gold harvest glint.
      */
     val BadgeReady = Sprite(
-        "..oooooooooooo..",
-        ".ohhhhhhhhhhhbo.",
-        "ohbbbbbbbbbbbbso",
-        "ohbbbbbbbbbbhhoo",
-        "ohbbbbbbbbbhhooo",
-        "ohbbbbbbbbhhooso",
-        "ohbhhbbbbhhoosso",
-        "ohboohbbhhoossbo",
-        "ohbboohbhoossbso",
-        "ohbbboohoossbbso",
-        "ohbbbboooosbbbso",
-        "ohbbbbboosbbbbso",
-        "ohbbbbbbbbbbbbso",
-        "osssssssssssssso",
-        ".osssssssssssso.",
-        "..oooooooooooo..",
+        "............o...",
+        ".......oo..ogo..",
+        "......ohbo..o...",
+        ".oo..ohhbso..oo.",
+        "ohbo.ohbbso.obso",
+        "ohhboohbbsoobbso",
+        ".ohbbohbbsobbso.",
+        "..ohbbhbbsbbso..",
+        "...ohbbbbbbso...",
+        "....ohbbbbso....",
+        ".....ohbbso.....",
+        "......oado......",
+        ".....ooadoo.....",
+        "....oaaadddo....",
+        ".....oooooo.....",
+        "................",
         naturalTones = SpriteTones.HERB
     )
 
     /**
-     * Timers GROWING status badge: Compact pixel sandglass.
+     * GROWING status badge: brass watering can pouring water onto a potted sprout.
      */
     val BadgeGrowing = Sprite(
-        "..oooooooooooo..",
-        ".oaaaaaaaaaaaao.",
-        "..ohbbbbbbbbso..",
-        "..ohbaaaaaabso..",
-        "...ohbaddabso...",
-        "....ohaddaso....",
-        ".....oohsoo.....",
-        ".....oohsoo.....",
-        "....ohbaabso....",
-        "...ohbbaabbso...",
-        "..ohbaaaaaabso..",
-        "..ohbaaaaaabso..",
-        "..osssssssssso..",
-        ".oaaaaaaaaaaaao.",
-        "..oooooooooooo..",
-        "................",
-        naturalTones = SpriteTones.STONE
+        "..oooo..........",
+        ".ollllo.........",
+        "olmmmmlo........",
+        "olmmmmmloo......",
+        "olmmmmmllloo....",
+        "olmmmmmmolllo...",
+        ".okkkkkkooolko..",
+        "..oooooo..ooao..",
+        ".........ogoo...",
+        ".........oooao..",
+        "........ohbohbo.",
+        ".........ohbbo..",
+        ".........ooboo..",
+        "........olllllo.",
+        ".........okkko..",
+        "..........ooo...",
+        naturalTones = SpriteTones.TERRACOTTA_SPROUT
     )
 
     /**
-     * Timers EMPTY status badge: Recessed stone ring with horizontal bar.
+     * EMPTY status badge: low stone ring around bare, dry soil.
      */
     val BadgeEmpty = Sprite(
-        "....oooooooo....",
-        "..oohhhhhhhboo..",
-        ".ohhhbbbbbbhhso.",
-        ".ohbbboooobbbso.",
-        "ohbboo....oobbso",
-        "ohbo........obso",
-        "ohbo.oooooo.obso",
-        "ohbo.ohhhbo.obso",
-        "ohbo.osssso.obso",
-        "ohbo.oooooo.obso",
-        "ohbo........obso",
-        "ohbboo....oobbso",
-        ".osbbboooobbsso.",
-        ".osssbbbbbbssso.",
-        "..oossssssssoo..",
-        "....oooooooo....",
+        "................",
+        "................",
+        ".....oooooo.....",
+        "...oohhhhhhoo...",
+        "..ohhbbbbbbsso..",
+        ".ohbbddddddbbso.",
+        "ohbddddddddddbso",
+        "ohbddaddddaddbso",
+        "ohbddddddddddbso",
+        ".ohbbddddddbbso.",
+        "..osbbbbbbbbso..",
+        "...oossssssoo...",
+        ".....oooooo.....",
+        "................",
+        "................",
+        "................",
         naturalTones = SpriteTones.STONE
     )
 
     /**
-     * Timers WARNING status badge: Chiseled warning triangle with exclamation mark.
+     * WARNING status badge: bold red "!" beside a curled, blighted leaf and a fly.
      */
     val BadgeWarning = Sprite(
-        ".......oo.......",
-        "......ohbo......",
-        ".....ohhhbo.....",
-        ".....ohbbbo.....",
-        "....ohboobso....",
-        "....ohboobso....",
-        "...ohbboobbso...",
-        "...ohbboobbso...",
-        "..ohbbboobbbso..",
-        "..ohbbbbbbbbso..",
-        ".ohbbbboobbbbso.",
-        ".ohbbbboobbbbso.",
-        "ohbbbbbbbbbbbbso",
-        "osssssssssssssso",
-        ".oooooooooooooo.",
-        "................",
-        naturalTones = SpriteTones.WARNING
+        ".oo.........o...",
+        "olmo.......oao..",
+        "olmo......ooo...",
+        "olmo.....ohbo...",
+        "olmo....ohbbso..",
+        "olmo...ohbbbbso.",
+        ".oo....ohbbsbso.",
+        "olmo..ohbbsobso.",
+        "olmo..ohbsoobso.",
+        ".oo...ohbso.oso.",
+        ".oao..obso...o..",
+        "..o...obso......",
+        ".....obso.......",
+        "....obso........",
+        "...osso.........",
+        "....oo..........",
+        naturalTones = SpriteTones.BLIGHT_WARNING
     )
 
     val ALL_SPRITES: List<Pair<String, Sprite>> = listOf(
