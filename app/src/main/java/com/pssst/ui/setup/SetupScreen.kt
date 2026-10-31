@@ -34,14 +34,17 @@ import com.pssst.theme.OsrsCheckbox
 import com.pssst.theme.OsrsGold
 import com.pssst.theme.OsrsHeaderDivider
 import com.pssst.theme.OsrsRed
+import com.pssst.theme.OsrsSlotEmpty
 import com.pssst.theme.OsrsTextField
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
 import com.pssst.theme.art.FrameWeight
 import com.pssst.theme.art.GoldLeafText
+import com.pssst.theme.art.InformantCrest
 import com.pssst.theme.art.NumberPlaque
 import com.pssst.theme.art.TitlePlaque
 import com.pssst.theme.art.parchmentNotice
+import com.pssst.theme.art.pixelBevelBox
 import com.pssst.theme.art.stoneGround
 import com.pssst.theme.osrsPanel
 import com.pssst.theme.osrsSlot
@@ -142,6 +145,16 @@ fun SetupContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Box(
+            modifier = Modifier
+                .pixelBevelBox(fill = OsrsSlotEmpty, raised = false)
+                .padding(6.dp)
+        ) {
+            InformantCrest()
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         TitlePlaque(
             title = "Welcome to Pssst",
             subtitle = "Pair with the Pssst Companion plugin in RuneLite. Your PC sends your bank, inventory and timers to this phone."

@@ -114,7 +114,7 @@ class ArtSheetExportTest {
         val cellSize = 22
         val gap = 4
         val cols = 8
-        // 3 rows of 8 for NATURAL, 2 rows of 8 for GOLD, 2 rows of 8 for STONE
+        // 2 rows of 8 each for NATURAL, GOLD and STONE tones
         val totalRows = 6
         val sheetArtW = cols * cellSize + (cols + 1) * gap
         val sheetArtH = totalRows * cellSize + (totalRows + 1) * gap
@@ -158,32 +158,47 @@ class ArtSheetExportTest {
         val outDir = File("build/art-sheet")
         outDir.mkdirs()
 
-        val kinds = EmptyStateKind.values().toList()
-        val cellW = 40
-        val cellH = 32
+        // Group 1: the 7 empty states (48x36). Group 2: crest (36x36) + 4 Overview vignettes (32x24).
+        val emptyStates = EmptyStateKind.entries.map { kind ->
+            SheetCell(EmptyStates.SCENE_WIDTH, EmptyStates.SCENE_HEIGHT) { EmptyStates.drawScene(this, kind) }
+        }
+        val extras = listOf(
+            SheetCell(EmptyStates.CREST_SIZE, EmptyStates.CREST_SIZE) { EmptyStates.drawInformantCrest(this) },
+            SheetCell(EmptyStates.VIGNETTE_WIDTH, EmptyStates.VIGNETTE_HEIGHT) { EmptyStates.drawKingdomVignette(this, false) },
+            SheetCell(EmptyStates.VIGNETTE_WIDTH, EmptyStates.VIGNETTE_HEIGHT) { EmptyStates.drawKingdomVignette(this, true) },
+            SheetCell(EmptyStates.VIGNETTE_WIDTH, EmptyStates.VIGNETTE_HEIGHT) { EmptyStates.drawSlayerVignette(this, false) },
+            SheetCell(EmptyStates.VIGNETTE_WIDTH, EmptyStates.VIGNETTE_HEIGHT) { EmptyStates.drawSlayerVignette(this, true) }
+        )
         val gap = 6
-        val cols = 4
-        val rows = (kinds.size + cols - 1) / cols
-        val sheetArtW = cols * cellW + (cols + 1) * gap
-        val sheetArtH = rows * cellH + (rows + 1) * gap
+        val groups = listOf(
+            Triple(emptyStates, 4, EmptyStates.SCENE_WIDTH + 8 to EmptyStates.SCENE_HEIGHT + 8),
+            Triple(extras, 5, EmptyStates.CREST_SIZE + 8 to EmptyStates.CREST_SIZE + 8)
+        )
+        val sheetArtW = groups.maxOf { (_, cols, cell) -> cols * cell.first + (cols + 1) * gap }
+        val sheetArtH = gap + groups.sumOf { (cells, cols, cell) ->
+            ((cells.size + cols - 1) / cols) * (cell.second + gap)
+        }
         val sheet = PixelCanvas(sheetArtW, sheetArtH)
         Textures.drawStoneGround(sheet, seed = 101)
 
-        kinds.forEachIndexed { idx, kind ->
-            val col = idx % cols
-            val row = idx / cols
-            val ox = gap + col * (cellW + gap)
-            val oy = gap + row * (cellH + gap)
-            val sub = PixelCanvas(EmptyStates.SCENE_WIDTH, EmptyStates.SCENE_HEIGHT).also {
-                EmptyStates.drawScene(it, kind)
+        var top = gap
+        for ((cells, cols, cell) in groups) {
+            val (cellW, cellH) = cell
+            cells.forEachIndexed { idx, sheetCell ->
+                val ox = gap + (idx % cols) * (cellW + gap)
+                val oy = top + (idx / cols) * (cellH + gap)
+                val sub = PixelCanvas(sheetCell.w, sheetCell.h).apply(sheetCell.draw)
+                copySubCanvas(sheet, ox + (cellW - sheetCell.w) / 2, oy + (cellH - sheetCell.h) / 2, sub)
             }
-            copySubCanvas(sheet, ox + 4, oy + 4, sub)
+            top += ((cells.size + cols - 1) / cols) * (cellH + gap)
         }
 
         val outFile = File(outDir, "scenes.png")
         writeScaledPng(sheet, scale = 4, file = outFile)
         assertTrue("Expected scenes.png to be written", outFile.exists() && outFile.length() > 0)
     }
+
+    private class SheetCell(val w: Int, val h: Int, val draw: PixelCanvas.() -> Unit)
 
     companion object {
         fun copySubCanvas(dest: PixelCanvas, ox: Int, oy: Int, src: PixelCanvas) {

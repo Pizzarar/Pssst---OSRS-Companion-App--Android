@@ -161,10 +161,13 @@ fun OsrsTableRowSeparator(modifier: Modifier = Modifier) {
  * badge sprite with an explicit status word.
  *
  * Never uses stack-count neon green (`#00FF80`) or yellow (`#FFFF00`):
- * - [TableStatusKind.READY] -> [OsrsHerbGreen] (`#4CAF50`) + [ArtIcons.BadgeReady]
- * - [TableStatusKind.GROWING] -> [OsrsTextMuted] (`#B8A88A`) + [ArtIcons.BadgeGrowing]
- * - [TableStatusKind.EMPTY] -> [OsrsTextMuted] (`#B8A88A`) + [ArtIcons.BadgeEmpty]
- * - [TableStatusKind.WARNING] -> [OsrsRed] (`#FF4D4D`) + [ArtIcons.BadgeWarning]
+ * - [TableStatusKind.READY] -> [OsrsHerbGreen] (`#4CAF50`) + [ArtIcons.BadgeReady] (herb fan)
+ * - [TableStatusKind.GROWING] -> [OsrsTextMuted] (`#B8A88A`) + [ArtIcons.BadgeGrowing] (watering can)
+ * - [TableStatusKind.EMPTY] -> [OsrsTextMuted] (`#B8A88A`) + [ArtIcons.BadgeEmpty] (empty ring)
+ * - [TableStatusKind.WARNING] -> [OsrsRed] (`#FF4D4D`) + [ArtIcons.BadgeWarning] (red "!" + blight)
+ *
+ * Each badge renders in its own natural tones and has a distinct silhouette, so status never
+ * relies on hue alone.
  */
 @Composable
 fun OsrsTableStatusCell(
@@ -198,12 +201,7 @@ fun OsrsTableStatusCell(
     ) {
         PixelIcon(
             sprite = icon,
-            tones = when (status) {
-                TableStatusKind.READY -> SpriteTones.HERB
-                TableStatusKind.GROWING -> SpriteTones.STONE
-                TableStatusKind.EMPTY -> SpriteTones.STONE
-                TableStatusKind.WARNING -> SpriteTones.WARNING
-            },
+            tones = icon.defaultNaturalTones ?: SpriteTones.STONE,
             modifier = Modifier.size(16.dp)
         )
         Spacer(modifier = Modifier.width(5.dp))

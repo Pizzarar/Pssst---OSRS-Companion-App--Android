@@ -67,6 +67,13 @@ data class SlayerUiModel(
     val storedIconBase64: String? = null
 ) {
     val hasTask: Boolean get() = amount > 0
+
+    /**
+     * The Slayer emblem turns gold once a task is finished and the player is between masters.
+     * `amount == 0` is indistinguishable from "never assigned", so a fresh account (no points and
+     * no streak) keeps the plain emblem.
+     */
+    val isEmblemGilded: Boolean get() = !hasTask && (points > 0 || streak > 0)
     val hasStoredTask: Boolean get() = storedAmount > 0 && storedTaskName.isNotBlank()
     val progress: Float
         get() = when {

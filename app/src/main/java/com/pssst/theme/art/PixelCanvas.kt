@@ -2,6 +2,7 @@ package com.pssst.theme.art
 
 import androidx.compose.ui.graphics.toArgb
 import com.pssst.theme.OsrsBorderLight
+import com.pssst.theme.OsrsBrassMid
 import com.pssst.theme.OsrsBorderOutline
 import com.pssst.theme.OsrsGold
 import com.pssst.theme.OsrsGoldDark
@@ -36,7 +37,13 @@ import com.pssst.theme.OsrsWoodLight
  * - `'s'` = bottom-right shaded fill ([shadow])
  * - `'a'` = secondary accent highlight/fill ([accent])
  * - `'d'` = secondary accent shadow ([accentDark])
+ * - `'l'` / `'m'` / `'k'` = optional second material light / mid / dark
+ *   ([secondaryLight], [secondaryMid], [secondaryDark])
+ * - `'g'` = optional specular glint ([glint])
  * - `'.'` = transparent (0)
+ *
+ * The optional roles fall back to the primary `h` / `b` / `s` ramp when unset, so a sprite
+ * authored with a second material still renders hole-free when retinted with [GOLD] or [STONE].
  */
 data class SpriteTones(
     val outline: Int = OsrsOuterFrame.toArgb(),
@@ -44,7 +51,11 @@ data class SpriteTones(
     val base: Int,
     val shadow: Int,
     val accent: Int = OsrsIronEdgeLight.toArgb(),
-    val accentDark: Int = OsrsIronBody.toArgb()
+    val accentDark: Int = OsrsIronBody.toArgb(),
+    val secondaryLight: Int? = null,
+    val secondaryMid: Int? = null,
+    val secondaryDark: Int? = null,
+    val glint: Int? = null
 ) {
     fun colorFor(role: Char): Int = when (role) {
         'o' -> outline
@@ -53,6 +64,10 @@ data class SpriteTones(
         's' -> shadow
         'a' -> accent
         'd' -> accentDark
+        'l' -> secondaryLight ?: highlight
+        'm' -> secondaryMid ?: base
+        'k' -> secondaryDark ?: shadow
+        'g' -> glint ?: highlight
         '.', ' ' -> 0
         else -> throw IllegalArgumentException("Unknown sprite role character: '$role'")
     }
@@ -82,7 +97,8 @@ data class SpriteTones(
             base = OsrsHerbGreen.toArgb(),
             shadow = OsrsHerbDark.toArgb(),
             accent = OsrsWoodLight.toArgb(),
-            accentDark = OsrsWoodBase.toArgb()
+            accentDark = OsrsWoodBase.toArgb(),
+            glint = OsrsGoldHighlight.toArgb()
         )
 
         val WOOD = SpriteTones(
@@ -91,7 +107,8 @@ data class SpriteTones(
             base = OsrsWoodBase.toArgb(),
             shadow = OsrsWoodDark.toArgb(),
             accent = OsrsIronEdgeLight.toArgb(),
-            accentDark = OsrsIronBody.toArgb()
+            accentDark = OsrsIronBody.toArgb(),
+            glint = OsrsGoldHighlight.toArgb()
         )
 
         val PARCHMENT = SpriteTones(
@@ -120,6 +137,48 @@ data class SpriteTones(
             accent = OsrsGold.toArgb(),
             accentDark = OsrsGoldDark.toArgb()
         )
+
+        /** Quest-point blue blades with gold facets (natural tones for [ArtIcons.ProgressStar]). */
+        val QUEST_BLUE = SpriteTones(
+            outline = OsrsOuterFrame.toArgb(),
+            highlight = ScenePalettes.QuestBlueLight,
+            base = ScenePalettes.QuestBlueMid,
+            shadow = ScenePalettes.QuestBlueDark,
+            accent = OsrsGoldHighlight.toArgb(),
+            accentDark = OsrsGold.toArgb(),
+            glint = OsrsTextPrimary.toArgb()
+        )
+
+        /**
+         * Green sprout, brass watering can and pot (`l`/`m`/`k`), cyan water drops (`a`/`g`): natural
+         * tones for [ArtIcons.BadgeGrowing]. The can sits on the second-material ramp so a GOLD or
+         * STONE retint falls back to the bright primary ramp instead of dark iron.
+         */
+        val TERRACOTTA_SPROUT = SpriteTones(
+            outline = OsrsOuterFrame.toArgb(),
+            highlight = OsrsHerbLight.toArgb(),
+            base = OsrsHerbGreen.toArgb(),
+            shadow = OsrsHerbDark.toArgb(),
+            accent = ScenePalettes.CyanMoteLight,
+            accentDark = ScenePalettes.CyanMoteDark,
+            secondaryLight = OsrsGoldHighlight.toArgb(),
+            secondaryMid = OsrsGold.toArgb(),
+            secondaryDark = OsrsBrassMid.toArgb(),
+            glint = ScenePalettes.CyanMoteMid
+        )
+
+        /** Blighted amber leaf with a bone warning mark (natural tones for [ArtIcons.BadgeWarning]). */
+        val BLIGHT_WARNING = SpriteTones(
+            outline = OsrsOuterFrame.toArgb(),
+            highlight = ScenePalettes.BlightLight,
+            base = ScenePalettes.BlightMid,
+            shadow = ScenePalettes.BlightDark,
+            accent = OsrsTextPrimary.toArgb(),
+            accentDark = OsrsRed.toArgb(),
+            secondaryLight = OsrsRed.toArgb(),
+            secondaryMid = OsrsRedDark.toArgb(),
+            secondaryDark = ScenePalettes.Outline
+        )
     }
 }
 
@@ -144,6 +203,32 @@ class Sprite(
         rows.forEachIndexed { idx, row ->
             require(row.length == width) {
                 "Sprite row $idx has length ${row.length}, expected $width"
+            }
+        }
+    }
+}
+
+/**
+ * Low-resolution character-grid scene with its own colour legend (`'.'` and `' '` are transparent).
+ *
+ * Unlike [Sprite], a scene is not retinted: every character maps to one fixed ARGB material,
+ * which lets 48x36 empty states and 32x24 vignettes use as many materials as they need.
+ */
+class SceneGrid(
+    val rows: List<String>,
+    val palette: Map<Char, Int>
+) {
+    val height: Int = rows.size
+    val width: Int = rows.firstOrNull()?.length ?: 0
+
+    init {
+        require(rows.isNotEmpty() && width > 0) { "SceneGrid must not be empty" }
+        rows.forEachIndexed { idx, row ->
+            require(row.length == width) { "SceneGrid row $idx has length ${row.length}, expected $width" }
+            for (ch in row) {
+                require(ch == '.' || ch == ' ' || palette.containsKey(ch)) {
+                    "Unmapped SceneGrid char '$ch' at row $idx"
+                }
             }
         }
     }
@@ -363,6 +448,21 @@ class PixelCanvas(val w: Int, val h: Int) {
                 if (c != 0) {
                     set(x + sx, y + sy, c)
                 }
+            }
+        }
+    }
+
+    /**
+     * Draws a [SceneGrid] with its top-left at ([x], [y]). Transparent cells are skipped.
+     */
+    fun drawSceneGrid(grid: SceneGrid, x: Int = 0, y: Int = 0) {
+        for (gy in 0 until grid.height) {
+            val row = grid.rows[gy]
+            for (gx in 0 until grid.width) {
+                val ch = row[gx]
+                if (ch == '.' || ch == ' ') continue
+                val argb = grid.palette.getValue(ch)
+                if (argb != 0) set(x + gx, y + gy, argb)
             }
         }
     }

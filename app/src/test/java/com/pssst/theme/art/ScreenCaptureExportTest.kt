@@ -47,7 +47,9 @@ class ScreenCaptureExportTest {
             "12_timers_payments" to { PreviewScreenTimersPayments() },
             "13_drawer" to { PreviewScreenDrawer() },
             "14_empty_states" to { PreviewScreenEmptyStates() },
-            "15_goal_dialog" to { PreviewScreenGoalDialog() }
+            "15_goal_dialog" to { PreviewScreenGoalDialog() },
+            "16_empty_vignettes" to { PreviewEmptyStateVignettes() },
+            "17_overview_vignettes" to { PreviewOverviewVignetteStates() }
         )
 
         val currentScreenIndex = androidx.compose.runtime.mutableIntStateOf(0)

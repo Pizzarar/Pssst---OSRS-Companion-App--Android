@@ -76,18 +76,20 @@ object StateDiffAnalyzer {
         // 4. Kingdom of Miscellania Warnings
         val prevApproval = extractKingdomApproval(previousVarbits)
         val currApproval = extractKingdomApproval(currentVarbits)
-        if (prevApproval != null && currApproval != null && prevApproval >= 90 && currApproval < 90) {
+        if (prevApproval != null && currApproval != null && prevApproval >= MiscellaniaThresholds.APPROVAL_WARN_PERCENT &&
+            currApproval < MiscellaniaThresholds.APPROVAL_WARN_PERCENT) {
             alerts.add(
                 NotificationAlert(
                     title = "Kingdom Approval Warning",
-                    message = "Your Miscellania approval has dropped below 90% (now $currApproval%)."
+                    message = "Your Miscellania approval has dropped below ${MiscellaniaThresholds.APPROVAL_WARN_PERCENT}% (now $currApproval%)."
                 )
             )
         }
 
         val prevCoffer = extractKingdomCoffer(previousVarbits)
         val currCoffer = extractKingdomCoffer(currentVarbits)
-        if (prevCoffer != null && currCoffer != null && prevCoffer >= 750_000L && currCoffer < 750_000L) {
+        if (prevCoffer != null && currCoffer != null && prevCoffer >= MiscellaniaThresholds.COFFER_WARN_GP &&
+            currCoffer < MiscellaniaThresholds.COFFER_WARN_GP) {
             alerts.add(
                 NotificationAlert(
                     title = "Kingdom Coffer Low",
