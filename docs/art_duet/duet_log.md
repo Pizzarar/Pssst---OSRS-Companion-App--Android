@@ -98,3 +98,9 @@
 - **Contrast tests**: panel stone still checks all five text colours at 4.5:1; slate faces check primary/muted/gold at 4.5:1 and red/herb-green (status text only) at 3:1.
 - **Crest** (`tools/art/crest.py`): replaced the hooded informant with a gold-trimmed heraldic shield (crimson / royal-blue field) carrying a bold chiselled gold "P", fully inside the safe circle. A first draft had a broadsword behind it; its blade was hidden and the stray hilt read as noise, so it was dropped. Launcher background moved to slate; foreground, monochrome (outline-only cut-outs) and all legacy mipmaps regenerated; Setup crop recentred (`CREST_VIEW_X = 6`). Internal names (`INFORMANT_CREST`, `InformantCrest`) kept for call-site stability.
 - **Verification**: `python tools/art/build_art.py`; `./gradlew testDebugUnitTest assembleDebug --rerun-tasks` → 152/152 passing, APK built. Inspected `screens/01_setup.png`, `02_overview.png`, `09_timers_dailies.png` and `build/art-preview/launcher.png`.
+
+### Round 3b — Crest polish (Claude Opus)
+- Shield enlarged from 14x18 to 16x21 (x 10..25, y 8..28) with a chamfered top, 2px chiselled gold border, quartered crimson/royal-blue field, bone rivets and a bolder 6x9 gold "P". The requested 18x22 rectangle (x 9..26, y 7..28) would put its top corners ~13.5 px from the centre, outside the 11 px safe circle, so 16x21 is the largest flat-topped shield that fits; `crest.build()` asserts every pixel stays inside.
+- `MONO_HOLES` was already `{"Outline"}` since `ffa332c`; the dotted monochrome edge in the reviewed `launcher.png` came from an earlier render. Regenerated preview shows a solid rim with only the "P" cut out.
+- Setup crest well is now recessed slate (`OsrsSlateUndercut` fill, `OsrsSlateMortar` outline, `OsrsSlateBevel` light); there is no `OsrsSlateSlot` token.
+- `./gradlew testDebugUnitTest assembleDebug --rerun-tasks` → 152/152, APK built; inspected `screens/01_setup.png` and `build/art-preview/launcher.png`.

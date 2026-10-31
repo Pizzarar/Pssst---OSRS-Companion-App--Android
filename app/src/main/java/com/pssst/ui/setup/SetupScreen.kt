@@ -34,7 +34,9 @@ import com.pssst.theme.OsrsCheckbox
 import com.pssst.theme.OsrsGold
 import com.pssst.theme.OsrsHeaderDivider
 import com.pssst.theme.OsrsRed
-import com.pssst.theme.OsrsSlotEmpty
+import com.pssst.theme.OsrsSlateBevel
+import com.pssst.theme.OsrsSlateMortar
+import com.pssst.theme.OsrsSlateUndercut
 import com.pssst.theme.OsrsTextField
 import com.pssst.theme.OsrsTextMuted
 import com.pssst.theme.OsrsTextPrimary
@@ -147,7 +149,13 @@ fun SetupContent(
     ) {
         Box(
             modifier = Modifier
-                .pixelBevelBox(fill = OsrsSlotEmpty, raised = false)
+                .pixelBevelBox(
+                    fill = OsrsSlateUndercut,
+                    outline = OsrsSlateMortar,
+                    light = OsrsSlateBevel,
+                    dark = OsrsSlateMortar,
+                    raised = false
+                )
                 .padding(6.dp)
         ) {
             InformantCrest()
