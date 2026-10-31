@@ -1,111 +1,91 @@
 """32x24 Overview vignettes. Each state pair shares one composition so the
 state change reads at a glance."""
-from pixart import Canvas, rect, polygon, thick_line, line, ring
-from scenes import IRON, OAK, GOLD, shaded
+from pixart import Canvas, rect, thick_line, line
+from scenes import GOLD, shaded
 
 VW, VH = 32, 24
 
-GHRIM = [
-    # 0123456789012
-    "....SSSSS....",  # 0 bald crown
-    "...SSSSSSs...",  # 1
-    "..gSSSSSSsg..",  # 2 grey fringe
-    "..gEESSEEsg..",  # 3 eyes
-    "..gSSSkSSsg..",  # 4 nose
-    "..gSSSSSSsg..",  # 5
-    "...HHHHHHH...",  # 6 grey beard
-    "...HhHHHHHg..",  # 7
-    "....HHHHHg...",  # 8
-    ".VVVGHHHGVVV.",  # 9 royal shoulders, gold trim
-    "VVVVGVHVGVVVv",  # 10
-    "VVVVGVVVGVVvv",  # 11
-    "VVVVGVVVGVVvv",  # 12
-]
-GHRIM_LEGEND = {
-    "S": "SkinLight", "s": "SkinMid", "k": "SkinDark", "g": "HairGreyDark", "H": "HairGreyLight",
-    "h": "Bone", "V": "CrownVelvet", "v": "VelvetDark", "G": "GoldMid", "E": "Outline",
-}
-
-CROWN = [
-    "B...B...B",
-    "GV.VGV.VG",
-    "GVVVGVVVG",
-    "GGGGGGGGG",
-    "GeGGsGGeG",
-    "ggggggggg",
-]
-CROWN_LEGEND = {"B": "GoldBright", "G": "GoldMid", "g": "GoldDeep", "V": "CrownVelvet",
-                "e": "GemEmerald", "s": "GemSapphire"}
-CROWN_TARNISHED = {"B": "GoldMid", "G": "GoldDeep", "g": "GoldShadow", "V": "VelvetDark",
-                   "e": "GoldShadow", "s": "GoldShadow"}
-
-
 def kingdom(warning: bool) -> Canvas:
+    """Castle of Miscellania. Both states share one layout so the change reads at a glance:
+    healthy flies a gold-and-emerald banner with lit torches and windows; warning has a cracked
+    turret, a lost merlon, a tattered crimson banner and an alarm glow in the gatehouse."""
     c = Canvas(VW, VH)
-    # Advisor Ghrim
-    face = [r for r in GHRIM]
+    stone = ("StoneLight", "StoneMid", "StoneDark")
+
+    def courses(mask, rows):
+        for x, y in mask:
+            if y in rows and c.get(x, y) == "StoneMid":
+                c.set(x, y, "StoneDark")
+
+    # Tall keep at the back, banner flying from its roof
+    keep = rect(11, 6, 10, 9) | rect(11, 4, 2, 2) | rect(19, 4, 2, 2)
+    shaded(c, keep, stone)
+    courses(keep, (9, 12))
+    window = "HollowDark" if warning else "GoldMid"
+    for wx in (14, 17):
+        c.set(wx, 7, window)
+        c.set(wx, 8, window)
+    # Lower front gate wall with battlements
+    wall = rect(9, 13, 14, 10)
+    for mx in (9, 12, 18, 21):
+        wall |= rect(mx, 11, 2, 2)
+    shaded(c, wall, stone)
+    courses(wall, (16, 20))
+    # Flanking turrets
+    for tx in (2, 23):
+        tower = rect(tx, 9, 7, 14) | rect(tx - 1, 9, 9, 1)
+        merlons = [(tx, 2), (tx + 3, 1), (tx + 5, 2)]
+        if warning and tx == 23:
+            merlons = [(tx, 2), (tx + 5, 2)]  # a merlon has fallen
+        for mx, mw in merlons:
+            tower |= rect(mx, 7, mw, 2)
+        shaded(c, tower, stone)
+        courses(tower, (14, 18))
+        for y in (11, 12, 13):
+            c.set(tx + 3, y, "Outline")
+    # Gatehouse arch with an iron portcullis
+    arch = rect(13, 16, 6, 7) - {(13, 16), (18, 16)}
+    c.outline(arch)
+    c.fill(arch, "EyeCrimsonDark" if warning else "HollowDark")
     if warning:
-        face[2] = "..gSoSSoSsg.."   # brows raised
-        face[3] = "..gThSThsg..."[:13].ljust(13, ".")
-        face[3] = "..gThSSThsg.."
-        face[5] = "..gSSoooSsg.."  # gaping worried mouth
-    c.stamp(face, 1, 9, dict(GHRIM_LEGEND, T="Bone", o="Outline"))
+        c.fill({(x, y) for x, y in arch if y >= 20}, "EyeCrimson")
+        c.fill({(x, y) for x, y in arch if y == 22}, "FlameOrange")
+    for x in (14, 17):
+        for y in range(17, 23):
+            c.set(x, y, "IronMid")
+    for x in range(13, 19):
+        if (x, 19) in arch:
+            c.set(x, 19, "IronDark")
+    # Torches flanking the gate
+    flame_top, flame_low = ("FlameOrange", "EyeCrimson") if warning else ("GoldBright", "FlameOrange")
+    for fx in (11, 20):
+        c.set(fx, 18, "IronDark")
+        c.set(fx, 17, flame_low)
+        c.set(fx, 16, flame_top)
     if warning:
-        for (x, y, n) in ((12, 8, "SweatLight"), (13, 9, "CyanMoteMid"), (14, 6, "SweatLight"),
-                          (15, 7, "CyanMoteMid"), (1, 9, "SweatLight"), (0, 10, "CyanMoteMid")):
-            c.set(x, y, n)
-    else:
-        # small content crown emblem above his head
-        for x, y, n in ((5, 6, "GoldBright"), (7, 5, "GoldBright"), (9, 6, "GoldBright"),
-                        (5, 7, "GoldMid"), (6, 7, "GoldMid"), (7, 7, "GoldMid"), (8, 7, "GoldMid"),
-                        (9, 7, "GoldMid")):
-            c.set(x, y, n)
-    # Iron-bound royal coffer
-    body = rect(16, 15, 15, 9)
-    shaded(c, body, OAK)
-    for sx in (18, 27):
-        strap = rect(sx, 15, 2, 9)
-        c.paint(strap, lambda x, y: "IronLight" if x == sx else "IronDark")
-    lock = rect(22, 17, 3, 3)
-    shaded(c, lock, GOLD)
-    c.set(23, 18, "Outline")
-    if warning:
-        mouth = rect(16, 12, 15, 3)
-        c.outline(mouth)
-        c.fill(mouth, "RecessRim")
-        c.fill(rect(17, 13, 13, 2), "HollowDark")
-        for x, y in line(17, 13, 20, 14) + line(17, 14, 19, 13):
-            c.set(x, y, "Cobweb")
-        # Tarnished crown toppled onto the lid, cracked down the middle
-        # The royal crown, still gold, cleaved by a jagged crack: right half dropped and tilted
-        crown = Canvas(9, 6)
-        crown.stamp(CROWN, 0, 0, CROWN_LEGEND, outline=False)
-        placed = {}
-        for y in range(6):
-            for x in range(9):
-                n = crown.px[y][x]
-                if n is None:
-                    continue
-                if x <= 3:
-                    placed[(18 + x, 5 + y)] = n
-                elif x >= 5:
-                    placed[(19 + x, 6 + y + (x - 5) // 2)] = n
-        c.outline(set(placed))
-        for (x, y), n in placed.items():
-            c.set(x, y, n)
-        for x, y in ((22, 5), (22, 6), (23, 6), (23, 7), (22, 8), (22, 9), (23, 9), (23, 10), (22, 11)):
+        # Jagged structural crack down the right turret
+        for x, y in ((26, 10), (26, 11), (27, 12), (27, 13), (26, 14), (26, 15), (27, 16), (27, 17), (26, 18)):
             c.set(x, y, "Outline")
+        # Bent flagstaff with a tattered, drooping crimson banner
+        for x, y in line(16, 4, 17, 0):
+            c.set(x, y, "OakDark")
+        banner = rect(18, 0, 3, 4) | {(18, 4), (20, 4), (19, 5)}
+        c.outline(banner)
+        c.fill(banner, "CrownVelvet")
+        c.fill(rect(18, 0, 3, 1), "EyeCrimson")
+        for x, y in ((23, 1), (24, 3)):
+            c.set(x, y, "FlameOrange")
     else:
-        # Coffer overflowing with coins, crown proudly on top
-        heap = polygon([(15.5, 15), (19, 10), (28, 10), (31.5, 15)])
-        shaded(c, heap, GOLD)
-        for x, y in ((19, 12), (22, 11), (25, 13), (28, 12), (21, 14), (27, 14)):
-            c.set(x, y, "GoldDeep")
-        for x, y in ((20, 11), (24, 12), (29, 13)):
-            c.set(x, y, "GoldBright")
-        c.stamp(CROWN, 19, 3, CROWN_LEGEND)
-        for x, y in ((17, 2), (30, 4), (30, 9)):
-            c.set(x, y, "GoldBright")
+        # Proud royal banner on the keep
+        banner = rect(17, 0, 7, 4) - {(23, 1), (23, 2)}
+        c.outline(banner)
+        c.fill(banner, "GemEmerald")
+        c.fill(rect(17, 0, 6, 1), "GoldBright")
+        c.fill(rect(17, 3, 6, 1), "GoldMid")
+        c.set(19, 1, "GoldBright")
+        c.set(19, 2, "GoldMid")
+        for y in range(0, 6):
+            c.set(16, y, "OakDark")
     return c
 
 

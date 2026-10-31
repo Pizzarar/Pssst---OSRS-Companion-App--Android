@@ -95,7 +95,7 @@ fun PreviewFramesAndHardware() {
                 Text("FrameWeight.HEAVY — Spearhead Hinge Straps", color = OsrsTextPrimary)
             }
             Box(modifier = Modifier.fillMaxWidth().oakBeamFrame().padding(12.dp)) {
-                GoldLeafText("oakBeamFrame — Top Bar Timber & Straps")
+                GoldLeafText("oakBeamFrame — Top Bar Carved Stone Header")
             }
             Box(modifier = Modifier.fillMaxWidth().parchmentNotice().padding(12.dp)) {
                 Text("parchmentNotice — Pinned Notice Strip", color = OsrsTextPrimary)

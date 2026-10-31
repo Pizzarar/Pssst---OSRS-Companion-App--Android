@@ -136,8 +136,9 @@ fun InformantCrest(
 }
 
 /**
- * 32x24 Miscellania vignette: Advisor Ghrim beside the royal coffer. Healthy shows a crowned,
- * overflowing coffer; warning shows him sweating over an empty coffer and a cracked crown.
+ * 32x24 Miscellania vignette: the castle of Miscellania. Healthy flies a gold-and-emerald banner
+ * with lit torches and windows; warning shows a cracked turret, a tattered crimson banner and an
+ * alarm glow in the gatehouse.
  * Decorative only: the card's approval and coffer text already carry the state.
  */
 @Composable

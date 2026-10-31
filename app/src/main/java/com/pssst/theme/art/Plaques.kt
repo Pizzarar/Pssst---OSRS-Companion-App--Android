@@ -44,20 +44,43 @@ import com.pssst.theme.OsrsTextPrimary
 object Plaques {
 
     /**
-     * Draws a stepped-corner stone-and-brass plaque with seated side rivets into [canvas].
+     * Draws a carved OSRS login-screen monument tablet: chiselled stone with an ashlar joint near
+     * each end, a double border (brass outer bevel, recessed channel, inner stone bevel), stepped
+     * corners and brass side rivets.
      */
     fun drawPlaqueFrame(canvas: PixelCanvas, seed: Int = 208) {
         val w = canvas.w
         val h = canvas.h
         if (w <= 0 || h <= 0) return
 
-        Textures.drawOakBeam(canvas, seed = seed, showPlankSeams = false, showEndBands = false)
+        Textures.drawPanelStone(canvas, seed = seed)
+        if (w >= 40 && h >= 12) {
+            Textures.drawAshlar(
+                canvas = canvas,
+                ramp = Frames.TABLET_RAMP,
+                seed = seed,
+                courseMin = h,
+                courseRange = 1,
+                blockMin = 12,
+                blockRange = 1,
+                top = 3,
+                bottom = h - 3,
+                jointsX = intArrayOf(14, w - 13, w)
+            )
+        }
         val outline = OsrsOuterFrame.toArgb()
         val brass = OsrsBrassMid.toArgb()
         val dark = OsrsBorderDark.toArgb()
         val ext = OsrsDarkStone.toArgb()
 
         canvas.bevelBox(0, 0, w, h, outline = outline, light = brass, dark = dark, raised = true)
+        if (w > 8 && h > 8) {
+            canvas.rectOutline(2, 2, w - 4, h - 4, OsrsSlotEmpty.toArgb())
+            canvas.hLine(3, 3, w - 7, OsrsBorderLight.toArgb())
+            canvas.vLine(3, 3, h - 7, OsrsBorderLight.toArgb())
+            canvas.hLine(3, h - 4, w - 6, dark)
+            canvas.vLine(w - 4, 3, h - 6, dark)
+        }
         if (w >= 14 && h >= 10) {
             canvas.stairCorner(0, 0, steps = 2, cornerIndex = 0, outline = outline, bevelTone = brass, exteriorFill = ext)
             canvas.stairCorner(w - 1, 0, steps = 2, cornerIndex = 1, outline = outline, bevelTone = brass, exteriorFill = ext)
@@ -66,8 +89,8 @@ object Plaques {
         }
         if (w >= 20 && h >= 8) {
             val ry = (h / 2 - 1).coerceAtLeast(2)
-            canvas.rivet(3, ry, size = 3)
-            canvas.rivet(w - 6, ry, size = 3)
+            Frames.brassRivet(canvas, 5, ry)
+            Frames.brassRivet(canvas, w - 8, ry)
         }
     }
 

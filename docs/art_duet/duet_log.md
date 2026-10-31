@@ -68,3 +68,14 @@
   - **SF7** `KINGDOM_WARNING`: crown kept bright gold with velvet and gems, cleaved by a 2px jagged crack, right half dropped.
   - **SF8** `BadgeGrowing` + `TERRACOTTA_SPROUT`: can and pot on `l/m/k` (gold ramp), water on `a/g` (cyan); GOLD/STONE retints keep the can bright.
 - **Verification**: `python tools/art/build_art.py`, `python tools/art/sprites.py`, `python tools/art/preview_sprites.py` (0 lint), `./gradlew testDebugUnitTest --rerun-tasks` → 151/151 passing.
+
+---
+
+## Round 2 — Owner Revision (Claude Opus `claude/claude-opus-5-5`)
+- **Owner feedback** (`OWNER_FEEDBACK.md`): kingdom art should just be a castle; the background and bar backgrounds are ugly and should feel like the OSRS login-screen stone.
+- **Castle of Miscellania** (`tools/art/vignettes.py` → `SceneArt.kt`): tall back keep, crenellated front gate wall with an iron portcullis, two flanking turrets with arrow slits. `KINGDOM_HEALTHY` flies a gold-and-emerald banner with lit windows and torches; `KINGDOM_WARNING` has a cracked right turret, a fallen merlon, a bent staff with a tattered crimson banner, dark windows and an alarm-red glow in the gatehouse. Advisor Ghrim/coffer art removed.
+- **Login-screen masonry** (`Textures.kt`): new shared `drawAshlar` (running-bond ashlar, chamfered corners, worn chisel catch-lights, calm slab mottling, hairline fissures, optional fixed joints). `drawStoneGround` now lays monumental 11-16 × 20-36 art-px blocks with a torchlit falloff from the upper centre; `drawPanelStone` is a calmer chiselled tablet; `drawOakBeam` is clean planed timber (no knots/blots).
+- **Bar & plaque chrome**: `drawOakBeamFrame` → carved stone header (two ashlar courses, iron/brass cornice, stone sill, brass rivets); `drawStoneSillFrame` → carved footer with joints on the five tab columns under a brass/iron rail; `drawPlaqueFrame` → monument tablet with end joints, double border, stepped corners and brass rivets. New `Modifier.stoneTabSlot` gives bottom tabs a raised gold-lit tablet (selected) or recessed slot (unselected), shared by `DashboardScreen` and the capture shell.
+- **Constraint kept**: `ArtContrastTest` caps background luminance (OsrsRed needs 4.5:1), so the stone tone ramps stay as declared; the login-screen look comes from structure (block scale, chamfers, bevels, torchlight), not lighter stone.
+- **Deviation**: footer uses brass corner rivets instead of iron L-brackets, which the new tab slots would cover.
+- **Verification**: `python tools/art/build_art.py` (all grids pass contrast), `./gradlew testDebugUnitTest assembleDebug --rerun-tasks` → 151/151 passing, debug APK built. Inspected `materials.png`, `frames_plaques_ornaments.png`, `scenes.png`, `screens/02_overview.png`, `screens/17_overview_vignettes.png`.

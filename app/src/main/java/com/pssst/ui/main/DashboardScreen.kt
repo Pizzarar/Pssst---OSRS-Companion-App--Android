@@ -77,10 +77,10 @@ import com.pssst.theme.art.SectionHeaderPlaque
 import com.pssst.theme.art.SpriteTones
 import com.pssst.theme.art.TitlePlaque
 import com.pssst.theme.art.leatherBoundPanel
-import com.pssst.theme.art.ledgerWellSlot
 import com.pssst.theme.art.oakBeamFrame
 import com.pssst.theme.art.stoneGround
 import com.pssst.theme.art.stoneSillFrame
+import com.pssst.theme.art.stoneTabSlot
 import com.pssst.theme.osrsPanel
 import com.pssst.theme.osrsSlot
 import com.pssst.util.TimeFormat
@@ -458,15 +458,9 @@ fun DashboardScreen(
                             Column(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .then(
-                                        if (isSelected) {
-                                            Modifier.ledgerWellSlot(empty = true, highlighted = true)
-                                        } else {
-                                            Modifier
-                                        }
-                                    )
+                                    .stoneTabSlot(selected = isSelected)
                                     .clickable { selectedTabIndex = index }
-                                    .padding(vertical = 10.dp),
+                                    .padding(vertical = 6.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {

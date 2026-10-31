@@ -22,7 +22,9 @@ import com.pssst.theme.OsrsParchmentWarm
 import com.pssst.theme.OsrsSlotEmpty
 import com.pssst.theme.OsrsStoneMid
 import com.pssst.theme.OsrsStonePoreDark
+import kotlin.math.abs
 import kotlin.math.min
+import kotlin.math.sqrt
 
 /**
  * Low-resolution procedural pixel-art material generators for Pssst.
@@ -86,132 +88,167 @@ object Textures {
     )
 
     /**
-     * Draws irregular coursed stone blocks into [canvas]:
-     * - Courses 6–10 art-px high with 1-art-px dark mortar ([OsrsStonePoreDark]).
-     * - Randomised block widths 10–22 art-px, offset per course.
-     * - No two adjacent blocks (left or upper) share the same base tone.
-     * - 1-art-px top/left light edge and 1-art-px bottom/right shadow edge on each block.
-     * - Bayer-dithered value noise inside each block.
+     * OSRS login-screen dungeon wall: monumental ashlar blocks in [STONE_GROUND_TONES].
+     *
+     * - Courses 11-16 art px high, blocks 20-36 art px wide, laid in running bond.
+     * - 1-art-px dark mortar with chamfered (rounded-off) block corners.
+     * - Chiselled top/left catch-light, weathered so roughly a third of it is worn away.
+     * - Calm, broad slab mottling with the odd hairline fissure instead of per-pixel noise.
+     * - A torchlit falloff: blocks near the upper centre lean lighter, edges settle darker.
      */
     fun drawStoneGround(canvas: PixelCanvas, seed: Int = 101) {
+        drawAshlar(
+            canvas = canvas,
+            ramp = STONE_GROUND_TONES,
+            seed = seed,
+            courseMin = 11,
+            courseRange = 6,
+            blockMin = 20,
+            blockRange = 17,
+            torchlight = true
+        )
+    }
+
+    /**
+     * Draws ashlar masonry into rows [top] until [bottom] of [canvas].
+     *
+     * [ramp] runs darkest to lightest: `ramp[0]` is mortar, the last entry is the chiselled
+     * catch-light, and everything between is a block base tone. Every pixel is a [ramp] member.
+     * [jointsX], when given, fixes the vertical joints of a single course instead of random
+     * block widths, e.g. to line joints up with navigation columns.
+     */
+    internal fun drawAshlar(
+        canvas: PixelCanvas,
+        ramp: IntArray,
+        seed: Int,
+        courseMin: Int,
+        courseRange: Int,
+        blockMin: Int,
+        blockRange: Int,
+        torchlight: Boolean = false,
+        top: Int = 0,
+        bottom: Int = canvas.h,
+        jointsX: IntArray? = null
+    ) {
         val w = canvas.w
         val h = canvas.h
-        if (w <= 0 || h <= 0) return
+        if (w <= 0 || bottom <= top) return
+        require(ramp.size >= 4) { "ashlar ramp needs mortar, two base tones and a catch-light" }
+        val mortar = ramp[0]
+        val lastBase = ramp.size - 2
+        val baseCount = lastBase
 
-        val mortar = STONE_GROUND_TONES[0]
-        val baseTones = intArrayOf(
-            STONE_GROUND_TONES[1],
-            STONE_GROUND_TONES[2],
-            STONE_GROUND_TONES[3]
-        )
-
-        var y = 0
+        var y = top
         var courseIdx = 0
-        // Track upper course block spans and their chosen tone index (0..2) so vertical neighbors differ
-        var prevCourseEnds = IntArray(0)
-        var prevCourseTones = IntArray(0)
-
-        while (y < h) {
-            val courseH = 6 + (PixelNoise.hash(courseIdx, 0, seed) % 5) // 6..10 art px
-            val yEnd = min(h, y + courseH)
-            val mortarY = y + courseH - 1
-
-            var x = -(PixelNoise.hash(courseIdx, 1, seed + 7) % 9)
-            var blockIdx = 0
-            var leftToneIdx = -1
-
+        var prevEnds = IntArray(0)
+        var prevTones = IntArray(0)
+        while (y < bottom) {
+            val courseH = if (jointsX != null) {
+                bottom - top
+            } else {
+                courseMin + PixelNoise.hash(courseIdx, 0, seed) % courseRange
+            }
+            val mortarY = (y + courseH - 1).coerceAtMost(bottom - 1)
             val curEnds = ArrayList<Int>()
             val curTones = ArrayList<Int>()
-
+            var x = if (jointsX != null) 0 else -(PixelNoise.hash(courseIdx, 1, seed + 7) % blockMin)
+            var blockIdx = 0
+            var leftTone = -1
             while (x < w) {
-                val blockW = 10 + (PixelNoise.hash(blockIdx, courseIdx, seed + 19) % 13) // 10..22 art px
-                val xEnd = x + blockW
-                val midX = (x.coerceAtLeast(0) + xEnd.coerceAtMost(w)) / 2
-
-                // Find upper neighbor tone index at midX
-                var upperToneIdx = -1
-                for (i in prevCourseEnds.indices) {
-                    if (midX < prevCourseEnds[i]) {
-                        upperToneIdx = prevCourseTones[i]
-                        break
-                    }
+                var xEnd = if (jointsX != null) {
+                    jointsX.getOrNull(blockIdx) ?: w
+                } else {
+                    x + blockMin + PixelNoise.hash(blockIdx, courseIdx, seed + 19) % blockRange
                 }
+                // Running bond: never stack a joint within 3 art px of the joint in the course above.
+                if (jointsX == null && prevEnds.any { abs(it - xEnd) <= 3 }) xEnd += 6
 
-                // Pick a tone index in 0..2 that differs from both leftToneIdx and upperToneIdx
-                val rawPick = PixelNoise.hash(blockIdx, courseIdx, seed + 37) % 3
-                var toneIdx = rawPick
-                for (attempt in 0 until 3) {
-                    val candidate = (rawPick + attempt) % 3
-                    if (candidate != leftToneIdx && candidate != upperToneIdx) {
+                val midX = (x.coerceAtLeast(0) + xEnd.coerceAtMost(w)) / 2
+                val upperIdx = prevEnds.indexOfFirst { midX < it }
+                val upperTone = if (upperIdx >= 0) prevTones[upperIdx] else -1
+                val preferred = if (torchlight) {
+                    val dx = (midX - w / 2).toFloat() / w
+                    val dy = ((y + mortarY) / 2 - h / 4).toFloat() / h
+                    val d = sqrt(dx * dx + dy * dy * 1.6f)
+                    (baseCount - 1 - (d * baseCount * 1.6f).toInt()).coerceIn(0, baseCount - 1)
+                } else {
+                    PixelNoise.hash(blockIdx, courseIdx, seed + 37) % baseCount
+                }
+                var toneIdx = preferred
+                for (step in intArrayOf(0, -1, 1, -2, 2)) {
+                    val candidate = preferred + step
+                    if (candidate in 0 until baseCount && candidate != leftTone && candidate != upperTone) {
                         toneIdx = candidate
                         break
                     }
                 }
-                leftToneIdx = toneIdx
+                leftTone = toneIdx
                 curEnds.add(xEnd)
                 curTones.add(toneIdx)
 
-                // Pair of tones for block interior dithering
-                val blockPair = intArrayOf(
-                    STONE_GROUND_TONES[toneIdx + 1],
-                    STONE_GROUND_TONES[(toneIdx + 2).coerceAtMost(3)]
-                )
-                val topLeftEdgeTone = STONE_GROUND_TONES[(toneIdx + 2).coerceAtMost(4)]
-                val bottomRightEdgeTone = STONE_GROUND_TONES[toneIdx]
+                val b = 1 + toneIdx
+                val catchLight = ramp[b + 1]
+                val shadow = ramp[b - 1]
+                val lighter = ramp[(b + 1).coerceAtMost(lastBase)]
+                val blockW = xEnd - x
+                val hasFissure = PixelNoise.hash(blockIdx, courseIdx, seed + 5) % 4 == 0 &&
+                    blockW > 14 && courseH > 10
+                val fx = x + 4 + PixelNoise.hash(blockIdx, courseIdx, seed + 11) % (blockW - 10).coerceAtLeast(1)
+                val fy = y + 3 + PixelNoise.hash(blockIdx, courseIdx, seed + 13) % (courseH - 7).coerceAtLeast(1)
 
-                val bx0 = x.coerceIn(0, w)
-                val bx1 = xEnd.coerceIn(0, w)
-                for (py in y until yEnd) {
-                    for (px in bx0 until bx1) {
+                for (py in y..mortarY) {
+                    for (px in x.coerceAtLeast(0) until xEnd.coerceAtMost(w)) {
+                        val corner = (px == x || px == xEnd - 2) && (py == y || py == mortarY - 1)
+                        val worn = PixelNoise.hash(px, py, seed + 53) < 77
                         val color = when {
-                            py == mortarY || px == xEnd - 1 -> mortar
-                            py == y || px == x -> {
-                                // 1-art-px top/left chiseled catch-light with occasional nick
-                                if (PixelNoise.hash(px, py, seed + 53) < 28) baseTones[toneIdx] else topLeftEdgeTone
-                            }
-                            py == mortarY - 1 || px == xEnd - 2 -> bottomRightEdgeTone
+                            py == mortarY || px == xEnd - 1 || corner -> mortar
+                            py == y || px == x -> if (worn) ramp[b] else catchLight
+                            py == mortarY - 1 || px == xEnd - 2 -> shadow
+                            hasFissure && px - fx in 0..3 && py - fy == (px - fx) / 2 -> mortar
                             else -> {
-                                val n = PixelNoise.value(px, py, 5, seed + 71)
-                                val jitter = (PixelNoise.hash(px, py, seed + 89) - 128) / 3
-                                PixelNoise.quantise(n + jitter, blockPair, px, py)
+                                val v = PixelNoise.value(px, py, 8, seed + 71)
+                                val threshold = PixelNoise.bayer4(px, py) * 16 + 8
+                                when {
+                                    v > 180 && (v - 180) * 3 > threshold -> lighter
+                                    v < 60 && (60 - v) * 3 > threshold -> shadow
+                                    else -> ramp[b]
+                                }
                             }
                         }
                         canvas.set(px, py, color)
                     }
                 }
-
                 x = xEnd
                 blockIdx++
             }
-
-            prevCourseEnds = curEnds.toIntArray()
-            prevCourseTones = curTones.toIntArray()
+            prevEnds = curEnds.toIntArray()
+            prevTones = curTones.toIntArray()
             y += courseH
             courseIdx++
         }
     }
 
     /**
-     * Draws low-contrast carved stone mottling into [canvas] for panel interiors behind text.
-     * Uses only [PANEL_STONE_TONES] (`#221D16`, `#27211A`, `#2B251D`) with Bayer 4x4 dithering.
+     * Draws a calm chiselled tablet surface for panel interiors behind text: broad slab grain
+     * with faint horizontal chisel strokes, using only [PANEL_STONE_TONES] with Bayer dithering.
      */
     fun drawPanelStone(canvas: PixelCanvas, seed: Int = 101) {
         val w = canvas.w
         val h = canvas.h
         for (y in 0 until h) {
             for (x in 0 until w) {
-                val coarse = PixelNoise.value(x, y, 7, seed)
-                val fine = PixelNoise.value(x, y, 3, seed + 29)
-                val jitter = (PixelNoise.hash(x, y, seed + 61) - 128) / 4
-                val v = ((coarse * 3 + fine) / 4) + jitter
+                val slab = PixelNoise.value(x, y, 9, seed)
+                val chisel = PixelNoise.value(x / 4, y * 3, 3, seed + 29)
+                val jitter = (PixelNoise.hash(x, y, seed + 61) - 128) / 10
+                val v = ((slab * 3 + chisel) / 4) + jitter
                 canvas.set(x, y, PixelNoise.quantise(v, PANEL_STONE_TONES, x, y))
             }
         }
     }
 
     /**
-     * Draws horizontal dark-oak planks of varying height (5–9 art px) with stretched 8:1 grain,
-     * dark plank seams, occasional small pixel knots, and optional wrought-iron end straps.
+     * Draws clean planed dark-oak planks (5-9 art px) with long horizontal grain, a lit top edge
+     * and dark seam per plank, and optional wrought-iron end straps. No knots or blots.
      */
     fun drawOakBeam(
         canvas: PixelCanvas,
@@ -224,69 +261,36 @@ object Textures {
         if (w <= 0 || h <= 0) return
 
         val seamTone = OAK_TONES[0]
-        val knotRingTone = OAK_TONES[3]
-        val grainPair = intArrayOf(OAK_TONES[1], OAK_TONES[2], OAK_TONES[3])
+        val ridgeTone = OAK_TONES[3]
+        val grain = intArrayOf(OAK_TONES[1], OAK_TONES[2])
 
         var y = 0
         var plankIdx = 0
         while (y < h) {
-            val plankH = if (showPlankSeams) {
-                5 + (PixelNoise.hash(plankIdx, 0, seed) % 5) // 5..9 art px
-            } else {
-                h
-            }
+            val plankH = if (showPlankSeams) 5 + PixelNoise.hash(plankIdx, 0, seed) % 5 else h
             val yEnd = min(h, y + plankH)
             val seamY = y + plankH - 1
-
-            // Optional butt-joint seam on wider beams
-            val hasButtJoint = showPlankSeams && w > 48 && (PixelNoise.hash(plankIdx, 1, seed) % 2 == 0)
-            val buttJointX = if (hasButtJoint) {
-                18 + (PixelNoise.hash(plankIdx, 2, seed + 13) % (w - 36).coerceAtLeast(1))
+            val buttJointX = if (showPlankSeams && w > 48 && PixelNoise.hash(plankIdx, 1, seed) % 2 == 0) {
+                18 + PixelNoise.hash(plankIdx, 2, seed + 13) % (w - 36).coerceAtLeast(1)
             } else {
                 -10
             }
-
-            // Optional knot every ~120 art px of plank
-            val hasKnot = w >= 24 && (PixelNoise.hash(plankIdx, 3, seed + 31) % 2 == 0)
-            val knotX = if (hasKnot) {
-                10 + (PixelNoise.hash(plankIdx, 4, seed + 47) % (w - 20).coerceAtLeast(1))
-            } else {
-                -100
-            }
-            val knotY = y + plankH / 2
-
             for (py in y until yEnd) {
                 for (px in 0 until w) {
-                    if (showPlankSeams && (py == seamY && yEnd < h || px == buttJointX)) {
-                        canvas.set(px, py, seamTone)
-                        continue
-                    }
-
-                    // Check knot (small 5x3 pixel ellipse)
-                    val dx = px - knotX
-                    val dy = py - knotY
-                    val knotDist = dx * dx + dy * dy * 4
-                    if (hasKnot && knotDist <= 4) {
-                        canvas.set(px, py, seamTone)
-                        continue
-                    } else if (hasKnot && knotDist in 5..9) {
-                        canvas.set(px, py, knotRingTone)
-                        continue
-                    }
-
-                    // 8:1 horizontally stretched wood grain noise
-                    val stretched = PixelNoise.value(px / 8, py * 2 + plankIdx * 11, 2, seed + 59)
-                    val streak = (PixelNoise.hash(px / 4, py + plankIdx * 7, seed + 83) - 128) / 3
-                    val v = stretched + streak
-                    val tone = if (v < 42) {
-                        seamTone
-                    } else {
-                        PixelNoise.quantise(v, grainPair, px, py)
+                    val tone = when {
+                        showPlankSeams && py == seamY && yEnd < h -> seamTone
+                        px == buttJointX -> seamTone
+                        px == buttJointX + 1 -> ridgeTone
+                        showPlankSeams && py == y && y > 0 -> ridgeTone
+                        else -> {
+                            // Long planed grain: slow along the board, changing row to row.
+                            val v = PixelNoise.value(px, py * 7 + plankIdx * 53, 16, seed + 59)
+                            PixelNoise.quantise(v, grain, px, py)
+                        }
                     }
                     canvas.set(px, py, tone)
                 }
             }
-
             y += plankH
             plankIdx++
         }
@@ -427,7 +431,7 @@ object Textures {
 }
 
 /**
- * Full-screen or container ground in coursed stone blocks rendered at integer art-pixel resolution.
+ * Full-screen or container ground in OSRS login-screen ashlar stone at integer art-pixel resolution.
  */
 fun Modifier.stoneGround(seed: Int = 101): Modifier =
     this.pixelArt(key = Pair("stoneGround", seed)) {
@@ -443,7 +447,7 @@ fun Modifier.carvedStone(seed: Int = 101): Modifier =
     }
 
 /**
- * Aged dark oak beam texture with horizontal planks, stretched grain, knots, and optional seams.
+ * Clean planed dark-oak beam texture with horizontal planks, long grain, and optional seams.
  */
 fun Modifier.oakBeam(seed: Int = 202, showPlankSeams: Boolean = true): Modifier =
     this.pixelArt(key = Triple("oakBeam", seed, showPlankSeams)) {

@@ -129,6 +129,7 @@ PALETTE: dict[str, int] = {
     "GemEmerald": 0x3CC07A,
     "GemSapphire": 0x5A8EF0,
     "SweatLight": 0xA8E8F4,
+    "FlameOrange": 0xF08A30,
 
     # Blighted crop (BadgeWarning natural tones)
     "BlightLight": 0xD4B04C,

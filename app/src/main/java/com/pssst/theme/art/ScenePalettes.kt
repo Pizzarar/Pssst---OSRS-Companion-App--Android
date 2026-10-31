@@ -103,6 +103,7 @@ object ScenePalettes {
     val GemEmerald: Int = 0xFF3CC07A.toInt()
     val GemSapphire: Int = 0xFF5A8EF0.toInt()
     val SweatLight: Int = 0xFFA8E8F4.toInt()
+    val FlameOrange: Int = 0xFFF08A30.toInt()
     val BlightLight: Int = 0xFFD4B04C.toInt()
     val BlightMid: Int = 0xFFB07A34.toInt()
     val BlightDark: Int = 0xFF6E4A22.toInt()
