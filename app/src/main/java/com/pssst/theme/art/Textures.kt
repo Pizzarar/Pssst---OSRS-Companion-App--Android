@@ -2,11 +2,6 @@ package com.pssst.theme.art
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
-import com.pssst.theme.OsrsBorderDark
-import com.pssst.theme.OsrsBorderLight
-import com.pssst.theme.OsrsBorderOutline
-import com.pssst.theme.OsrsDarkStone
-import com.pssst.theme.OsrsHerbDark
 import com.pssst.theme.OsrsIronBody
 import com.pssst.theme.OsrsIronEdgeDark
 import com.pssst.theme.OsrsIronEdgeLight
@@ -14,21 +9,25 @@ import com.pssst.theme.OsrsLeatherBase
 import com.pssst.theme.OsrsLeatherCrease
 import com.pssst.theme.OsrsLeatherHighlight
 import com.pssst.theme.OsrsLeatherStitch
+import com.pssst.theme.OsrsMossDark
+import com.pssst.theme.OsrsMossLight
 import com.pssst.theme.OsrsOakBase
 import com.pssst.theme.OsrsOakGrainDark
 import com.pssst.theme.OsrsOakGrainLight
 import com.pssst.theme.OsrsOakMid
-import com.pssst.theme.OsrsOuterFrame
 import com.pssst.theme.OsrsPanelDark
-import com.pssst.theme.OsrsPanelLight
 import com.pssst.theme.OsrsPanelMid
 import com.pssst.theme.OsrsParchmentDark
 import com.pssst.theme.OsrsParchmentStain
 import com.pssst.theme.OsrsParchmentWarm
+import com.pssst.theme.OsrsSlateBevel
+import com.pssst.theme.OsrsSlateCatchLight
+import com.pssst.theme.OsrsSlateDark
+import com.pssst.theme.OsrsSlateLit
+import com.pssst.theme.OsrsSlateMid
+import com.pssst.theme.OsrsSlateMortar
+import com.pssst.theme.OsrsSlateUndercut
 import com.pssst.theme.OsrsSlotEmpty
-import com.pssst.theme.OsrsSlotRecessed
-import com.pssst.theme.OsrsStoneMid
-import com.pssst.theme.OsrsStonePoreDark
 import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.sqrt
@@ -43,30 +42,26 @@ import kotlin.math.sqrt
 object Textures {
 
     /**
-     * Text-safe stone block faces (darkest to lightest). Every text colour keeps >= 4.5:1 on these,
-     * see ArtContrastTest; text only ever sits on block faces.
+     * Text-safe cool slate block faces of the OSRS login-screen ground (darkest to lightest).
+     * ArtContrastTest checks every text colour that sits on the ground against these.
      */
     val STONE_GROUND_BASE_TONES: IntArray = intArrayOf(
-        OsrsStonePoreDark.toArgb(),
-        OsrsDarkStone.toArgb(),
-        OsrsStoneMid.toArgb(),
-        OsrsSlotEmpty.toArgb(),
-        OsrsPanelMid.toArgb(),
-        OsrsPanelDark.toArgb()
+        OsrsSlateDark.toArgb(),
+        OsrsSlateMid.toArgb(),
+        OsrsSlateLit.toArgb()
     )
 
     /**
-     * Every tone the login-screen stone ground may draw: [STONE_GROUND_BASE_TONES] plus the thin
-     * chiselled bevels, mortar/undercut, and sparse dungeon moss in mortar corners.
+     * Every tone the stone ground may draw: [STONE_GROUND_BASE_TONES] plus mortar, undercut,
+     * the two chiselled bevel steps, and moss.
      */
     val STONE_GROUND_TONES: IntArray = STONE_GROUND_BASE_TONES + intArrayOf(
-        OsrsOuterFrame.toArgb(),
-        OsrsBorderDark.toArgb(),
-        OsrsSlotRecessed.toArgb(),
-        OsrsPanelLight.toArgb(),
-        OsrsBorderOutline.toArgb(),
-        OsrsBorderLight.toArgb(),
-        OsrsHerbDark.toArgb()
+        OsrsSlateMortar.toArgb(),
+        OsrsSlateUndercut.toArgb(),
+        OsrsSlateBevel.toArgb(),
+        OsrsSlateCatchLight.toArgb(),
+        OsrsMossDark.toArgb(),
+        OsrsMossLight.toArgb()
     )
 
     /** 3-tone carved panel stone ramp (keeps OsrsRed >= 4.64:1 and OsrsHerbGreen >= 5.45:1). */
@@ -112,30 +107,26 @@ object Textures {
         OsrsLeatherStitch.toArgb()
     )
 
-    /** Ashlar style for the app background: bold 2-step bevel, deep joints, moss in the corners. */
+    /** OSRS login-screen cool slate: bold 2-step bevel, deep mortar, mossy blocks and corners. */
     internal val GROUND_ASHLAR: AshlarStyle
         get() = AshlarStyle(
-            mortar = OsrsOuterFrame.toArgb(),
-            undercut = OsrsBorderDark.toArgb(),
-            faces = intArrayOf(
-                OsrsDarkStone.toArgb(),
-                OsrsStoneMid.toArgb(),
-                OsrsSlotEmpty.toArgb(),
-                OsrsPanelMid.toArgb(),
-                OsrsPanelDark.toArgb()
-            ),
-            topBevel = intArrayOf(OsrsBorderLight.toArgb(), OsrsPanelLight.toArgb()),
-            leftBevel = intArrayOf(OsrsBorderOutline.toArgb(), OsrsSlotRecessed.toArgb()),
-            moss = OsrsHerbDark.toArgb()
+            mortar = OsrsSlateMortar.toArgb(),
+            undercut = OsrsSlateUndercut.toArgb(),
+            faces = STONE_GROUND_BASE_TONES,
+            topBevel = intArrayOf(OsrsSlateCatchLight.toArgb(), OsrsSlateBevel.toArgb()),
+            leftBevel = intArrayOf(OsrsSlateCatchLight.toArgb(), OsrsSlateBevel.toArgb()),
+            moss = OsrsMossDark.toArgb(),
+            mossLight = OsrsMossLight.toArgb()
         )
 
     /**
-     * OSRS login-screen dungeon wall: monumental ashlar blocks.
+     * OSRS login-screen dungeon wall: monumental cool slate ashlar blocks, deliberately cooler than
+     * the warm brown interface panels drawn on top of it.
      *
      * - Courses 11-16 art px high, blocks 20-36 art px wide, laid in running bond.
      * - Deep 1-art-px joints with chamfered corners and a dark undercut on each block's lower/right edge.
      * - A 2-step chiselled bevel along the top/left, worn away in places.
-     * - Calm, broad slab mottling on text-safe faces, the odd hairline fissure, sparse moss in corners.
+     * - Calm, broad slab mottling on text-safe faces, hairline fissures, moss in corners and on some blocks.
      * - A torchlit falloff: blocks near the upper centre are lighter and fully bevelled; edges settle darker.
      */
     fun drawStoneGround(canvas: PixelCanvas, seed: Int = 101) {
@@ -153,7 +144,8 @@ object Textures {
 
     /**
      * Tones for [drawAshlar]. [faces] run darkest to lightest; [topBevel] and [leftBevel] are
-     * (outer, inner) chiselled highlight steps. [moss], when set, flecks some mortar corners.
+     * (outer, inner) chiselled highlight steps. [moss], when set, fills some mortar corners and
+     * creeps over the lower-left of some blocks, flecked with [mossLight].
      */
     internal class AshlarStyle(
         val mortar: Int,
@@ -161,7 +153,8 @@ object Textures {
         val faces: IntArray,
         val topBevel: IntArray,
         val leftBevel: IntArray,
-        val moss: Int? = null
+        val moss: Int? = null,
+        val mossLight: Int? = null
     )
 
     /**
@@ -254,13 +247,16 @@ object Textures {
                 val fx = x + 5 + PixelNoise.hash(blockIdx, courseIdx, seed + 11) % (blockW - 11).coerceAtLeast(1)
                 val fy = y + 4 + PixelNoise.hash(blockIdx, courseIdx, seed + 13) % (courseH - 8).coerceAtLeast(1)
                 val mossy = style.moss != null && PixelNoise.hash(blockIdx, courseIdx, seed + 3) % 5 == 0
+                val mossPatch = style.moss != null && style.mossLight != null &&
+                    PixelNoise.hash(blockIdx, courseIdx, seed + 23) % 7 == 0
 
                 for (py in y..mortarY) {
                     for (px in x.coerceAtLeast(0) until xEnd.coerceAtMost(w)) {
                         val corner = (px == x || px == xEnd - 2) && (py == y || py == mortarY - 1)
                         val worn = PixelNoise.hash(px, py, seed + 53) < 51
                         val color = when {
-                            mossy && py >= mortarY - 1 && px - x in 0..2 && (px - x) + (mortarY - py) <= 2 -> style.moss!!
+                            mossy && py >= mortarY - 1 && px - x in 0..2 && (px - x) + (mortarY - py) <= 2 ->
+                                if ((px + py) % 3 == 0 && style.mossLight != null) style.mossLight else style.moss!!
                             py == mortarY || px == xEnd - 1 || corner -> style.mortar
                             py == mortarY - 1 || px == xEnd - 2 -> style.undercut
                             py == y -> if (worn) style.topBevel[1] else topOuter
@@ -268,6 +264,9 @@ object Textures {
                             fullBevel && py == y + 1 -> style.topBevel[1]
                             fullBevel && px == x + 1 -> style.leftBevel[1]
                             hasFissure && px - fx in 0..3 && py - fy == (px - fx) / 2 -> style.undercut
+                            mossPatch && py > y + 1 && px > x + 1 &&
+                                (px - x) * 2 + (mortarY - py) * 3 < 22 + PixelNoise.hash(px, py, seed + 29) % 6 ->
+                                if (PixelNoise.hash(px, py, seed + 31) < 60) style.mossLight!! else style.moss!!
                             else -> {
                                 val v = PixelNoise.value(px, py, 8, seed + 71)
                                 val threshold = PixelNoise.bayer4(px, py) * 16 + 8

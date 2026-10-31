@@ -116,7 +116,8 @@ fun EmptyStateVignette(
 }
 
 /**
- * The Pssst informant crest (the visible 24x24 zone of the 36x36 launcher grid) for the Setup screen.
+ * The Pssst crest (gold-trimmed heraldic shield with a gold "P"; the visible 24x24 zone of the
+ * 36x36 launcher grid) for the Setup screen.
  */
 @Composable
 fun InformantCrest(
@@ -129,7 +130,7 @@ fun InformantCrest(
         scaleMultiplier = scaleMultiplier,
         cacheKey = "informant_crest_view",
         modifier = modifier,
-        contentDescription = "Pssst informant crest"
+        contentDescription = "Pssst crest"
     ) {
         EmptyStates.drawInformantCrestView(this)
     }
@@ -247,7 +248,7 @@ object EmptyStates {
     const val CREST_SIZE = 36
 
     /** Visible 24x24 zone of the crest (the adaptive-icon viewport) used on the Setup screen. */
-    const val CREST_VIEW_X = 5
+    const val CREST_VIEW_X = 6
     const val CREST_VIEW_Y = 6
     const val CREST_VIEW_SIZE = 24
 

@@ -1,85 +1,58 @@
-"""36x36 Informant Crest: a hooded informant peeking around a stone pillar,
-hand cupped to whisper "Pssst..." toward a glowing gold sync scroll.
-
-Key silhouettes (eyes, face, glove, scroll) sit inside the adaptive-icon safe
-circle (centre 18,18, radius 11 logical px). The pillar shaft and the cloak hem
-are framing only, so round launcher masks may trim them without losing the read.
+"""36x36 Pssst crest: a gold-trimmed heraldic shield, crimson and royal blue, carrying a bold
+chiselled gold "P". The whole emblem sits inside the adaptive-icon safe circle (centre 18,18,
+radius 11 logical px), so every launcher mask shows all of it.
 """
-from pixart import Canvas, rect, solid, edge_shade
+from pixart import Canvas, ring
 
-HOOD = [
-    # 0123456789012345
-    "...LLLL.........",  # 0  cowl crown
-    "..LMMMMLR.......",  # 1
-    ".LMMMMMMMR......",  # 2
-    "LMMMMMMMMMR.....",  # 3
-    "LMMMMMDDDDDR....",  # 4  hood lip
-    "LMMMMDEEEEEER...",  # 5  shadowed brow
-    "LMMMMDEEYYEER...",  # 6  glinting eyes, the only bright thing in the cowl
-    ".LMMMDEEEEESk...",  # 7  scroll-lit nose tip
-    "..LMMDEEEEEk....",  # 8  face stays in hood shadow
-    "...LMMDEEEk.....",  # 9  neck curves in behind the pillar
-    "....LMMDDk......",  # 10
-    "...LMMMMMDR.....",  # 11
-    "..LMMMMMMMDRR...",  # 12 shoulders swell back out
-    ".LMMDMMMMMMMDR..",  # 13 cloak folds
-    "LMMDMMMMMMGMMDR.",  # 14 brass cloak pin
-    "LMMDDMMMMMDMMMDR",  # 15
-    "LMMMDMMMMMDDMMMD",  # 16
-    "LMMMDMMMMMMDMMMD",  # 17
-    "LMMMDDMMMMMDMMMD",  # 18
-    "LMMMMDMMMMMDMMMD",  # 19
-]
-HOOD_LEGEND = {
-    "L": "RogueLight", "M": "RogueMid", "D": "RogueDark", "E": "HollowDark",
-    "R": "RogueRim", "Y": "GoldBright", "G": "GoldMid",
-    "S": "SkinLight", "s": "SkinMid", "k": "SkinDark",
+# Shield silhouette in 36x36 coordinates: straight sides, then a curved point.
+SHIELD_ROWS = {
+    9: (11, 24), 10: (11, 24), 11: (11, 24), 12: (11, 24), 13: (11, 24), 14: (11, 24),
+    15: (11, 24), 16: (11, 24), 17: (11, 24), 18: (11, 24), 19: (11, 24),
+    20: (12, 23), 21: (12, 23), 22: (13, 22), 23: (14, 21), 24: (15, 20), 25: (16, 19),
+    26: (17, 18),
 }
 
-GLOVE = [
-    "S.S.",
-    "SSSS",
-    "SSSs",
-    "SSsk",
-    ".sk.",
+P_GLYPH = [
+    "#####.",
+    "##..##",
+    "##..##",
+    "#####.",
+    "##....",
+    "##....",
+    "##....",
 ]
-GLOVE_LEGEND = {"S": "SkinLight", "s": "SkinMid", "k": "SkinDark"}
-
-SCROLL = [
-    "BGGGB",
-    "gGGGg",
-    ".WWw.",
-    ".Wvw.",
-    ".WWw.",
-    ".Wvw.",
-    "BGGGB",
-    "gGGGg",
-]
-SCROLL_LEGEND = {
-    "B": "GoldBright", "G": "GoldMid", "g": "GoldDeep",
-    "W": "ParchLight", "w": "ParchMid", "v": "ParchDeep",
-}
 
 
 def build() -> Canvas:
     c = Canvas(36, 36)
-    # Informant bust
-    c.stamp(HOOD, 8, 8, HOOD_LEGEND)
-    # Bare hand cupped at the mouth; its own outline keeps it apart from the shadowed face
-    c.stamp(GLOVE, 19, 15, GLOVE_LEGEND)
-    # Stone pillar in front of the cowl's back edge (framing; may be masked)
-    shaft = rect(6, 10, 3, 19)
-    solid(shaft, c, edge_shade(shaft, "StoneLight", "StoneMid", "StoneDark"))
-    for y in (14, 20, 26):  # cut-stone courses: dark mortar seam, lit top edge below it
-        for x in range(6, 9):
-            c.set(x, y, "Outline")
-            c.set(x, y + 1, "StoneLight")
-    cap = rect(5, 8, 5, 2)
-    solid(cap, c, edge_shade(cap, "StoneLight", "StoneMid", "StoneDark"))
-    # Glowing sync scroll the secret is whispered toward
-    c.stamp(SCROLL, 22, 10, SCROLL_LEGEND)
-    # Whisper motes drifting from the glove to the scroll, plus scroll glints
-    for (x, y, n) in ((22, 18, "CyanMoteLight"), (23, 20, "CyanMoteMid"),
-                      (25, 20, "CyanMoteLight"), (27, 12, "GoldBright"), (20, 9, "GoldBright")):
-        c.set(x, y, n)
+    # Shield: outline, gold trim ring, split crimson / royal-blue field
+    shield = {(x, y) for y, (x0, x1) in SHIELD_ROWS.items() for x in range(x0, x1 + 1)}
+    c.outline(shield, diag=True)
+    trim = {p for p in shield if any(q not in shield for q in ((p[0] - 1, p[1]), (p[0] + 1, p[1]),
+                                                              (p[0], p[1] - 1), (p[0], p[1] + 1)))}
+    field = shield - trim
+    for x, y in trim:
+        lit = (x <= 17 and y <= 20) or y == 9
+        c.set(x, y, "GoldBright" if lit else "GoldDeep")
+    for x, y in field:
+        edge = (x - 1, y) in trim or (x, y - 1) in trim
+        if x <= 17:
+            c.set(x, y, "VelvetLight" if edge else "VelvetMid")
+        else:
+            c.set(x, y, "QuestBlueLight" if edge else "QuestBlueMid")
+    # Inner shadow along the lower edge for depth
+    for x, y in field:
+        if (x, y + 1) in trim:
+            c.set(x, y, "VelvetDark" if x <= 17 else "QuestBlueDark")
+    # Bone rivets in the upper corners of the trim
+    c.set(12, 10, "Bone")
+    c.set(23, 10, "Bone")
+
+    # Chiselled gold "P"
+    p = {(x + 15, y + 11) for y, row in enumerate(P_GLYPH) for x, ch in enumerate(row) if ch == "#"}
+    c.fill(ring(p, diag=True) & shield, "Outline")
+    for x, y in p:
+        lit = (x - 1, y) not in p or (x, y - 1) not in p
+        shade = (x + 1, y) not in p or (x, y + 1) not in p
+        c.set(x, y, "GoldBright" if lit else ("GoldDeep" if shade else "GoldMid"))
     return c

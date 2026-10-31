@@ -20,7 +20,13 @@ import com.pssst.theme.OsrsIronEdgeDark
 import com.pssst.theme.OsrsIronEdgeLight
 import com.pssst.theme.OsrsOuterFrame
 import com.pssst.theme.OsrsPanelDark
-import com.pssst.theme.OsrsPanelMid
+import com.pssst.theme.OsrsSlateBevel
+import com.pssst.theme.OsrsSlateCatchLight
+import com.pssst.theme.OsrsSlateDark
+import com.pssst.theme.OsrsSlateLit
+import com.pssst.theme.OsrsSlateMid
+import com.pssst.theme.OsrsSlateMortar
+import com.pssst.theme.OsrsSlateUndercut
 import com.pssst.theme.OsrsSlotEmpty
 import com.pssst.theme.OsrsSlotRecessed
 import com.pssst.theme.OsrsStonePoreDark
@@ -123,35 +129,35 @@ object Frames {
     }
 
     /**
-     * Carved stone for bars and plaques: 2-art-px chiselled bevel, text-safe faces up to
-     * [OsrsSlotRecessed], dark undercut and joints.
+     * Cool slate login-screen stone for bars and plaques: 2-art-px chiselled bevel, slate faces,
+     * deep undercut and mortar. Contrasts with the warm brown panels below.
      */
     internal val BAR_ASHLAR: Textures.AshlarStyle
         get() = Textures.AshlarStyle(
-            mortar = OsrsOuterFrame.toArgb(),
-            undercut = OsrsBorderDark.toArgb(),
-            faces = intArrayOf(OsrsPanelMid.toArgb(), OsrsPanelDark.toArgb(), OsrsSlotRecessed.toArgb()),
-            topBevel = intArrayOf(OsrsBorderLight.toArgb(), OsrsBorderOutline.toArgb()),
-            leftBevel = intArrayOf(OsrsBorderLight.toArgb(), OsrsBorderOutline.toArgb())
+            mortar = OsrsSlateMortar.toArgb(),
+            undercut = OsrsSlateUndercut.toArgb(),
+            faces = intArrayOf(OsrsSlateDark.toArgb(), OsrsSlateMid.toArgb(), OsrsSlateLit.toArgb()),
+            topBevel = intArrayOf(OsrsSlateCatchLight.toArgb(), OsrsSlateBevel.toArgb()),
+            leftBevel = intArrayOf(OsrsSlateCatchLight.toArgb(), OsrsSlateBevel.toArgb())
         )
 
-    /** Bright gold cornice rail, 3 art px: highlight, brass, shadow. */
+    /** Warm brazier-gold cornice rail, 3 art px: highlight, gold, brass. */
     private fun goldRail(canvas: PixelCanvas, y: Int) {
         canvas.hLine(0, y, canvas.w, OsrsGoldHighlight.toArgb())
-        canvas.hLine(0, y + 1, canvas.w, OsrsBrassMid.toArgb())
-        canvas.hLine(0, y + 2, canvas.w, OsrsGoldShadow.toArgb())
+        canvas.hLine(0, y + 1, canvas.w, OsrsGold.toArgb())
+        canvas.hLine(0, y + 2, canvas.w, OsrsBrassMid.toArgb())
     }
 
     /**
-     * Top status bar: a heavy OSRS login-screen carved stone header. Chiselled ashlar courses
-     * between bright gold cornice rails, with brass rivets at the corners.
+     * Top status bar: a heavy OSRS login-screen carved slate header. Chiselled grey ashlar
+     * courses between warm brazier-gold cornice rails, with brass rivets at the corners.
      */
     fun drawOakBeamFrame(canvas: PixelCanvas, seed: Int = 202) {
         val w = canvas.w
         val h = canvas.h
         if (w <= 0 || h <= 0) return
 
-        Textures.drawPanelStone(canvas, seed = seed)
+        canvas.clear(OsrsSlateMid.toArgb())
         val body = (h - 10).coerceAtLeast(1)
         Textures.drawAshlar(
             canvas = canvas,
@@ -169,9 +175,9 @@ object Frames {
         canvas.hLine(0, 0, w, outline)
         if (h >= 12) {
             goldRail(canvas, 1)
-            canvas.hLine(0, 4, w, OsrsBorderDark.toArgb())
+            canvas.hLine(0, 4, w, OsrsSlateMortar.toArgb())
             goldRail(canvas, h - 5)
-            canvas.hLine(0, h - 2, w, OsrsBorderDark.toArgb())
+            canvas.hLine(0, h - 2, w, OsrsSlateMortar.toArgb())
         }
         canvas.hLine(0, h - 1, w, outline)
         if (w >= 16 && h >= 16) {
@@ -182,15 +188,15 @@ object Frames {
     }
 
     /**
-     * Bottom navigation bar: an OSRS login-screen carved stone footer. One course of chiselled
-     * ashlar whose joints line up with the five tab columns, under a bright gold cornice rail.
+     * Bottom navigation bar: an OSRS login-screen carved slate footer. One course of chiselled grey
+     * ashlar whose joints line up with the five tab columns, under a warm brazier-gold rail.
      */
     fun drawStoneSillFrame(canvas: PixelCanvas, seed: Int = 109) {
         val w = canvas.w
         val h = canvas.h
         if (w <= 0 || h <= 0) return
 
-        Textures.drawPanelStone(canvas, seed = seed)
+        canvas.clear(OsrsSlateMid.toArgb())
         val joints = IntArray(5) { i -> if (i < 4) (w * (i + 1)) / 5 + 1 else w }
         Textures.drawAshlar(
             canvas = canvas,
@@ -208,9 +214,9 @@ object Frames {
         canvas.hLine(0, 0, w, outline)
         if (h >= 8) {
             goldRail(canvas, 1)
-            canvas.hLine(0, 4, w, OsrsBorderDark.toArgb())
+            canvas.hLine(0, 4, w, OsrsSlateMortar.toArgb())
         }
-        canvas.hLine(0, h - 2, w, OsrsBorderDark.toArgb())
+        canvas.hLine(0, h - 2, w, OsrsSlateMortar.toArgb())
         canvas.hLine(0, h - 1, w, outline)
         if (w >= 16 && h >= 16) {
             brassRivet(canvas, 2, 6)
@@ -441,16 +447,16 @@ fun Modifier.stoneSillFrame(seed: Int = 109): Modifier =
     }
 
 /**
- * Bottom-bar tab button: selected tabs are a raised stone tablet with a gold catch-light,
- * unselected tabs a shallow recessed stone slot. Includes the slot's outer margin.
+ * Bottom-bar tab button: selected tabs are a raised slate tablet with a gold catch-light,
+ * unselected tabs a recessed dark slate well. Includes the slot's outer margin.
  */
 fun Modifier.stoneTabSlot(selected: Boolean): Modifier = this
     .padding(horizontal = 3.dp, vertical = 4.dp)
     .pixelBevelBox(
-        fill = if (selected) OsrsPanelDark else OsrsSlotEmpty,
-        outline = OsrsOuterFrame,
-        light = if (selected) OsrsGold else OsrsBorderOutline,
-        dark = OsrsBorderDark,
+        fill = if (selected) OsrsSlateMid else OsrsSlateUndercut,
+        outline = OsrsSlateMortar,
+        light = if (selected) OsrsGold else OsrsSlateBevel,
+        dark = if (selected) OsrsSlateUndercut else OsrsSlateMortar,
         raised = selected
     )
 
