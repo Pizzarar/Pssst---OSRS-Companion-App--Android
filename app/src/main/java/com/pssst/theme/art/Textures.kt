@@ -2,7 +2,11 @@ package com.pssst.theme.art
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
+import com.pssst.theme.OsrsBorderDark
+import com.pssst.theme.OsrsBorderLight
+import com.pssst.theme.OsrsBorderOutline
 import com.pssst.theme.OsrsDarkStone
+import com.pssst.theme.OsrsHerbDark
 import com.pssst.theme.OsrsIronBody
 import com.pssst.theme.OsrsIronEdgeDark
 import com.pssst.theme.OsrsIronEdgeLight
@@ -14,12 +18,15 @@ import com.pssst.theme.OsrsOakBase
 import com.pssst.theme.OsrsOakGrainDark
 import com.pssst.theme.OsrsOakGrainLight
 import com.pssst.theme.OsrsOakMid
+import com.pssst.theme.OsrsOuterFrame
 import com.pssst.theme.OsrsPanelDark
+import com.pssst.theme.OsrsPanelLight
 import com.pssst.theme.OsrsPanelMid
 import com.pssst.theme.OsrsParchmentDark
 import com.pssst.theme.OsrsParchmentStain
 import com.pssst.theme.OsrsParchmentWarm
 import com.pssst.theme.OsrsSlotEmpty
+import com.pssst.theme.OsrsSlotRecessed
 import com.pssst.theme.OsrsStoneMid
 import com.pssst.theme.OsrsStonePoreDark
 import kotlin.math.abs
@@ -35,13 +42,31 @@ import kotlin.math.sqrt
  */
 object Textures {
 
-    /** 5-tone stone ground ramp (darkest mortar to lightest block top-left edge). */
-    val STONE_GROUND_TONES: IntArray = intArrayOf(
+    /**
+     * Text-safe stone block faces (darkest to lightest). Every text colour keeps >= 4.5:1 on these,
+     * see ArtContrastTest; text only ever sits on block faces.
+     */
+    val STONE_GROUND_BASE_TONES: IntArray = intArrayOf(
         OsrsStonePoreDark.toArgb(),
         OsrsDarkStone.toArgb(),
         OsrsStoneMid.toArgb(),
         OsrsSlotEmpty.toArgb(),
+        OsrsPanelMid.toArgb(),
         OsrsPanelDark.toArgb()
+    )
+
+    /**
+     * Every tone the login-screen stone ground may draw: [STONE_GROUND_BASE_TONES] plus the thin
+     * chiselled bevels, mortar/undercut, and sparse dungeon moss in mortar corners.
+     */
+    val STONE_GROUND_TONES: IntArray = STONE_GROUND_BASE_TONES + intArrayOf(
+        OsrsOuterFrame.toArgb(),
+        OsrsBorderDark.toArgb(),
+        OsrsSlotRecessed.toArgb(),
+        OsrsPanelLight.toArgb(),
+        OsrsBorderOutline.toArgb(),
+        OsrsBorderLight.toArgb(),
+        OsrsHerbDark.toArgb()
     )
 
     /** 3-tone carved panel stone ramp (keeps OsrsRed >= 4.64:1 and OsrsHerbGreen >= 5.45:1). */
@@ -87,19 +112,36 @@ object Textures {
         OsrsLeatherStitch.toArgb()
     )
 
+    /** Ashlar style for the app background: bold 2-step bevel, deep joints, moss in the corners. */
+    internal val GROUND_ASHLAR: AshlarStyle
+        get() = AshlarStyle(
+            mortar = OsrsOuterFrame.toArgb(),
+            undercut = OsrsBorderDark.toArgb(),
+            faces = intArrayOf(
+                OsrsDarkStone.toArgb(),
+                OsrsStoneMid.toArgb(),
+                OsrsSlotEmpty.toArgb(),
+                OsrsPanelMid.toArgb(),
+                OsrsPanelDark.toArgb()
+            ),
+            topBevel = intArrayOf(OsrsBorderLight.toArgb(), OsrsPanelLight.toArgb()),
+            leftBevel = intArrayOf(OsrsBorderOutline.toArgb(), OsrsSlotRecessed.toArgb()),
+            moss = OsrsHerbDark.toArgb()
+        )
+
     /**
-     * OSRS login-screen dungeon wall: monumental ashlar blocks in [STONE_GROUND_TONES].
+     * OSRS login-screen dungeon wall: monumental ashlar blocks.
      *
      * - Courses 11-16 art px high, blocks 20-36 art px wide, laid in running bond.
-     * - 1-art-px dark mortar with chamfered (rounded-off) block corners.
-     * - Chiselled top/left catch-light, weathered so roughly a third of it is worn away.
-     * - Calm, broad slab mottling with the odd hairline fissure instead of per-pixel noise.
-     * - A torchlit falloff: blocks near the upper centre lean lighter, edges settle darker.
+     * - Deep 1-art-px joints with chamfered corners and a dark undercut on each block's lower/right edge.
+     * - A 2-step chiselled bevel along the top/left, worn away in places.
+     * - Calm, broad slab mottling on text-safe faces, the odd hairline fissure, sparse moss in corners.
+     * - A torchlit falloff: blocks near the upper centre are lighter and fully bevelled; edges settle darker.
      */
     fun drawStoneGround(canvas: PixelCanvas, seed: Int = 101) {
         drawAshlar(
             canvas = canvas,
-            ramp = STONE_GROUND_TONES,
+            style = GROUND_ASHLAR,
             seed = seed,
             courseMin = 11,
             courseRange = 6,
@@ -110,16 +152,26 @@ object Textures {
     }
 
     /**
-     * Draws ashlar masonry into rows [top] until [bottom] of [canvas].
-     *
-     * [ramp] runs darkest to lightest: `ramp[0]` is mortar, the last entry is the chiselled
-     * catch-light, and everything between is a block base tone. Every pixel is a [ramp] member.
-     * [jointsX], when given, fixes the vertical joints of a single course instead of random
-     * block widths, e.g. to line joints up with navigation columns.
+     * Tones for [drawAshlar]. [faces] run darkest to lightest; [topBevel] and [leftBevel] are
+     * (outer, inner) chiselled highlight steps. [moss], when set, flecks some mortar corners.
+     */
+    internal class AshlarStyle(
+        val mortar: Int,
+        val undercut: Int,
+        val faces: IntArray,
+        val topBevel: IntArray,
+        val leftBevel: IntArray,
+        val moss: Int? = null
+    )
+
+    /**
+     * Draws ashlar masonry into rows [top] until [bottom] of [canvas] in [style].
+     * [jointsX], when given, fixes the vertical joints of a single course instead of random block
+     * widths, e.g. to line joints up with navigation columns.
      */
     internal fun drawAshlar(
         canvas: PixelCanvas,
-        ramp: IntArray,
+        style: AshlarStyle,
         seed: Int,
         courseMin: Int,
         courseRange: Int,
@@ -133,10 +185,8 @@ object Textures {
         val w = canvas.w
         val h = canvas.h
         if (w <= 0 || bottom <= top) return
-        require(ramp.size >= 4) { "ashlar ramp needs mortar, two base tones and a catch-light" }
-        val mortar = ramp[0]
-        val lastBase = ramp.size - 2
-        val baseCount = lastBase
+        val faces = style.faces
+        val faceCount = faces.size
 
         var y = top
         var courseIdx = 0
@@ -164,20 +214,25 @@ object Textures {
                 if (jointsX == null && prevEnds.any { abs(it - xEnd) <= 3 }) xEnd += 6
 
                 val midX = (x.coerceAtLeast(0) + xEnd.coerceAtMost(w)) / 2
+                // 0 = far from the torch, 1 = near it
+                val light = if (torchlight) {
+                    val dx = (midX - w / 2).toFloat() / w
+                    val dy = ((y + mortarY) / 2 - h / 4).toFloat() / h
+                    (1f - sqrt(dx * dx + dy * dy * 1.6f) * 1.5f).coerceIn(0f, 1f)
+                } else {
+                    1f
+                }
                 val upperIdx = prevEnds.indexOfFirst { midX < it }
                 val upperTone = if (upperIdx >= 0) prevTones[upperIdx] else -1
                 val preferred = if (torchlight) {
-                    val dx = (midX - w / 2).toFloat() / w
-                    val dy = ((y + mortarY) / 2 - h / 4).toFloat() / h
-                    val d = sqrt(dx * dx + dy * dy * 1.6f)
-                    (baseCount - 1 - (d * baseCount * 1.6f).toInt()).coerceIn(0, baseCount - 1)
+                    (light * (faceCount - 1) + 0.5f).toInt().coerceIn(0, faceCount - 1)
                 } else {
-                    PixelNoise.hash(blockIdx, courseIdx, seed + 37) % baseCount
+                    PixelNoise.hash(blockIdx, courseIdx, seed + 37) % faceCount
                 }
                 var toneIdx = preferred
                 for (step in intArrayOf(0, -1, 1, -2, 2)) {
                     val candidate = preferred + step
-                    if (candidate in 0 until baseCount && candidate != leftTone && candidate != upperTone) {
+                    if (candidate in 0 until faceCount && candidate != leftTone && candidate != upperTone) {
                         toneIdx = candidate
                         break
                     }
@@ -186,32 +241,40 @@ object Textures {
                 curEnds.add(xEnd)
                 curTones.add(toneIdx)
 
-                val b = 1 + toneIdx
-                val catchLight = ramp[b + 1]
-                val shadow = ramp[b - 1]
-                val lighter = ramp[(b + 1).coerceAtMost(lastBase)]
+                val face = faces[toneIdx]
+                val lighter = faces[(toneIdx + 1).coerceAtMost(faceCount - 1)]
+                val darker = faces[(toneIdx - 1).coerceAtLeast(0)]
+                // Blocks far from the torch keep only the softer inner bevel step.
+                val fullBevel = light > 0.35f
+                val topOuter = if (fullBevel) style.topBevel[0] else style.topBevel[1]
+                val leftOuter = if (fullBevel) style.leftBevel[0] else style.leftBevel[1]
                 val blockW = xEnd - x
                 val hasFissure = PixelNoise.hash(blockIdx, courseIdx, seed + 5) % 4 == 0 &&
                     blockW > 14 && courseH > 10
-                val fx = x + 4 + PixelNoise.hash(blockIdx, courseIdx, seed + 11) % (blockW - 10).coerceAtLeast(1)
-                val fy = y + 3 + PixelNoise.hash(blockIdx, courseIdx, seed + 13) % (courseH - 7).coerceAtLeast(1)
+                val fx = x + 5 + PixelNoise.hash(blockIdx, courseIdx, seed + 11) % (blockW - 11).coerceAtLeast(1)
+                val fy = y + 4 + PixelNoise.hash(blockIdx, courseIdx, seed + 13) % (courseH - 8).coerceAtLeast(1)
+                val mossy = style.moss != null && PixelNoise.hash(blockIdx, courseIdx, seed + 3) % 5 == 0
 
                 for (py in y..mortarY) {
                     for (px in x.coerceAtLeast(0) until xEnd.coerceAtMost(w)) {
                         val corner = (px == x || px == xEnd - 2) && (py == y || py == mortarY - 1)
-                        val worn = PixelNoise.hash(px, py, seed + 53) < 77
+                        val worn = PixelNoise.hash(px, py, seed + 53) < 51
                         val color = when {
-                            py == mortarY || px == xEnd - 1 || corner -> mortar
-                            py == y || px == x -> if (worn) ramp[b] else catchLight
-                            py == mortarY - 1 || px == xEnd - 2 -> shadow
-                            hasFissure && px - fx in 0..3 && py - fy == (px - fx) / 2 -> mortar
+                            mossy && py >= mortarY - 1 && px - x in 0..2 && (px - x) + (mortarY - py) <= 2 -> style.moss!!
+                            py == mortarY || px == xEnd - 1 || corner -> style.mortar
+                            py == mortarY - 1 || px == xEnd - 2 -> style.undercut
+                            py == y -> if (worn) style.topBevel[1] else topOuter
+                            px == x -> if (worn) style.leftBevel[1] else leftOuter
+                            fullBevel && py == y + 1 -> style.topBevel[1]
+                            fullBevel && px == x + 1 -> style.leftBevel[1]
+                            hasFissure && px - fx in 0..3 && py - fy == (px - fx) / 2 -> style.undercut
                             else -> {
                                 val v = PixelNoise.value(px, py, 8, seed + 71)
                                 val threshold = PixelNoise.bayer4(px, py) * 16 + 8
                                 when {
                                     v > 180 && (v - 180) * 3 > threshold -> lighter
-                                    v < 60 && (60 - v) * 3 > threshold -> shadow
-                                    else -> ramp[b]
+                                    v < 60 && (60 - v) * 3 > threshold -> darker
+                                    else -> face
                                 }
                             }
                         }

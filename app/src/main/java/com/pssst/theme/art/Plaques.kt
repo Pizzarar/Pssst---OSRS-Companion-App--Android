@@ -44,8 +44,8 @@ import com.pssst.theme.OsrsTextPrimary
 object Plaques {
 
     /**
-     * Draws a carved OSRS login-screen monument tablet: chiselled stone with an ashlar joint near
-     * each end, a double border (brass outer bevel, recessed channel, inner stone bevel), stepped
+     * Draws a carved OSRS login-screen monument tablet: chiselled ashlar stone with a joint near
+     * each end, a double gold border (gold outer bevel, brass channel, inner stone bevel), stepped
      * corners and brass side rivets.
      */
     fun drawPlaqueFrame(canvas: PixelCanvas, seed: Int = 208) {
@@ -57,7 +57,7 @@ object Plaques {
         if (w >= 40 && h >= 12) {
             Textures.drawAshlar(
                 canvas = canvas,
-                ramp = Frames.TABLET_RAMP,
+                style = Frames.BAR_ASHLAR,
                 seed = seed,
                 courseMin = h,
                 courseRange = 1,
@@ -73,19 +73,19 @@ object Plaques {
         val dark = OsrsBorderDark.toArgb()
         val ext = OsrsDarkStone.toArgb()
 
-        canvas.bevelBox(0, 0, w, h, outline = outline, light = brass, dark = dark, raised = true)
+        canvas.bevelBox(0, 0, w, h, outline = outline, light = OsrsGoldHighlight.toArgb(), dark = OsrsGoldShadow.toArgb(), raised = true)
         if (w > 8 && h > 8) {
-            canvas.rectOutline(2, 2, w - 4, h - 4, OsrsSlotEmpty.toArgb())
+            canvas.rectOutline(2, 2, w - 4, h - 4, brass)
             canvas.hLine(3, 3, w - 7, OsrsBorderLight.toArgb())
             canvas.vLine(3, 3, h - 7, OsrsBorderLight.toArgb())
             canvas.hLine(3, h - 4, w - 6, dark)
             canvas.vLine(w - 4, 3, h - 6, dark)
         }
         if (w >= 14 && h >= 10) {
-            canvas.stairCorner(0, 0, steps = 2, cornerIndex = 0, outline = outline, bevelTone = brass, exteriorFill = ext)
-            canvas.stairCorner(w - 1, 0, steps = 2, cornerIndex = 1, outline = outline, bevelTone = brass, exteriorFill = ext)
-            canvas.stairCorner(w - 1, h - 1, steps = 2, cornerIndex = 2, outline = outline, bevelTone = dark, exteriorFill = ext)
-            canvas.stairCorner(0, h - 1, steps = 2, cornerIndex = 3, outline = outline, bevelTone = dark, exteriorFill = ext)
+            canvas.stairCorner(0, 0, steps = 2, cornerIndex = 0, outline = outline, bevelTone = OsrsGoldHighlight.toArgb(), exteriorFill = ext)
+            canvas.stairCorner(w - 1, 0, steps = 2, cornerIndex = 1, outline = outline, bevelTone = OsrsGoldHighlight.toArgb(), exteriorFill = ext)
+            canvas.stairCorner(w - 1, h - 1, steps = 2, cornerIndex = 2, outline = outline, bevelTone = OsrsGoldShadow.toArgb(), exteriorFill = ext)
+            canvas.stairCorner(0, h - 1, steps = 2, cornerIndex = 3, outline = outline, bevelTone = OsrsGoldShadow.toArgb(), exteriorFill = ext)
         }
         if (w >= 20 && h >= 8) {
             val ry = (h / 2 - 1).coerceAtLeast(2)

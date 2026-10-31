@@ -79,3 +79,11 @@
 - **Constraint kept**: `ArtContrastTest` caps background luminance (OsrsRed needs 4.5:1), so the stone tone ramps stay as declared; the login-screen look comes from structure (block scale, chamfers, bevels, torchlight), not lighter stone.
 - **Deviation**: footer uses brass corner rivets instead of iron L-brackets, which the new tab slots would cover.
 - **Verification**: `python tools/art/build_art.py` (all grids pass contrast), `./gradlew testDebugUnitTest assembleDebug --rerun-tasks` → 151/151 passing, debug APK built. Inspected `materials.png`, `frames_plaques_ornaments.png`, `scenes.png`, `screens/02_overview.png`, `screens/17_overview_vignettes.png`.
+
+### Round 2b — Bolder login-screen masonry (Claude Opus)
+- **Shot review**: castle kept as-is (10/10); stone background and bars still too dark/low-contrast.
+- **Owner green light** (`OWNER_FEEDBACK.md`, 21:29): full procedural OSRS overhaul allowed; real item/skill icons untouched.
+- **Tones**: `Textures.STONE_GROUND_BASE_TONES` (PoreDark..PanelDark) are the text-safe block faces; `STONE_GROUND_TONES` now also carries OuterFrame, BorderDark, SlotRecessed, PanelLight, BorderOutline, BorderLight and HerbDark for bevels, joints and moss. `ArtContrastTest` checks text against the base faces + panel stone (text never sits on 1-2 px bevels).
+- **Ground**: `drawAshlar` is now style-driven (`AshlarStyle`): 2-step chiselled top/left bevel (#5D503E/#3B3327 top, #453B2F/#352E24 left), #0C0906 joints, #120E0A undercut, worn bevel gaps, calm faces, hairline fissures, sparse #2E6B31 moss in mortar corners; blocks far from the torch keep only the inner bevel step.
+- **Bars & plaque**: `Frames.BAR_ASHLAR` (2 px #5D503E + #453B2F bevel, #27211A..#352E24 faces, #120E0A undercut, #0C0906 joints); bright gold cornice rails (GoldHighlight / BrassMid / GoldShadow) on header, footer and plaque border.
+- **Verification**: `./gradlew testDebugUnitTest assembleDebug --rerun-tasks` → 151/151, APK built; inspected `screens/01_setup.png`, `screens/02_overview.png`.

@@ -24,7 +24,8 @@ class ArtContrastTest {
             "OsrsHerbGreen" to OsrsHerbGreen,
             "OsrsRed" to OsrsRed
         )
-        for (bg in Textures.STONE_GROUND_TONES + Textures.PANEL_STONE_TONES) {
+        // Text sits on block faces; bevels, mortar and moss are 1-2 art-px lines and are not checked.
+        for (bg in Textures.STONE_GROUND_BASE_TONES + Textures.PANEL_STONE_TONES) {
             for ((name, fg) in allText) {
                 val ratio = contrastRatio(fg.toArgb(), bg)
                 assertTrue(

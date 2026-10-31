@@ -123,22 +123,28 @@ object Frames {
     }
 
     /**
-     * Carved stone tablet ramp for bars and plaques: mortar, three text-safe panel tones, and a
-     * chiselled catch-light.
+     * Carved stone for bars and plaques: 2-art-px chiselled bevel, text-safe faces up to
+     * [OsrsSlotRecessed], dark undercut and joints.
      */
-    internal val TABLET_RAMP: IntArray
-        get() = intArrayOf(
-            OsrsStonePoreDark.toArgb(),
-            OsrsSlotEmpty.toArgb(),
-            OsrsPanelMid.toArgb(),
-            OsrsPanelDark.toArgb(),
-            OsrsBorderOutline.toArgb()
+    internal val BAR_ASHLAR: Textures.AshlarStyle
+        get() = Textures.AshlarStyle(
+            mortar = OsrsOuterFrame.toArgb(),
+            undercut = OsrsBorderDark.toArgb(),
+            faces = intArrayOf(OsrsPanelMid.toArgb(), OsrsPanelDark.toArgb(), OsrsSlotRecessed.toArgb()),
+            topBevel = intArrayOf(OsrsBorderLight.toArgb(), OsrsBorderOutline.toArgb()),
+            leftBevel = intArrayOf(OsrsBorderLight.toArgb(), OsrsBorderOutline.toArgb())
         )
 
+    /** Bright gold cornice rail, 3 art px: highlight, brass, shadow. */
+    private fun goldRail(canvas: PixelCanvas, y: Int) {
+        canvas.hLine(0, y, canvas.w, OsrsGoldHighlight.toArgb())
+        canvas.hLine(0, y + 1, canvas.w, OsrsBrassMid.toArgb())
+        canvas.hLine(0, y + 2, canvas.w, OsrsGoldShadow.toArgb())
+    }
+
     /**
-     * Top status bar: a heavy OSRS login-screen carved stone header. Two courses of chamfered
-     * ashlar between an iron-and-brass cornice on top and a stone-and-iron sill below, with brass
-     * rivets at the corners.
+     * Top status bar: a heavy OSRS login-screen carved stone header. Chiselled ashlar courses
+     * between bright gold cornice rails, with brass rivets at the corners.
      */
     fun drawOakBeamFrame(canvas: PixelCanvas, seed: Int = 202) {
         val w = canvas.w
@@ -147,12 +153,11 @@ object Frames {
 
         Textures.drawPanelStone(canvas, seed = seed)
         val body = (h - 10).coerceAtLeast(1)
-        val courseMin = if (body >= 24) body / 2 else body
         Textures.drawAshlar(
             canvas = canvas,
-            ramp = TABLET_RAMP,
+            style = BAR_ASHLAR,
             seed = seed,
-            courseMin = courseMin,
+            courseMin = if (body >= 24) body / 2 else body,
             courseRange = 1,
             blockMin = 30,
             blockRange = 14,
@@ -161,17 +166,11 @@ object Frames {
         )
 
         val outline = OsrsOuterFrame.toArgb()
-        // Top cornice: outline, forged iron molding, brass fillet, shadow under the lip
         canvas.hLine(0, 0, w, outline)
         if (h >= 12) {
-            canvas.hLine(0, 1, w, OsrsIronEdgeLight.toArgb())
-            canvas.hLine(0, 2, w, OsrsIronBody.toArgb())
-            canvas.hLine(0, 3, w, OsrsBrassMid.toArgb())
+            goldRail(canvas, 1)
             canvas.hLine(0, 4, w, OsrsBorderDark.toArgb())
-            // Bottom sill: brass fillet, iron, deep shadow, outline
-            canvas.hLine(0, h - 5, w, OsrsBorderLight.toArgb())
-            canvas.hLine(0, h - 4, w, OsrsBrassMid.toArgb())
-            canvas.hLine(0, h - 3, w, OsrsIronBody.toArgb())
+            goldRail(canvas, h - 5)
             canvas.hLine(0, h - 2, w, OsrsBorderDark.toArgb())
         }
         canvas.hLine(0, h - 1, w, outline)
@@ -183,8 +182,8 @@ object Frames {
     }
 
     /**
-     * Bottom navigation bar: an OSRS login-screen carved stone footer. One course of ashlar whose
-     * joints line up with the five tab columns, under a stone-and-brass cornice rail.
+     * Bottom navigation bar: an OSRS login-screen carved stone footer. One course of chiselled
+     * ashlar whose joints line up with the five tab columns, under a bright gold cornice rail.
      */
     fun drawStoneSillFrame(canvas: PixelCanvas, seed: Int = 109) {
         val w = canvas.w
@@ -195,28 +194,27 @@ object Frames {
         val joints = IntArray(5) { i -> if (i < 4) (w * (i + 1)) / 5 + 1 else w }
         Textures.drawAshlar(
             canvas = canvas,
-            ramp = TABLET_RAMP,
+            style = BAR_ASHLAR,
             seed = seed,
             courseMin = h,
             courseRange = 1,
             blockMin = 20,
             blockRange = 1,
-            top = 4,
-            bottom = (h - 2).coerceAtLeast(5),
+            top = 5,
+            bottom = (h - 2).coerceAtLeast(6),
             jointsX = joints
         )
         val outline = OsrsOuterFrame.toArgb()
         canvas.hLine(0, 0, w, outline)
         if (h >= 8) {
-            canvas.hLine(0, 1, w, OsrsBrassMid.toArgb())
-            canvas.hLine(0, 2, w, OsrsIronBody.toArgb())
-            canvas.hLine(0, 3, w, OsrsBorderDark.toArgb())
+            goldRail(canvas, 1)
+            canvas.hLine(0, 4, w, OsrsBorderDark.toArgb())
         }
         canvas.hLine(0, h - 2, w, OsrsBorderDark.toArgb())
         canvas.hLine(0, h - 1, w, outline)
         if (w >= 16 && h >= 16) {
-            brassRivet(canvas, 2, 5)
-            brassRivet(canvas, w - 5, 5)
+            brassRivet(canvas, 2, 6)
+            brassRivet(canvas, w - 5, 6)
         }
     }
 
